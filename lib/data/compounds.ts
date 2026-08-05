@@ -1,43 +1,80 @@
 export const compounds = [
   {
     id: "glp3-rt",
+    slug: "glp3-rt",
     name: "GLP-3 (RT)",
     strength: "10 mg",
+    category: "Weight Management",
     image: "/bottles/glp3.png",
+    featured: true,
+    overview:
+      "GLP-3 (RT) is presented as a lyophilized research peptide for laboratory research applications.",
+    presentation: "Lyophilized Powder",
+    storage: "Store refrigerated. Protect from light.",
   },
-
   {
     id: "glp2-trz",
+    slug: "glp2-trz",
     name: "GLP-2 (TRZ)",
-    strength: "20 mg",
-    image: "/bottles/glp2.png",
-  },
-
-  {
-    id: "glp1-sema",
-    name: "GLP-1 (SEMA)",
     strength: "10 mg",
-    image: "/bottles/glp1.png",
+    category: "Weight Management",
+    image: "/bottles/glp2.png",
+    featured: true,
+    overview:
+      "GLP-2 (TRZ) is presented as a lyophilized research peptide for laboratory research applications.",
+    presentation: "Lyophilized Powder",
+    storage: "Store refrigerated. Protect from light.",
   },
-
+  {
+    id: "klow",
+    slug: "klow",
+    name: "KLOW Stack",
+    strength: "80 mg",
+    category: "Recovery",
+    image: "/bottles/klow.png",
+    featured: true,
+    overview:
+      "KLOW Stack is presented as a multi-compound lyophilized research formulation.",
+    presentation: "Lyophilized Powder",
+    storage: "Store refrigerated. Protect from light.",
+  },
   {
     id: "motsc",
+    slug: "motsc",
     name: "MOTS-C",
     strength: "10 mg",
+    category: "Performance",
     image: "/bottles/motsc.png",
+    featured: true,
+    overview:
+      "MOTS-C is presented as a lyophilized research peptide for laboratory research applications.",
+    presentation: "Lyophilized Powder",
+    storage: "Store refrigerated. Protect from light.",
   },
-
-  {
-    id: "ss31",
-    name: "SS-31",
-    strength: "10 mg",
-    image: "/bottles/ss31.png",
-  },
-
   {
     id: "tesamorelin",
+    slug: "tesamorelin",
     name: "Tesamorelin",
     strength: "10 mg",
-    image: "/bottles/tesa.png",
+    category: "Performance",
+    image: "/bottles/tesamorelin.png",
+    featured: true,
+    overview:
+      "Tesamorelin is presented as a lyophilized research peptide for laboratory research applications.",
+    presentation: "Lyophilized Powder",
+    storage: "Store refrigerated. Protect from light.",
+  },
+  {
+    id: "wolverine",
+    slug: "wolverine",
+    name: "Wolverine Stack",
+    strength: "20 mg",
+    category: "Recovery",
+    image: "/bottles/wolverine.png",
+    featured: true,
+    overview:
+      "Wolverine Stack is presented as a multi-compound lyophilized research formulation.",
+    presentation: "Lyophilized Powder",
+    storage: "Store refrigerated. Protect from light.",
   },
 ];

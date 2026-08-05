@@ -3,6 +3,7 @@ import Link from "next/link";
 
 type Product = {
   id: string;
+  slug: string;
   name: string;
   strength: string;
   image: string;
@@ -15,20 +16,20 @@ export default function ProductCard({
 }) {
   return (
     <Link
-      href={`/compound/${product.id}`}
+      href={`/compound/${product.slug}`}
       className="group block"
     >
-      <div className="overflow-hidden rounded-3xl border border-neutral-200 bg-white transition-all duration-300 hover:-translate-y-2 hover:border-[#D4A11E] hover:shadow-2xl">
+      <div className="overflow-hidden rounded-[32px] border border-neutral-200 bg-white transition-all duration-500 hover:-translate-y-2 hover:border-[#D4A11E] hover:shadow-2xl">
 
-        <div className="flex h-72 items-center justify-center bg-gradient-to-b from-white to-neutral-50 p-10">
+        <div className="flex h-[460px] items-center justify-center bg-gradient-to-b from-white via-white to-neutral-50 px-10 pt-10 pb-6">
 
           <Image
-            src={product.image}
-            alt={product.name}
-            width={220}
-            height={220}
-            className="transition duration-300 group-hover:scale-105"
-          />
+  src={product.image}
+  alt={product.name}
+  width={340}
+  height={340}
+  className="h-auto w-[340px] drop-shadow-2xl transition-all duration-500 group-hover:-translate-y-2 group-hover:scale-105"
+/>
 
         </div>
 
@@ -42,7 +43,7 @@ export default function ProductCard({
             {product.name}
           </h3>
 
-          <p className="mt-2 text-neutral-500">
+          <p className="mt-2 text-sm uppercase tracking-[0.25em] text-neutral-500">
             {product.strength}
           </p>
 
