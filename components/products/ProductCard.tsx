@@ -19,37 +19,37 @@ export default function ProductCard({
       href={`/compound/${product.slug}`}
       className="group block"
     >
-      <div className="overflow-hidden rounded-[32px] border border-neutral-200 bg-white transition-all duration-500 hover:-translate-y-2 hover:border-[#D4A11E] hover:shadow-2xl">
+      <article className="overflow-hidden rounded-[24px] border border-neutral-200 bg-white transition-all duration-300 hover:border-[#D4A11E] hover:shadow-xl sm:rounded-[28px] lg:rounded-[32px]">
 
-        <div className="flex h-[460px] items-center justify-center bg-gradient-to-b from-white via-white to-neutral-50 px-10 pt-10 pb-6">
+        <div className="flex h-[280px] items-center justify-center bg-gradient-to-b from-white via-white to-neutral-50 px-6 py-6 sm:h-[340px] sm:px-8 lg:h-[400px]">
 
           <Image
-  src={product.image}
-  alt={product.name}
-  width={340}
-  height={340}
-  className="h-auto w-[340px] drop-shadow-2xl transition-all duration-500 group-hover:-translate-y-2 group-hover:scale-105"
-/>
+            src={product.image}
+            alt={product.name}
+            width={340}
+            height={340}
+            className="h-auto max-h-[240px] w-auto max-w-full object-contain drop-shadow-xl transition-transform duration-300 group-hover:scale-[1.03] sm:max-h-[290px] lg:max-h-[340px]"
+          />
 
         </div>
 
-        <div className="border-t border-neutral-200 p-6">
+        <div className="border-t border-neutral-200 p-5 sm:p-6">
 
-          <p className="text-xs uppercase tracking-[0.35em] text-[#D4A11E]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#D4A11E] sm:text-xs sm:tracking-[0.35em]">
             Research Compound
           </p>
 
-          <h3 className="mt-3 text-xl font-medium">
+          <h3 className="mt-3 text-xl font-medium text-neutral-950 sm:text-[22px]">
             {product.name}
           </h3>
 
-          <p className="mt-2 text-sm uppercase tracking-[0.25em] text-neutral-500">
+          <p className="mt-2 text-xs font-medium uppercase tracking-[0.22em] text-neutral-600 sm:text-sm sm:tracking-[0.25em]">
             {product.strength}
           </p>
 
         </div>
 
-      </div>
+      </article>
     </Link>
   );
 }

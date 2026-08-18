@@ -1,31 +1,5 @@
 export const compounds = [
   {
-    id: "glp3-rt",
-    slug: "glp3-rt",
-    name: "GLP-3 (RT)",
-    strength: "10 mg",
-    category: "Weight Management",
-    image: "/bottles/glp3.png",
-    featured: true,
-    overview:
-      "GLP-3 (RT) is presented as a lyophilized research peptide for laboratory research applications.",
-    presentation: "Lyophilized Powder",
-    storage: "Store refrigerated. Protect from light.",
-  },
-  {
-    id: "glp2-trz",
-    slug: "glp2-trz",
-    name: "GLP-2 (TRZ)",
-    strength: "10 mg",
-    category: "Weight Management",
-    image: "/bottles/glp2.png",
-    featured: true,
-    overview:
-      "GLP-2 (TRZ) is presented as a lyophilized research peptide for laboratory research applications.",
-    presentation: "Lyophilized Powder",
-    storage: "Store refrigerated. Protect from light.",
-  },
-  {
     id: "klow",
     slug: "klow",
     name: "KLOW Stack",
