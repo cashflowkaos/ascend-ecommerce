@@ -1,0 +1,49 @@
+import Link from "next/link";
+import {
+  Boxes,
+  LayoutDashboard,
+  MessageSquare,
+  PackageCheck,
+  ShoppingBag,
+  Users,
+} from "lucide-react";
+
+const links = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/inventory", label: "Inventory", icon: Boxes },
+  { href: "/admin/members", label: "Members", icon: Users },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/messages", label: "Messages", icon: MessageSquare },
+];
+
+export default function AdminSidebar() {
+  return (
+    <aside className="admin-sidebar">
+      <div className="admin-brand">
+        <div className="admin-brand-mark">A</div>
+
+        <div>
+          <div className="admin-brand-name">ASCEND</div>
+          <div className="admin-brand-subtitle">ADMIN</div>
+        </div>
+      </div>
+
+      <nav className="admin-nav">
+        {links.map(({ href, label, icon: Icon }) => (
+          <Link key={href} href={href} className="admin-nav-link">
+            <Icon size={18} strokeWidth={1.8} />
+            <span>{label}</span>
+          </Link>
+        ))}
+      </nav>
+
+      <div className="admin-sidebar-footer">
+        <PackageCheck size={18} />
+        <div>
+          <strong>Ascend Peptide Co.</strong>
+          <span>Management Portal</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
