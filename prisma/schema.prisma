@@ -81,6 +81,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  sessions       Session[]
   addresses      Address[]
   orders         Order[]
   messageThreads MessageThread[]
@@ -91,6 +92,27 @@ model User {
   @@index([lastName, firstName])
 }
 
+
+// ============================================================
+// AUTH SESSIONS
+// ============================================================
+
+model Session {
+  id String @id @default(cuid())
+
+  tokenHash String @unique
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([expiresAt])
+}
 // ============================================================
 // MEMBER ADDRESSES
 // ============================================================
