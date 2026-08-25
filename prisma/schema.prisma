@@ -1,7 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// ============================================================
+// ASCEND PEPTIDE CO.
+// Core Ecommerce / Membership Database
+// ============================================================
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +10,349 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  MEMBER
+  ADMIN
+}
+
+enum MemberStatus {
+  PENDING
+  APPROVED
+  DISABLED
+  DECLINED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum InventoryMovementType {
+  INITIAL
+  RECEIVED
+  SOLD
+  ADJUSTMENT
+  RETURNED
+  DAMAGED
+}
+
+enum MessageThreadStatus {
+  OPEN
+  CLOSED
+}
+
+// ============================================================
+// USERS / MEMBERS
+// ============================================================
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+
+  role   UserRole     @default(MEMBER)
+  status MemberStatus @default(PENDING)
+
+  approvedAt  DateTime?
+  disabledAt  DateTime?
+  lastLoginAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses      Address[]
+  orders         Order[]
+  messageThreads MessageThread[]
+  messages       Message[]
+
+  @@index([status])
+  @@index([role])
+  @@index([lastName, firstName])
+}
+
+// ============================================================
+// MEMBER ADDRESSES
+// ============================================================
+
+model Address {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  label      String? @default("Shipping")
+  firstName  String
+  lastName   String
+  company    String?
+  address1   String
+  address2   String?
+  city       String
+  state      String
+  postalCode String
+  country    String  @default("US")
+  phone      String?
+
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================================
+// PRODUCTS
+// ============================================================
+
+model Product {
+  id String @id @default(cuid())
+
+  slug String  @unique
+  sku  String? @unique
+
+  name     String
+  strength String
+  category String
+
+  image String?
+
+  overview     String @db.Text
+  composition  Json?
+  presentation String
+  storage      String
+
+  researchNotice String? @db.Text
+
+  memberPrice Decimal? @db.Decimal(10, 2)
+
+  featured    Boolean @default(false)
+  active      Boolean @default(true)
+  purchasable Boolean @default(false)
+
+  trackInventory Boolean @default(true)
+  inventoryQty   Int     @default(0)
+  lowStockAt     Int     @default(5)
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  literature     ProductLiterature[]
+  inventoryMoves InventoryMovement[]
+  orderItems     OrderItem[]
+
+  @@index([active])
+  @@index([featured])
+  @@index([category])
+}
+
+// ============================================================
+// PRODUCT LITERATURE
+// ============================================================
+
+model ProductLiterature {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  title   String
+  journal String
+  year    Int
+  type    String
+  url     String
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+// ============================================================
+// INVENTORY HISTORY
+// ============================================================
+
+model InventoryMovement {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  type InventoryMovementType
+
+  quantity       Int
+  quantityBefore Int
+  quantityAfter  Int
+
+  note      String?
+  createdBy String?
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+
+model Order {
+  id          String @id @default(cuid())
+  orderNumber String @unique
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+
+  subtotal       Decimal @db.Decimal(10, 2)
+  shippingAmount Decimal @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(10, 2)
+  total          Decimal @db.Decimal(10, 2)
+
+  shippingFirstName  String
+  shippingLastName   String
+  shippingCompany    String?
+  shippingAddress1   String
+  shippingAddress2   String?
+  shippingCity       String
+  shippingState      String
+  shippingPostalCode String
+  shippingCountry    String  @default("US")
+  shippingPhone      String?
+
+  customerNote String? @db.Text
+  adminNote    String? @db.Text
+
+  trackingNumber String?
+  shippedAt      DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================================
+// ORDER ITEMS
+// ============================================================
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  productName String
+  sku         String?
+  strength    String
+
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  lineTotal Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ============================================================
+// MEMBER / ADMIN MESSAGING
+// ============================================================
+
+model MessageThread {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subject String
+  status  MessageThreadStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model Message {
+  id String @id @default(cuid())
+
+  threadId String
+  thread   MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id])
+
+  body   String    @db.Text
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([threadId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// PUBLIC CONTACT INQUIRIES
+// ============================================================
+
+model ContactInquiry {
+  id String @id @default(cuid())
+
+  firstName String
+  lastName  String?
+  email     String
+  phone     String?
+  subject   String?
+  message   String  @db.Text
+
+  readAt     DateTime?
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([readAt])
 }
