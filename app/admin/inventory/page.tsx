@@ -1,9 +1,19 @@
 import Link from "next/link";
-import { PackagePlus, Pencil } from "lucide-react";
+import {
+  PackagePlus,
+  Pencil,
+} from "lucide-react";
+
 import { prisma } from "@/lib/prisma";
-import { updateInventoryProduct } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+function money(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+}
 
 export default async function InventoryPage() {
   const products = await prisma.product.findMany({
@@ -11,32 +21,142 @@ export default async function InventoryPage() {
       { sortOrder: "asc" },
       { name: "asc" },
     ],
+
+    include: {
+      variants: {
+        orderBy: [
+          { sortOrder: "asc" },
+          { createdAt: "asc" },
+        ],
+
+        select: {
+          id: true,
+          strength: true,
+          memberPrice: true,
+          inventoryQty: true,
+          lowStockAt: true,
+          active: true,
+          purchasable: true,
+        },
+      },
+    },
   });
 
+  const inventoryFor = (
+    product: (typeof products)[number]
+  ) => {
+    if (product.variants.length > 0) {
+      return product.variants.reduce(
+        (sum, variant) =>
+          sum + variant.inventoryQty,
+        0
+      );
+    }
+
+    return product.inventoryQty;
+  };
+
+  const isProductLow = (
+    product: (typeof products)[number]
+  ) => {
+    if (!product.active || !product.trackInventory) {
+      return false;
+    }
+
+    if (product.variants.length > 0) {
+      const activeVariants =
+        product.variants.filter(
+          (variant) => variant.active
+        );
+
+      if (activeVariants.length === 0) {
+        return false;
+      }
+
+      return activeVariants.some(
+        (variant) =>
+          variant.inventoryQty <=
+          variant.lowStockAt
+      );
+    }
+
+    return (
+      product.inventoryQty <=
+      product.lowStockAt
+    );
+  };
+
+  const priceFor = (
+    product: (typeof products)[number]
+  ) => {
+    const variantPrices = product.variants
+      .filter(
+        (variant) =>
+          variant.active &&
+          variant.memberPrice !== null
+      )
+      .map((variant) =>
+        Number(variant.memberPrice)
+      );
+
+    if (variantPrices.length === 0) {
+      return product.memberPrice !== null
+        ? money(Number(product.memberPrice))
+        : "—";
+    }
+
+    const minimum = Math.min(
+      ...variantPrices
+    );
+
+    const maximum = Math.max(
+      ...variantPrices
+    );
+
+    if (minimum === maximum) {
+      return money(minimum);
+    }
+
+    return `${money(minimum)} – ${money(maximum)}`;
+  };
+
   const totalUnits = products.reduce(
-    (sum, product) => sum + product.inventoryQty,
+    (sum, product) =>
+      sum + inventoryFor(product),
     0
   );
 
   const lowStock = products.filter(
-    (product) =>
-      product.active &&
-      product.trackInventory &&
-      product.inventoryQty <= product.lowStockAt
+    isProductLow
   ).length;
 
   const purchasable = products.filter(
-    (product) => product.purchasable
+    (product) =>
+      product.active &&
+      (
+        product.variants.length > 0
+          ? product.variants.some(
+              (variant) =>
+                variant.active &&
+                variant.purchasable
+            )
+          : product.purchasable
+      )
   ).length;
 
   return (
     <div>
       <div className="admin-page-heading admin-inventory-heading">
         <div>
-          <span className="admin-eyebrow">CATALOG</span>
+          <span className="admin-eyebrow">
+            CATALOG
+          </span>
+
           <h1>Inventory</h1>
+
           <p>
-            Manage member pricing, stock and product availability.
+            Review pricing, stock and product availability.
+            Open a product to make adjustments.
           </p>
         </div>
 
@@ -79,135 +199,129 @@ export default async function InventoryPage() {
                 <th>Product</th>
                 <th>Member Price</th>
                 <th>Inventory</th>
-                <th>Low At</th>
                 <th>Active</th>
                 <th>Purchasable</th>
                 <th>Featured</th>
-                <th>Save</th>
                 <th>Edit</th>
               </tr>
             </thead>
 
             <tbody>
               {products.map((product) => {
-                const isLow =
-                  product.trackInventory &&
-                  product.inventoryQty <= product.lowStockAt;
+                const inventory =
+                  inventoryFor(product);
 
-                const formId = `inventory-${product.id}`;
+                const isLow =
+                  isProductLow(product);
+
+                const hasVariants =
+                  product.variants.length > 0;
+
+                const active =
+                  product.active;
+
+                const canPurchase =
+                  active &&
+                  (
+                    hasVariants
+                      ? product.variants.some(
+                          (variant) =>
+                            variant.active &&
+                            variant.purchasable
+                        )
+                      : product.purchasable
+                  );
 
                 return (
                   <tr key={product.id}>
                     <td>
                       <div className="admin-inventory-product">
-                        <strong>{product.name}</strong>
+                        <strong>
+                          {product.name}
+                        </strong>
+
                         <span>
-                          {product.strength} · {product.category}
+                          {hasVariants
+                            ? `${product.variants.length} ${
+                                product.variants.length === 1
+                                  ? "variant"
+                                  : "variants"
+                              } · ${product.category}`
+                            : `${product.strength} · ${product.category}`}
                         </span>
                       </div>
-
-                      <form
-                        id={formId}
-                        action={updateInventoryProduct}
-                      >
-                        <input
-                          type="hidden"
-                          name="id"
-                          value={product.id}
-                        />
-                      </form>
                     </td>
 
                     <td>
-                      <div className="admin-money-input">
-                        <span>$</span>
+                      <strong className="text-sm font-medium text-neutral-900">
+                        {priceFor(product)}
+                      </strong>
+                    </td>
 
-                        <input
-                          form={formId}
-                          name="memberPrice"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          defaultValue={
-                            product.memberPrice?.toString() ?? ""
+                    <td>
+                      <div>
+                        <strong
+                          className={
+                            isLow
+                              ? "text-sm font-semibold text-red-600"
+                              : "text-sm font-semibold text-neutral-900"
                           }
-                          placeholder="0.00"
-                        />
+                        >
+                          {inventory}
+                        </strong>
+
+                        <span className="ml-1 text-xs text-neutral-400">
+                          units
+                        </span>
+
+                        {isLow && (
+                          <span className="ml-2 inline-flex rounded-full bg-red-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-red-600">
+                            Low
+                          </span>
+                        )}
                       </div>
                     </td>
 
                     <td>
-                      <input
-                        form={formId}
+                      <span
                         className={
-                          isLow
-                            ? "admin-number-input admin-number-input-low"
-                            : "admin-number-input"
+                          active
+                            ? "inline-flex rounded-full bg-green-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-green-700"
+                            : "inline-flex rounded-full bg-neutral-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-500"
                         }
-                        name="inventoryQty"
-                        type="number"
-                        min="0"
-                        step="1"
-                        defaultValue={product.inventoryQty}
-                      />
-                    </td>
-
-                    <td>
-                      <input
-                        form={formId}
-                        className="admin-number-input"
-                        name="lowStockAt"
-                        type="number"
-                        min="0"
-                        step="1"
-                        defaultValue={product.lowStockAt}
-                      />
-                    </td>
-
-                    <td>
-                      <label className="admin-switch">
-                        <input
-                          form={formId}
-                          type="checkbox"
-                          name="active"
-                          defaultChecked={product.active}
-                        />
-                        <span />
-                      </label>
-                    </td>
-
-                    <td>
-                      <label className="admin-switch">
-                        <input
-                          form={formId}
-                          type="checkbox"
-                          name="purchasable"
-                          defaultChecked={product.purchasable}
-                        />
-                        <span />
-                      </label>
-                    </td>
-
-                    <td>
-                      <label className="admin-switch">
-                        <input
-                          form={formId}
-                          type="checkbox"
-                          name="featured"
-                          defaultChecked={product.featured}
-                        />
-                        <span />
-                      </label>
-                    </td>
-
-                    <td>
-                      <button
-                        form={formId}
-                        type="submit"
-                        className="admin-save-button"
                       >
-                        Save
-                      </button>
+                        {active
+                          ? "Active"
+                          : "Inactive"}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span
+                        className={
+                          canPurchase
+                            ? "inline-flex rounded-full bg-green-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-green-700"
+                            : "inline-flex rounded-full bg-neutral-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-500"
+                        }
+                      >
+                        {canPurchase
+                          ? "Yes"
+                          : "No"}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span
+                        className={
+                          product.featured
+                            ? "inline-flex rounded-full bg-[#D4A11E]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a7312]"
+                            : "inline-flex rounded-full bg-neutral-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-500"
+                        }
+                      >
+                        {product.featured
+                          ? "Yes"
+                          : "No"}
+                      </span>
                     </td>
 
                     <td>

@@ -8,6 +8,7 @@ export {
   destroySession,
   destroyAllUserSessions,
   getCurrentUser,
+  hasStorefrontMemberAccess,
   requireUser,
   requireAdmin,
   requireApprovedMember,

@@ -3326,3 +3326,90 @@ img {
     width: 100%;
   }
 }
+
+/* ============================================================
+   ADMIN PRODUCT VARIANTS
+   ============================================================ */
+
+.admin-variant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-variant-card {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.5fr) repeat(3, minmax(90px, .7fr)) minmax(150px, 1fr);
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.admin-variant-main,
+.admin-variant-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-variant-main strong {
+  color: #171717;
+  font-size: 15px;
+}
+
+.admin-variant-main span,
+.admin-variant-stat span {
+  color: #8a8a8a;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.admin-variant-stat strong {
+  color: #222;
+  font-size: 13px;
+}
+
+.admin-variant-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.admin-variant-pill {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f1f1f1;
+  color: #777;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.admin-variant-pill.is-active,
+.admin-variant-pill.is-purchasable {
+  background: rgba(212, 161, 30, .12);
+  color: #9b7410;
+}
+
+@media (max-width: 760px) {
+  .admin-variant-card {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .admin-variant-main {
+    grid-column: 1 / -1;
+  }
+
+  .admin-variant-status {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}

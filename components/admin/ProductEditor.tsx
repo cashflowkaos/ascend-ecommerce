@@ -16,6 +16,17 @@ type ProductEditorValues = {
   purchasable?: boolean;
   trackInventory?: boolean;
   sortOrder?: number;
+  variants?: {
+    id: string;
+    strength: string;
+    sku: string | null;
+    memberPrice: string | null;
+    inventoryQty: number;
+    lowStockAt: number;
+    active: boolean;
+    purchasable: boolean;
+    sortOrder: number;
+  }[];
 };
 
 type ProductEditorProps = {

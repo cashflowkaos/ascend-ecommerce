@@ -220,7 +220,10 @@ export default async function AccountPage() {
         </section>
 
         <section className="member-account-stat-grid">
-          <article className="member-account-stat">
+          <Link
+            href="/account/orders"
+            className="member-account-stat member-account-stat-link"
+          >
             <ShoppingBag size={19} />
 
             <div>
@@ -228,7 +231,7 @@ export default async function AccountPage() {
               <span>Orders</span>
               <small>Current & Past</small>
             </div>
-          </article>
+          </Link>
 
           <Link
             href="/account/messages"

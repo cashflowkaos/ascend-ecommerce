@@ -1,11 +1,14 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import FeaturedCompounds from "@/components/products/FeaturedCompounds";
+import { hasStorefrontMemberAccess } from "@/lib/auth";
 
-export default function CompoundsPage() {
+export default async function CompoundsPage() {
+  const memberMode =
+    await hasStorefrontMemberAccess();
   return (
     <>
-      <Header />
+      <Header memberMode={memberMode} />
 
       <main className="min-h-screen bg-white text-neutral-900">
 

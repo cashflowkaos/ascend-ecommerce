@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import ProductEditor from "@/components/admin/ProductEditor";
+import ProductVariantsEditor from "@/components/admin/ProductVariantsEditor";
 import { prisma } from "@/lib/prisma";
 import { updateProduct } from "../product-actions";
 
@@ -16,6 +17,14 @@ export default async function EditProductPage({
 
   const product = await prisma.product.findUnique({
     where: { id },
+    include: {
+      variants: {
+        orderBy: [
+          { sortOrder: "asc" },
+          { createdAt: "asc" },
+        ],
+      },
+    },
   });
 
   if (!product) {
@@ -60,7 +69,33 @@ export default async function EditProductPage({
           purchasable: product.purchasable,
           trackInventory: product.trackInventory,
           sortOrder: product.sortOrder,
+          variants: product.variants.map((variant) => ({
+            id: variant.id,
+            strength: variant.strength,
+            sku: variant.sku,
+            memberPrice: variant.memberPrice?.toString() ?? null,
+            inventoryQty: variant.inventoryQty,
+            lowStockAt: variant.lowStockAt,
+            active: variant.active,
+            purchasable: variant.purchasable,
+            sortOrder: variant.sortOrder,
+          })),
         }}
+      />
+
+      <ProductVariantsEditor
+        productId={product.id}
+        variants={product.variants.map((variant) => ({
+          id: variant.id,
+          strength: variant.strength,
+          sku: variant.sku,
+          memberPrice: variant.memberPrice?.toString() ?? null,
+          inventoryQty: variant.inventoryQty,
+          lowStockAt: variant.lowStockAt,
+          active: variant.active,
+          purchasable: variant.purchasable,
+          sortOrder: variant.sortOrder,
+        }))}
       />
     </div>
   );

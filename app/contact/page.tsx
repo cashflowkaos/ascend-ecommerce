@@ -1,11 +1,14 @@
 import Header from "@/components/layout/Header";
+import { hasStorefrontMemberAccess } from "@/lib/auth";
 import Footer from "@/components/layout/Footer";
 import { Mail, MapPin } from "lucide-react";
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const memberMode =
+    await hasStorefrontMemberAccess();
   return (
     <>
-      <Header />
+      <Header memberMode={memberMode} />
 
       <main className="min-h-screen bg-white text-neutral-900">
         <section className="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16 lg:py-24">

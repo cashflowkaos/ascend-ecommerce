@@ -113,6 +113,23 @@ export async function getCurrentUser() {
   return session.user;
 }
 
+export async function hasStorefrontMemberAccess() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return false;
+  }
+
+  if (user.role === "ADMIN") {
+    return true;
+  }
+
+  return (
+    user.role === "MEMBER" &&
+    user.status === "APPROVED" &&
+    !user.mustChangePassword
+  );
+}
 export async function requireUser() {
   const user = await getCurrentUser();
 

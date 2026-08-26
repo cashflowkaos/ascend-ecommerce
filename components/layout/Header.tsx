@@ -1,12 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, ShoppingCart, UserRound, X } from "lucide-react";
+import { CART_CHANGED_EVENT, getCartCount } from "@/lib/cart/cart";
 
-export default function Header() {
+type HeaderProps = {
+  memberMode?: boolean;
+};
+
+export default function Header({
+  memberMode = false,
+}: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    if (!memberMode) {
+      setCartCount(0);
+      return;
+    }
+
+    const updateCartCount = () => {
+      setCartCount(getCartCount());
+    };
+
+    updateCartCount();
+
+    window.addEventListener(
+      CART_CHANGED_EVENT,
+      updateCartCount
+    );
+
+    window.addEventListener(
+      "storage",
+      updateCartCount
+    );
+
+    return () => {
+      window.removeEventListener(
+        CART_CHANGED_EVENT,
+        updateCartCount
+      );
+
+      window.removeEventListener(
+        "storage",
+        updateCartCount
+      );
+    };
+  }, [memberMode]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white">
@@ -53,19 +96,41 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">
-            <Link
-              href="/signin"
-              className="flex h-11 items-center rounded-full border border-neutral-300 bg-white px-5 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900 transition hover:border-[#D4A11E] hover:text-[#D4A11E]"
-            >
-              Sign In
-            </Link>
+            {memberMode ? (
+              <>
+                <Link
+                  href="/cart"
+                  className="flex h-11 items-center gap-2 rounded-full border border-[#D4A11E] bg-[#D4A11E] px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#b98b17]"
+                >
+                  <ShoppingCart size={16} strokeWidth={1.8} />
+                  Cart ({cartCount})
+                </Link>
 
-            <Link
-              href="/signup"
-              className="flex h-11 items-center rounded-full border border-[#D4A11E] bg-[#D4A11E] px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#b98b17]"
-            >
-              Sign Up
-            </Link>
+                <Link
+                  href="/account"
+                  className="flex h-11 items-center gap-2 rounded-full border border-neutral-300 bg-white px-5 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900 transition hover:border-[#D4A11E] hover:text-[#D4A11E]"
+                >
+                  <UserRound size={16} strokeWidth={1.8} />
+                  My Account
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/signin"
+                  className="flex h-11 items-center rounded-full border border-neutral-300 bg-white px-5 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900 transition hover:border-[#D4A11E] hover:text-[#D4A11E]"
+                >
+                  Sign In
+                </Link>
+
+                <Link
+                  href="/signup"
+                  className="flex h-11 items-center rounded-full border border-[#D4A11E] bg-[#D4A11E] px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#b98b17]"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
 
           <button
@@ -115,23 +180,45 @@ export default function Header() {
               Contact
             </Link>
 
-            <div className="grid grid-cols-2 gap-3 py-5">
-              <Link
-                href="/signin"
-                onClick={() => setMenuOpen(false)}
-                className="flex h-12 items-center justify-center rounded-full border border-neutral-300 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900"
-              >
-                Sign In
-              </Link>
+            {memberMode ? (
+              <div className="grid grid-cols-2 gap-3 py-5">
+                <Link
+                  href="/cart"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex h-12 items-center justify-center gap-2 rounded-full border border-[#D4A11E] bg-[#D4A11E] text-xs font-semibold uppercase tracking-[0.16em] text-white"
+                >
+                  <ShoppingCart size={16} strokeWidth={1.8} />
+                  Cart ({cartCount})
+                </Link>
 
-              <Link
-                href="/signup"
-                onClick={() => setMenuOpen(false)}
-                className="flex h-12 items-center justify-center rounded-full border border-[#D4A11E] bg-[#D4A11E] text-xs font-semibold uppercase tracking-[0.16em] text-white"
-              >
-                Sign Up
-              </Link>
-            </div>
+                <Link
+                  href="/account"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex h-12 items-center justify-center gap-2 rounded-full border border-neutral-300 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900"
+                >
+                  <UserRound size={16} strokeWidth={1.8} />
+                  Account
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 py-5">
+                <Link
+                  href="/signin"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex h-12 items-center justify-center rounded-full border border-neutral-300 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900"
+                >
+                  Sign In
+                </Link>
+
+                <Link
+                  href="/signup"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex h-12 items-center justify-center rounded-full border border-[#D4A11E] bg-[#D4A11E] text-xs font-semibold uppercase tracking-[0.16em] text-white"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
       )}

@@ -5,6 +5,8 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getProduct } from "@/lib/repositories/products";
+import { hasStorefrontMemberAccess } from "@/lib/auth";
+import MemberPurchaseBox from "@/components/products/MemberPurchaseBox";
 
 export default async function CompoundPage({
   params,
@@ -12,6 +14,9 @@ export default async function CompoundPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  const memberMode =
+    await hasStorefrontMemberAccess();
 
   const product = await getProduct(slug);
 
@@ -21,7 +26,7 @@ export default async function CompoundPage({
 
   return (
     <>
-      <Header />
+      <Header memberMode={memberMode} />
 
       <main className="min-h-screen bg-white text-neutral-900">
         <section className="mx-auto max-w-[1400px] px-5 py-8 sm:px-8 sm:py-12 lg:px-10 lg:py-16">
@@ -59,9 +64,6 @@ export default async function CompoundPage({
                 {product.name}
               </h1>
 
-              <p className="mt-3 text-lg font-medium text-neutral-600 sm:mt-4 sm:text-xl">
-                {product.strength}
-              </p>
 
               <div className="mt-8 divide-y divide-neutral-200 border-y border-neutral-200 sm:mt-10">
 
@@ -170,6 +172,16 @@ export default async function CompoundPage({
                 )}
 
               </div>
+
+              {memberMode && (
+                <MemberPurchaseBox
+                  productId={product.commerceProductId!}
+                  slug={product.slug}
+                  productName={product.name}
+                  image={product.image}
+                  variants={product.variants}
+                />
+              )}
 
               <div className="mt-7 rounded-2xl border border-neutral-200 bg-neutral-50 p-5 sm:p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#D4A11E]">
