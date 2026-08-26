@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   Boxes,
@@ -20,12 +21,14 @@ export default function AdminSidebar() {
   return (
     <aside className="admin-sidebar">
       <div className="admin-brand">
-        <div className="admin-brand-mark">A</div>
-
-        <div>
-          <div className="admin-brand-name">ASCEND</div>
-          <div className="admin-brand-subtitle">ADMIN</div>
-        </div>
+        <Image
+          src="/logo/logoblk.JPG"
+          alt="Ascend"
+          width={744}
+          height={920}
+          priority
+          className="admin-brand-logo"
+        />
       </div>
 
       <nav className="admin-nav">

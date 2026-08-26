@@ -57,5 +57,9 @@ export async function signIn(formData: FormData) {
     redirect("/admin");
   }
 
+  if (user.mustChangePassword) {
+    redirect("/account/password");
+  }
+
   redirect("/account");
 }

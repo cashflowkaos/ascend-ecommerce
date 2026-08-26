@@ -9,6 +9,13 @@ export async function registerMember(formData: FormData) {
   const lastName = String(formData.get("lastName") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
 
+  const dateOfBirthValue = String(
+    formData.get("dateOfBirth") ?? ""
+  ).trim();
+
+  const ageCertified =
+    String(formData.get("ageCertified") ?? "") === "yes";
+
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
@@ -28,6 +35,8 @@ export async function registerMember(formData: FormData) {
     !firstName ||
     !lastName ||
     !phone ||
+    !dateOfBirthValue ||
+    !ageCertified ||
     !email ||
     !password ||
     !address1 ||
@@ -36,6 +45,27 @@ export async function registerMember(formData: FormData) {
     !postalCode
   ) {
     redirect("/signup?error=missing");
+  }
+
+  const dateOfBirth = new Date(`${dateOfBirthValue}T00:00:00`);
+
+  if (
+    Number.isNaN(dateOfBirth.getTime()) ||
+    dateOfBirth.toISOString().slice(0, 10) !== dateOfBirthValue
+  ) {
+    redirect("/signup?error=dob");
+  }
+
+  const today = new Date();
+
+  const twentyFirstBirthday = new Date(
+    dateOfBirth.getFullYear() + 21,
+    dateOfBirth.getMonth(),
+    dateOfBirth.getDate()
+  );
+
+  if (twentyFirstBirthday > today) {
+    redirect("/signup?error=underage");
   }
 
   if (password.length < 8) {
@@ -72,6 +102,9 @@ export async function registerMember(formData: FormData) {
 
         role: "MEMBER",
         status: "PENDING",
+
+        dateOfBirth,
+        ageCertifiedAt: new Date(),
 
         addresses: {
           create: {

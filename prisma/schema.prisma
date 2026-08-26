@@ -74,9 +74,13 @@ model User {
   role   UserRole     @default(MEMBER)
   status MemberStatus @default(PENDING)
 
-  approvedAt  DateTime?
-  disabledAt  DateTime?
-  lastLoginAt DateTime?
+  approvedAt     DateTime?
+  disabledAt     DateTime?
+  lastLoginAt    DateTime?
+
+  dateOfBirth       DateTime?
+  ageCertifiedAt    DateTime?
+  mustChangePassword Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

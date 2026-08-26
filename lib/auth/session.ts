@@ -144,5 +144,9 @@ export async function requireApprovedMember() {
     redirect("/account");
   }
 
+  if (user.mustChangePassword) {
+    redirect("/account/password");
+  }
+
   return user;
 }

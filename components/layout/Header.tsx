@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, ShoppingCart, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -11,7 +11,6 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white">
       <div className="mx-auto flex h-[72px] max-w-[1400px] items-center px-4 sm:px-6 md:h-20 md:px-10">
-
         <Link
           href="/"
           className="flex shrink-0 items-center"
@@ -53,19 +52,29 @@ export default function Header() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 md:flex">
+            <Link
+              href="/signin"
+              className="flex h-11 items-center rounded-full border border-neutral-300 bg-white px-5 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900 transition hover:border-[#D4A11E] hover:text-[#D4A11E]"
+            >
+              Sign In
+            </Link>
+
+            <Link
+              href="/signup"
+              className="flex h-11 items-center rounded-full border border-[#D4A11E] bg-[#D4A11E] px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#b98b17]"
+            >
+              Sign Up
+            </Link>
+          </div>
 
           <button
             type="button"
-            aria-label="Shopping cart"
-            className="flex h-11 items-center gap-2 rounded-full border border-neutral-300 bg-white px-3 text-neutral-900 transition hover:border-[#D4A11E] sm:px-4 md:px-5"
-          >
-            <ShoppingCart size={19} strokeWidth={1.8} />
-            <span className="text-sm font-medium">(0)</span>
-          </button>
-
-          <button
-            type="button"
-            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-label={
+              menuOpen
+                ? "Close navigation menu"
+                : "Open navigation menu"
+            }
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-900 md:hidden"
@@ -76,14 +85,12 @@ export default function Header() {
               <Menu size={22} strokeWidth={1.8} />
             )}
           </button>
-
         </div>
       </div>
 
       {menuOpen && (
         <div className="border-t border-neutral-200 bg-white md:hidden">
           <nav className="mx-auto flex max-w-[1400px] flex-col px-5 py-3">
-
             <Link
               href="/compounds"
               onClick={() => setMenuOpen(false)}
@@ -103,11 +110,28 @@ export default function Header() {
             <Link
               href="/contact"
               onClick={() => setMenuOpen(false)}
-              className="py-5 text-sm font-semibold uppercase tracking-[0.22em] text-neutral-900"
+              className="border-b border-neutral-100 py-5 text-sm font-semibold uppercase tracking-[0.22em] text-neutral-900"
             >
               Contact
             </Link>
 
+            <div className="grid grid-cols-2 gap-3 py-5">
+              <Link
+                href="/signin"
+                onClick={() => setMenuOpen(false)}
+                className="flex h-12 items-center justify-center rounded-full border border-neutral-300 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900"
+              >
+                Sign In
+              </Link>
+
+              <Link
+                href="/signup"
+                onClick={() => setMenuOpen(false)}
+                className="flex h-12 items-center justify-center rounded-full border border-[#D4A11E] bg-[#D4A11E] text-xs font-semibold uppercase tracking-[0.16em] text-white"
+              >
+                Sign Up
+              </Link>
+            </div>
           </nav>
         </div>
       )}

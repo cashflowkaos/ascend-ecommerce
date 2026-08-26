@@ -19,6 +19,12 @@ function getErrorMessage(error?: string) {
     case "exists":
       return "An account already exists with that email address.";
 
+    case "dob":
+      return "Enter a valid date of birth.";
+
+    case "underage":
+      return "You must be at least 21 years old to request membership.";
+
     case "failed":
       return "We could not create your membership request. Please try again.";
 
@@ -121,6 +127,42 @@ export default async function SignUpPage({
               </div>
             </div>
 
+            <div className="signup-section">
+              <div className="signup-section-heading">
+                <strong>Age Verification</strong>
+                <span>
+                  Ascend membership is available only to adults
+                  age 21 or older.
+                </span>
+              </div>
+
+              <div className="signup-grid">
+                <label className="auth-field signup-full">
+                  <span>Date of Birth *</span>
+                  <input
+                    name="dateOfBirth"
+                    type="date"
+                    autoComplete="bday"
+                    required
+                  />
+                </label>
+
+                <label className="signup-age-certification signup-full">
+                  <input
+                    name="ageCertified"
+                    type="checkbox"
+                    value="yes"
+                    required
+                  />
+
+                  <span>
+                    I certify that I am at least 21 years of age
+                    and that the date of birth provided above is
+                    accurate.
+                  </span>
+                </label>
+              </div>
+            </div>
             <div className="signup-section">
               <div className="signup-section-heading">
                 <strong>Shipping Address</strong>

@@ -1,10 +1,11 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
   Check,
   Clock3,
+  KeyRound,
   Mail,
   MapPin,
   Phone,
@@ -17,6 +18,8 @@ import {
   approveMember,
   declineMember,
   disableMember,
+  resetMemberPassword,
+  updateMemberAccount,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +89,8 @@ export default async function MemberReviewPage({
       approvedAt: true,
       disabledAt: true,
       lastLoginAt: true,
+      dateOfBirth: true,
+      ageCertifiedAt: true,
       createdAt: true,
       updatedAt: true,
 
@@ -169,36 +174,70 @@ export default async function MemberReviewPage({
             <UserRound size={20} />
           </div>
 
-          <div className="admin-member-detail-list">
-            <div className="admin-member-detail-row">
-              <span>Full Name</span>
-              <strong>
-                {member.firstName} {member.lastName}
-              </strong>
+          <form
+            action={updateMemberAccount}
+            className="admin-member-edit-form"
+          >
+            <input
+              type="hidden"
+              name="id"
+              value={member.id}
+            />
+
+            <div className="admin-member-edit-grid">
+              <label className="admin-member-edit-field">
+                <span>First Name</span>
+                <input
+                  name="firstName"
+                  defaultValue={member.firstName}
+                  required
+                />
+              </label>
+
+              <label className="admin-member-edit-field">
+                <span>Last Name</span>
+                <input
+                  name="lastName"
+                  defaultValue={member.lastName}
+                  required
+                />
+              </label>
+
+              <label className="admin-member-edit-field admin-member-edit-wide">
+                <span>Email Address</span>
+                <input
+                  name="email"
+                  type="email"
+                  defaultValue={member.email}
+                  required
+                />
+
+                <small>
+                  This is the member's login and notification email.
+                  Changing it will require the member to sign in again
+                  using the new address.
+                </small>
+              </label>
+
+              <label className="admin-member-edit-field admin-member-edit-wide">
+                <span>Phone Number</span>
+                <input
+                  name="phone"
+                  type="tel"
+                  defaultValue={member.phone ?? ""}
+                />
+              </label>
             </div>
 
-            <div className="admin-member-detail-row">
-              <span>Email Address</span>
-
-              <a href={`mailto:${member.email}`}>
-                <Mail size={14} />
-                {member.email}
-              </a>
+            <div className="admin-member-edit-actions">
+              <button
+                type="submit"
+                className="admin-member-button admin-member-button-approve"
+              >
+                Save Account Changes
+              </button>
             </div>
-
-            <div className="admin-member-detail-row">
-              <span>Phone Number</span>
-
-              {member.phone ? (
-                <a href={`tel:${member.phone}`}>
-                  <Phone size={14} />
-                  {member.phone}
-                </a>
-              ) : (
-                <strong>—</strong>
-              )}
-            </div>
-          </div>
+          </form>
         </article>
 
         <article className="admin-panel">
@@ -319,14 +358,77 @@ export default async function MemberReviewPage({
             <CalendarDays size={20} />
           </div>
 
-          <div className="admin-member-age-placeholder">
-            <strong>Not yet collected</strong>
+          {member.dateOfBirth && member.ageCertifiedAt ? (
+            <div className="admin-member-detail-list">
+              <div className="admin-member-detail-row">
+                <span>Date of Birth</span>
 
-            <p>
-              Date of birth verification will appear here
-              after the 21+ signup requirement is implemented.
-            </p>
-          </div>
+                <strong>
+                  {member.dateOfBirth.toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                    timeZone: "UTC",
+                  })}
+                </strong>
+              </div>
+
+              <div className="admin-member-detail-row">
+                <span>Age</span>
+
+                <strong>
+                  {(() => {
+                    const today = new Date();
+                    const birthDate = member.dateOfBirth;
+
+                    let age =
+                      today.getUTCFullYear() -
+                      birthDate.getUTCFullYear();
+
+                    const birthdayPassed =
+                      today.getUTCMonth() >
+                        birthDate.getUTCMonth() ||
+                      (today.getUTCMonth() ===
+                        birthDate.getUTCMonth() &&
+                        today.getUTCDate() >=
+                          birthDate.getUTCDate());
+
+                    if (!birthdayPassed) {
+                      age--;
+                    }
+
+                    return `${age} years old`;
+                  })()}
+                </strong>
+              </div>
+
+              <div className="admin-member-detail-row">
+                <span>21+ Status</span>
+                <strong>Verified 21+</strong>
+              </div>
+
+              <div className="admin-member-detail-row">
+                <span>Certified</span>
+
+                <strong>
+                  {member.ageCertifiedAt.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </strong>
+              </div>
+            </div>
+          ) : (
+            <div className="admin-member-age-placeholder">
+              <strong>Legacy Member</strong>
+
+              <p>
+                Age verification was not collected when this
+                membership record was created.
+              </p>
+            </div>
+          )}
         </article>
       </section>
 
@@ -401,6 +503,59 @@ export default async function MemberReviewPage({
             </form>
           )}
         </div>
+      </section>
+
+      <section className="admin-panel admin-member-decision-panel">
+        <div className="admin-panel-heading">
+          <div>
+            <span className="admin-eyebrow">
+              ACCOUNT SECURITY
+            </span>
+
+            <h2>Temporary Password</h2>
+
+            <p>
+              Set a temporary password if this member cannot
+              access their account. Existing sessions will be
+              signed out, and the member will be required to
+              choose a new password after signing in.
+            </p>
+          </div>
+
+          <KeyRound size={19} />
+        </div>
+
+        <form
+          action={resetMemberPassword}
+          className="admin-member-password-form"
+        >
+          <input
+            type="hidden"
+            name="id"
+            value={member.id}
+          />
+
+          <label className="admin-member-password-field">
+            <span>Temporary Password</span>
+
+            <input
+              name="temporaryPassword"
+              type="password"
+              minLength={8}
+              autoComplete="new-password"
+              placeholder="Minimum 8 characters"
+              required
+            />
+          </label>
+
+          <button
+            type="submit"
+            className="admin-member-button admin-member-button-approve"
+          >
+            <KeyRound size={15} />
+            Set Temporary Password
+          </button>
+        </form>
       </section>
     </div>
   );

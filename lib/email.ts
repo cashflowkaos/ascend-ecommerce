@@ -240,3 +240,90 @@ export async function sendMemberDeclinedEmail({
 
   return data;
 }
+
+
+export async function sendNewMessageNotificationEmail({
+  email,
+  firstName,
+}: {
+  email: string;
+  firstName: string;
+}) {
+  const resend = getResend();
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    replyTo: REPLY_TO_EMAIL,
+    subject: "You Have a New Message from Ascend",
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        New Message
+      </h1>
+
+      <p style="
+        margin:0 0 16px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Hello ${firstName},
+      </p>
+
+      <p style="
+        margin:0 0 24px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        You have a new message from Ascend Peptide Co.
+        Sign in to your member account to view and reply to
+        your conversation.
+      </p>
+
+      <a
+        href="https://ascendpepco.com/account/messages"
+        style="
+          display:inline-block;
+          padding:12px 20px;
+          background:#b78300;
+          color:#ffffff;
+          font-family:Arial,sans-serif;
+          font-size:12px;
+          font-weight:700;
+          text-decoration:none;
+        "
+      >
+        View Message
+      </a>
+
+      <p style="
+        margin:26px 0 0;
+        font-family:Arial,sans-serif;
+        font-size:12px;
+        line-height:1.7;
+        color:#77736b;
+      ">
+        For privacy, the contents of your message are only
+        available after signing in to your Ascend account.
+      </p>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `Message notification email failed: ${error.message}`
+    );
+  }
+
+  return data;
+}
