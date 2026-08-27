@@ -1,70 +1,66 @@
-import { compounds } from "../data/compounds";
 import { prisma } from "@/lib/prisma";
 
-async function getCommerceProducts() {
-  return prisma.product.findMany({
-    where: {
-      active: true,
-    },
-    select: {
-      id: true,
-      slug: true,
-      memberPrice: true,
-      purchasable: true,
-      trackInventory: true,
-      inventoryQty: true,
+function normalizeComposition(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
 
-      variants: {
-        where: {
-          active: true,
-        },
-        orderBy: [
-          {
-            sortOrder: "asc",
-          },
-          {
-            createdAt: "asc",
-          },
-        ],
-        select: {
-          id: true,
-          strength: true,
-          sku: true,
-          memberPrice: true,
-          inventoryQty: true,
-          lowStockAt: true,
-          active: true,
-          purchasable: true,
-          sortOrder: true,
-        },
-      },
-    },
-  });
-}
-
-function mergeCommerceData<
-  T extends (typeof compounds)[number]
->(
-  compound: T,
-  commerceProducts: Awaited<
-    ReturnType<typeof getCommerceProducts>
-  >
-) {
-  const commerce = commerceProducts.find(
-    (product) => product.slug === compound.slug
+  const items = value.filter(
+    (item): item is string =>
+      typeof item === "string" && item.trim().length > 0
   );
 
-  const variants =
-    commerce?.variants.map((variant) => ({
+  return items.length > 0 ? items : undefined;
+}
+
+function mapProduct<
+  T extends {
+    id: string;
+    slug: string;
+    name: string;
+    strength: string;
+    category: string;
+    image: string | null;
+    overview: string;
+    composition: unknown;
+    presentation: string;
+    storage: string;
+    featured: boolean;
+    purchasable: boolean;
+    trackInventory: boolean;
+    inventoryQty: number;
+    memberPrice: unknown;
+    literature: {
+      title: string;
+      journal: string;
+      year: number;
+      type: string;
+      url: string;
+    }[];
+    variants: {
+      id: string;
+      strength: string;
+      sku: string | null;
+      memberPrice: unknown;
+      inventoryQty: number;
+      lowStockAt: number;
+      active: boolean;
+      purchasable: boolean;
+      sortOrder: number;
+    }[];
+  }
+>(product: T) {
+  const variants = product.variants.map((variant) => {
+    const memberPrice =
+      variant.memberPrice !== null
+        ? Number(variant.memberPrice)
+        : null;
+
+    return {
       id: variant.id,
       strength: variant.strength,
       sku: variant.sku,
-
-      memberPrice:
-        variant.memberPrice !== null
-          ? Number(variant.memberPrice)
-          : null,
-
+      memberPrice,
       inventoryQty: variant.inventoryQty,
       lowStockAt: variant.lowStockAt,
       active: variant.active,
@@ -72,14 +68,15 @@ function mergeCommerceData<
 
       available:
         variant.purchasable &&
-        variant.memberPrice !== null &&
+        memberPrice !== null &&
         (
-          !commerce.trackInventory ||
+          !product.trackInventory ||
           variant.inventoryQty > 0
         ),
 
       sortOrder: variant.sortOrder,
-    })) ?? [];
+    };
+  });
 
   const firstAvailableVariant =
     variants.find((variant) => variant.available) ??
@@ -87,25 +84,35 @@ function mergeCommerceData<
     null;
 
   return {
-    ...compound,
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    strength: product.strength,
+    category: product.category,
+    image: product.image ?? "/bottles/placeholder.png",
+    featured: product.featured,
+    overview: product.overview,
+    composition: normalizeComposition(product.composition),
+    presentation: product.presentation,
+    storage: product.storage,
+    literature: product.literature,
 
-    commerceProductId: commerce?.id ?? null,
+    commerceProductId: product.id,
 
     memberPrice:
       firstAvailableVariant?.memberPrice ??
       (
-        commerce?.memberPrice !== null &&
-        commerce?.memberPrice !== undefined
-          ? Number(commerce.memberPrice)
+        product.memberPrice !== null
+          ? Number(product.memberPrice)
           : null
       ),
 
     purchasable:
       variants.length > 0
         ? variants.some((variant) => variant.available)
-        : commerce?.purchasable ?? false,
+        : product.purchasable,
 
-    trackInventory: commerce?.trackInventory ?? false,
+    trackInventory: product.trackInventory,
 
     inventoryQty:
       variants.length > 0
@@ -114,43 +121,124 @@ function mergeCommerceData<
               total + variant.inventoryQty,
             0
           )
-        : commerce?.inventoryQty ?? 0,
+        : product.inventoryQty,
 
     variants,
   };
 }
 
-export async function getProducts() {
-  const commerceProducts = await getCommerceProducts();
+const productSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  strength: true,
+  category: true,
+  image: true,
+  overview: true,
+  composition: true,
+  presentation: true,
+  storage: true,
+  featured: true,
+  purchasable: true,
+  trackInventory: true,
+  inventoryQty: true,
+  memberPrice: true,
 
-  return compounds.map((compound) =>
-    mergeCommerceData(compound, commerceProducts)
-  );
+  literature: {
+    orderBy: [
+      {
+        year: "desc" as const,
+      },
+      {
+        createdAt: "asc" as const,
+      },
+    ],
+    select: {
+      title: true,
+      journal: true,
+      year: true,
+      type: true,
+      url: true,
+    },
+  },
+
+  variants: {
+    where: {
+      active: true,
+    },
+    orderBy: [
+      {
+        sortOrder: "asc" as const,
+      },
+      {
+        createdAt: "asc" as const,
+      },
+    ],
+    select: {
+      id: true,
+      strength: true,
+      sku: true,
+      memberPrice: true,
+      inventoryQty: true,
+      lowStockAt: true,
+      active: true,
+      purchasable: true,
+      sortOrder: true,
+    },
+  },
+};
+
+export async function getProducts() {
+  const products = await prisma.product.findMany({
+    where: {
+      active: true,
+    },
+    orderBy: [
+      {
+        sortOrder: "asc",
+      },
+      {
+        name: "asc",
+      },
+    ],
+    select: productSelect,
+  });
+
+  return products.map(mapProduct);
 }
 
 export async function getFeaturedProducts() {
-  const commerceProducts = await getCommerceProducts();
+  const products = await prisma.product.findMany({
+    where: {
+      active: true,
+      featured: true,
+    },
+    orderBy: [
+      {
+        sortOrder: "asc",
+      },
+      {
+        name: "asc",
+      },
+    ],
+    select: productSelect,
+  });
 
-  return compounds
-    .filter((compound) => compound.featured)
-    .map((compound) =>
-      mergeCommerceData(compound, commerceProducts)
-    );
+  return products.map(mapProduct);
 }
 
 export async function getProduct(slug: string) {
-  const compound =
-    compounds.find((product) => product.slug === slug) ??
-    null;
+  const product = await prisma.product.findFirst({
+    where: {
+      slug,
+      active: true,
+    },
+    select: productSelect,
+  });
 
-  if (!compound) {
+  if (!product) {
     return null;
   }
 
-  const commerceProducts = await getCommerceProducts();
-
-  return mergeCommerceData(
-    compound,
-    commerceProducts
-  );
+  return mapProduct(product);
 }
