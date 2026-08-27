@@ -113,23 +113,41 @@ export default function ProductVariantsEditor({
               />
             </label>
 
-            <div className="admin-variant-editor-toggles">
-              <label>
-                <input
-                  type="checkbox"
-                  name="active"
-                  defaultChecked={variant.active}
-                />
-                <span>Active</span>
+            <div className="admin-editor-switches">
+              <label className="admin-editor-toggle">
+                <div>
+                  <strong>Active</strong>
+                  <span>
+                    Make this strength available in the catalog.
+                  </span>
+                </div>
+
+                <label className="admin-switch">
+                  <input
+                    type="checkbox"
+                    name="active"
+                    defaultChecked={variant.active}
+                  />
+                  <span />
+                </label>
               </label>
 
-              <label>
-                <input
-                  type="checkbox"
-                  name="purchasable"
-                  defaultChecked={variant.purchasable}
-                />
-                <span>Purchasable</span>
+              <label className="admin-editor-toggle">
+                <div>
+                  <strong>Purchasable</strong>
+                  <span>
+                    Allow members to purchase this strength.
+                  </span>
+                </div>
+
+                <label className="admin-switch">
+                  <input
+                    type="checkbox"
+                    name="purchasable"
+                    defaultChecked={variant.purchasable}
+                  />
+                  <span />
+                </label>
               </label>
             </div>
 
@@ -231,25 +249,17 @@ export default function ProductVariantsEditor({
           </label>
         </div>
 
-        <div className="admin-variant-editor-toggles">
-          <label>
-            <input
-              type="checkbox"
-              name="active"
-              defaultChecked
-            />
-            <span>Active</span>
-          </label>
+        <input
+          type="hidden"
+          name="active"
+          value="on"
+        />
 
-          <label>
-            <input
-              type="checkbox"
-              name="purchasable"
-              defaultChecked
-            />
-            <span>Purchasable</span>
-          </label>
-        </div>
+        <input
+          type="hidden"
+          name="purchasable"
+          value="on"
+        />
 
         <div className="admin-variant-editor-actions">
           <button

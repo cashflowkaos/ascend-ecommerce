@@ -1,3 +1,4 @@
+import ProductImageUploader from "./ProductImageUploader";
 type ProductEditorValues = {
   id?: string;
   slug?: string;
@@ -123,18 +124,9 @@ export default function ProductEditor({
               placeholder="Optional"
             />
           </label>
-
-          <label className="admin-field admin-field-full">
-            <span>Image Path</span>
-            <input
-              name="image"
-              defaultValue={product?.image ?? ""}
-              placeholder="/images/products/bpc157.png"
+            <ProductImageUploader
+              initialImage={product?.image}
             />
-            <small>
-              We will add image upload controls later. Existing public image paths work now.
-            </small>
-          </label>
         </div>
       </section>
 
@@ -248,24 +240,11 @@ export default function ProductEditor({
               <span />
             </label>
           </label>
-
-          <label className="admin-editor-toggle">
-            <div>
-              <strong>Purchasable</strong>
-              <span>
-                Allow approved members to purchase this product when member commerce is enabled.
-              </span>
-            </div>
-
-            <label className="admin-switch">
-              <input
-                type="checkbox"
-                name="purchasable"
-                defaultChecked={product?.purchasable ?? false}
-              />
-              <span />
-            </label>
-          </label>
+          <input
+            type="hidden"
+            name="purchasable"
+            value={product?.purchasable ? "on" : ""}
+          />
 
           <label className="admin-editor-toggle">
             <div>
