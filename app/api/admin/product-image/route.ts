@@ -43,18 +43,9 @@ export async function POST(request: Request) {
   const filename =
     `products/${crypto.randomUUID()}.${extension}`;
 
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-
-  if (!token) {
-    throw new Error(
-      "BLOB_READ_WRITE_TOKEN is not configured."
-    );
-  }
-
   const blob = await put(filename, file, {
     access: "public",
     addRandomSuffix: false,
-    token,
   });
 
   return NextResponse.json({
