@@ -55,8 +55,6 @@ export default async function SignUpPage({
     <main className="auth-page signup-page">
       <div className="signup-shell">
         <Link href="/" className="auth-brand">
-          <span className="auth-brand-mark">A</span>
-
           <span>
             <strong>ASCEND</strong>
             <small>PEPTIDE CO.</small>

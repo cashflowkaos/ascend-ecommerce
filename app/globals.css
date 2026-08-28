@@ -1190,11 +1190,13 @@ img {
 .auth-brand > span:last-child {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
 }
 
 .auth-brand strong {
-  font-size: 16px;
+  font-size: 21px;
   letter-spacing: 0.2em;
 }
 
@@ -1533,7 +1535,9 @@ img {
 .admin-member-stat div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
 }
 
 .admin-member-stat strong {

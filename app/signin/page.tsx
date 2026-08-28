@@ -46,8 +46,6 @@ export default async function SignInPage({
     <main className="auth-page">
       <div className="auth-shell">
         <Link href="/" className="auth-brand">
-          <span className="auth-brand-mark">A</span>
-
           <span>
             <strong>ASCEND</strong>
             <small>PEPTIDE CO.</small>
