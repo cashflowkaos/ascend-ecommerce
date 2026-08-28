@@ -1,9 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { MessageSquare, Plus } from "lucide-react";
+import {
+  MessageSquare,
+  Plus,
+} from "lucide-react";
 import { redirect } from "next/navigation";
 import { requireApprovedMember } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getMessageRetentionCutoff } from "@/lib/message-retention";
 import { createMemberThread } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +25,15 @@ export default async function MemberMessagesPage({
 
   const params = await searchParams;
 
+  const retentionCutoff =
+    getMessageRetentionCutoff();
+
   const threads = await prisma.messageThread.findMany({
     where: {
       userId: user.id,
+      updatedAt: {
+        gte: retentionCutoff,
+      },
     },
     orderBy: {
       updatedAt: "desc",
@@ -63,10 +73,15 @@ export default async function MemberMessagesPage({
 
         <section className="member-account-hero member-message-hero">
           <div>
-            <span className="admin-eyebrow">MEMBER SUPPORT</span>
+            <span className="admin-eyebrow">
+              MEMBER SUPPORT
+            </span>
+
             <h1>Messages</h1>
+
             <p>
-              Private conversations between you and Ascend Support.
+              Messages and announcements from
+              Ascend Support.
             </p>
           </div>
         </section>
@@ -75,7 +90,10 @@ export default async function MemberMessagesPage({
           <section className="member-account-card">
             <div className="member-account-card-heading">
               <div>
-                <span className="admin-eyebrow">INBOX</span>
+                <span className="admin-eyebrow">
+                  INBOX
+                </span>
+
                 <h2>Your Conversations</h2>
               </div>
 
@@ -86,14 +104,20 @@ export default async function MemberMessagesPage({
               {threads.length === 0 ? (
                 <div className="member-message-empty">
                   <MessageSquare size={22} />
-                  <strong>No conversations yet</strong>
+
+                  <strong>
+                    No conversations yet
+                  </strong>
+
                   <span>
-                    Start a conversation with Ascend Support.
+                    Start a conversation with
+                    Ascend Support.
                   </span>
                 </div>
               ) : (
                 threads.map((thread) => {
-                  const latest = thread.messages[0];
+                  const latest =
+                    thread.messages[0];
 
                   return (
                     <Link
@@ -102,18 +126,28 @@ export default async function MemberMessagesPage({
                       className="member-thread-row"
                     >
                       <div>
-                        <strong>{thread.subject}</strong>
+                        <strong>
+                          {thread.subject}
+                        </strong>
+
                         <span>
                           {latest
-                            ? latest.body.length > 90
-                              ? `${latest.body.slice(0, 90)}...`
+                            ? latest.body.length >
+                              90
+                              ? `${latest.body.slice(
+                                  0,
+                                  90
+                                )}...`
                               : latest.body
                             : "No messages"}
                         </span>
                       </div>
 
                       <small>
-                        {thread.status === "OPEN" ? "Open" : "Closed"}
+                        {thread.status ===
+                        "OPEN"
+                          ? "Open"
+                          : "Closed"}
                       </small>
                     </Link>
                   );
@@ -125,8 +159,13 @@ export default async function MemberMessagesPage({
           <section className="member-account-card">
             <div className="member-account-card-heading">
               <div>
-                <span className="admin-eyebrow">NEW MESSAGE</span>
-                <h2>Contact Ascend Support</h2>
+                <span className="admin-eyebrow">
+                  NEW MESSAGE
+                </span>
+
+                <h2>
+                  Contact Ascend Support
+                </h2>
               </div>
 
               <Plus size={19} />
@@ -144,6 +183,7 @@ export default async function MemberMessagesPage({
             >
               <label className="member-profile-field">
                 <span>Subject</span>
+
                 <input
                   name="subject"
                   maxLength={120}
@@ -154,6 +194,7 @@ export default async function MemberMessagesPage({
 
               <label className="member-profile-field">
                 <span>Message</span>
+
                 <textarea
                   name="body"
                   required

@@ -1,4 +1,4 @@
-﻿import { Resend } from "resend";
+import { Resend } from "resend";
 
 const FROM_EMAIL =
   "Ascend Peptide Co. <members@ascendpepco.com>";
@@ -940,4 +940,89 @@ export async function sendOrderRequestCustomerEmail({
   return data;
 }
 
+export async function sendMemberBroadcastEmail({
+  email,
+  firstName,
+  subject,
+  message,
+}: {
+  email: string;
+  firstName: string;
+  subject: string;
+  message: string;
+}) {
+  const resend = getResend();
 
+  const safeFirstName = firstName
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+  const safeMessage = message
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+    .replace(/\r?\n/g, "<br />");
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    replyTo: REPLY_TO_EMAIL,
+    subject,
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        Member Announcement
+      </h1>
+
+      <p style="
+        margin:0 0 18px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Hello ${safeFirstName},
+      </p>
+
+      <div style="
+        margin:0;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        ${safeMessage}
+      </div>
+
+      <p style="
+        margin:28px 0 0;
+        font-family:Arial,sans-serif;
+        font-size:12px;
+        line-height:1.7;
+        color:#77736b;
+      ">
+        This announcement was sent to Ascend Peptide Co.
+        members.
+      </p>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `Broadcast email failed: ${error.message}`
+    );
+  }
+
+  return data;
+}

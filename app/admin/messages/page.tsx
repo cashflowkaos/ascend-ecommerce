@@ -1,11 +1,20 @@
 import Link from "next/link";
 import { MessageSquare } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getMessageRetentionCutoff } from "@/lib/message-retention";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminMessagesPage() {
+  const retentionCutoff =
+    getMessageRetentionCutoff();
+
   const threads = await prisma.messageThread.findMany({
+    where: {
+      updatedAt: {
+        gte: retentionCutoff,
+      },
+    },
     orderBy: {
       updatedAt: "desc",
     },
@@ -64,6 +73,14 @@ export default async function AdminMessagesPage() {
             Private member conversations and support requests.
           </p>
         </div>
+
+        <Link
+          href="/admin/messages/new"
+          className="admin-primary-button"
+        >
+          <MessageSquare size={14} />
+          Message Center
+        </Link>
       </div>
 
       <section className="admin-panel">
@@ -128,3 +145,4 @@ export default async function AdminMessagesPage() {
     </div>
   );
 }
+

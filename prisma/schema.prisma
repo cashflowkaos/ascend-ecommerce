@@ -426,3 +426,27 @@ model ContactInquiry {
   @@index([createdAt])
   @@index([readAt])
 }
+
+// ============================================================
+// MEMBER BROADCASTS / ANNOUNCEMENTS
+// ============================================================
+
+model MessageBroadcast {
+  id String @id @default(cuid())
+
+  subject String
+  body    String @db.Text
+
+  recipientCount Int @default(0)
+
+  sentById    String
+  sentByName  String
+  sentByEmail String
+
+  emailSuccessCount Int @default(0)
+  emailFailureCount Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
