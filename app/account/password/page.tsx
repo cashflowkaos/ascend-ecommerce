@@ -1,9 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, KeyRound } from "lucide-react";
+import {
+  ArrowLeft,
+  KeyRound,
+  LogOut,
+} from "lucide-react";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { changeMemberPassword } from "./actions";
+import { memberSignOut } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -49,28 +54,39 @@ export default async function MemberPasswordPage({
     <main className="member-account-page">
       <div className="member-account-shell">
         <header className="member-account-header">
-          <Link
-            href="/account"
-            className="member-account-brand"
-          >
-            <Image
-              src="/logo/wordmark.png"
-              alt="Ascend Peptide Co."
-              width={2172}
-              height={724}
-              priority
-              className="member-account-logo"
-            />
-          </Link>
+  <Link
+    href="/"
+    className="member-account-brand"
+  >
+    <Image
+      src="/logo/logo.png"
+      alt="Ascend Peptide Co."
+      width={250}
+      height={95}
+      priority
+      className="member-account-logo"
+    />
+  </Link>
 
-          <Link
-            href="/account"
-            className="member-header-link"
-          >
-            <ArrowLeft size={14} />
-            Dashboard
-          </Link>
-        </header>
+  <div className="member-account-header-actions">
+    <Link
+      href="/account"
+      className="member-header-link"
+    >
+      My Account
+    </Link>
+
+    <form action={memberSignOut}>
+      <button
+        type="submit"
+        className="member-header-link member-signout"
+      >
+        <LogOut size={14} />
+        Sign Out
+      </button>
+    </form>
+  </div>
+</header>
 
         <section className="member-account-hero member-profile-hero">
           <div>

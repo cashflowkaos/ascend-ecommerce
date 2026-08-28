@@ -266,3 +266,45 @@ export async function sendMemberBroadcast(formData: FormData) {
     `/admin/messages/new?broadcast=sent&recipients=${members.length}&success=${emailSuccessCount}&failed=${emailFailureCount}`
   );
 }
+
+export async function deleteAdminThread(formData: FormData) {
+  await requireAdmin();
+
+  const threadId = clean(formData.get("threadId"));
+
+  if (!threadId) {
+    redirect("/admin/messages");
+  }
+
+  const thread = await prisma.messageThread.findUnique({
+    where: {
+      id: threadId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!thread) {
+    redirect("/admin/messages");
+  }
+
+  await prisma.message.deleteMany({
+    where: {
+      threadId,
+    },
+  });
+
+  await prisma.messageThread.delete({
+    where: {
+      id: threadId,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/messages");
+  revalidatePath("/account");
+  revalidatePath("/account/messages");
+
+  redirect("/admin/messages");
+}

@@ -70,7 +70,7 @@ export default async function AccountPage() {
         <div className="member-account-shell member-account-narrow">
           <Link href="/" className="auth-brand">
             <Image
-              src="/logo/wordmark.png"
+              src="/logo/logo.png"
               alt="Ascend Peptide Co."
               width={250}
               height={95}
@@ -125,7 +125,7 @@ export default async function AccountPage() {
         <div className="member-account-shell member-account-narrow">
           <Link href="/" className="auth-brand">
             <Image
-              src="/logo/wordmark.png"
+              src="/logo/logo.png"
               alt="Ascend Peptide Co."
               width={250}
               height={95}
@@ -172,9 +172,13 @@ export default async function AccountPage() {
     <main className="member-account-page">
       <div className="member-account-shell">
         <header className="member-account-header">
-          <Link href="/" className="member-account-brand">
+          <Link
+            href="/"
+            className="member-account-brand"
+            aria-label="Ascend Peptide Co. home"
+          >
             <Image
-              src="/logo/wordmark.png"
+              src="/logo/logo.png"
               alt="Ascend Peptide Co."
               width={250}
               height={95}
@@ -193,7 +197,7 @@ export default async function AccountPage() {
                 type="submit"
                 className="member-header-link member-signout"
               >
-                <LogOut size={14} />
+                <LogOut size={16} strokeWidth={1.8} />
                 Sign Out
               </button>
             </form>

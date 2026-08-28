@@ -66,7 +66,7 @@ img {
 .admin-sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 245px;
+  width: 320px;
   display: flex;
   flex-direction: column;
   background: #101010;
@@ -459,10 +459,11 @@ img {
 
   .admin-nav {
     flex-direction: row;
-    gap: 4px;
-    padding: 7px 10px 9px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 7px 6px 9px;
+    overflow-x: visible;
+    scrollbar-width: visible;
     border-top: 1px solid rgba(255,255,255,.05);
   }
 
@@ -471,11 +472,12 @@ img {
   }
 
   .admin-nav-link {
-    flex: 0 0 auto;
+    flex: 1 1 0;
+    min-width: 0;
     min-height: 38px;
-    gap: 7px;
-    padding: 0 11px;
-    font-size: 11px;
+    gap: 5px;
+    padding: 0 5px;
+    font-size: 10px;
     white-space: nowrap;
   }
 
@@ -2056,7 +2058,8 @@ img {
 .member-account-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top right, rgba(183, 131, 0, 0.06), transparent 34%),
+    radial-gradient(circle at 88% 0%, rgba(183, 131, 0, 0.07), transparent 30%),
+    radial-gradient(circle at 8% 45%, rgba(0, 0, 0, 0.018), transparent 28%),
     #f7f6f3;
   color: #171717;
 }
@@ -2064,7 +2067,7 @@ img {
 .member-account-shell {
   width: min(1180px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 28px 0 64px;
+  padding: 28px 0 72px;
 }
 
 .member-account-shell.member-account-narrow {
@@ -2072,99 +2075,21 @@ img {
   padding-top: 70px;
 }
 
-.member-account-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #e5e1d8;
-}
-
-.member-account-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  color: #171717;
-  text-decoration: none;
-}
-
-.member-account-brand > span:last-child {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.member-account-brand strong {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-}
-
-.member-account-brand small {
-  color: #9a7415;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.24em;
-}
-
-.member-account-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.member-account-header-actions form {
-  margin: 0;
-}
-
-.member-header-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 38px;
-  padding: 0 13px;
-  border: 1px solid #ded9cf;
-  border-radius: 8px;
-  background: #fff;
-  color: #57534d;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 650;
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    border-color 150ms ease,
-    color 150ms ease,
-    background 150ms ease;
-}
-
-.member-header-link:hover {
-  border-color: #cba94e;
-  color: #8b6500;
-  background: #fffdf8;
-}
-
-.member-signout {
-  appearance: none;
-}
-
 .member-account-hero {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 32px;
-  padding: 52px 0 34px;
+  padding: 48px 0 30px;
 }
 
 .member-account-hero h1 {
   margin: 7px 0 9px;
   color: #171717;
-  font-size: clamp(30px, 4vw, 44px);
+  font-size: clamp(32px, 4vw, 46px);
   font-weight: 650;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
 }
 
 .member-account-hero p {
@@ -2179,35 +2104,50 @@ img {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 34px;
+  padding: 0 14px;
   border: 1px solid #d9c483;
   border-radius: 999px;
-  background: #fffaf0;
+  background: rgba(255, 250, 240, 0.9);
   color: #8b6500;
   font-size: 9px;
   font-weight: 750;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .member-account-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .member-account-stat {
   display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 88px;
-  padding: 20px;
-  border: 1px solid #e6e1d8;
+  min-height: 82px;
+  padding: 18px 20px;
+  border: 1px solid #e3ded4;
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 8px 30px rgba(23, 23, 23, 0.025);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 6px 24px rgba(23, 23, 23, 0.018);
+}
+
+.member-account-stat-link {
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.member-account-stat-link:hover {
+  border-color: #d5b25a;
+  box-shadow: 0 10px 28px rgba(23, 23, 23, 0.05);
+  transform: translateY(-1px);
 }
 
 .member-account-stat > svg {
@@ -2219,6 +2159,7 @@ img {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .member-account-stat strong {
@@ -2229,16 +2170,22 @@ img {
 
 .member-account-stat span {
   color: #8a867e;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.member-account-stat small {
+  color: #77736b;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .member-account-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 16px;
 }
 
 .member-account-card {
@@ -2246,17 +2193,19 @@ img {
   flex-direction: column;
   min-width: 0;
   padding: 24px;
-  border: 1px solid #e6e1d8;
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid #e3ded4;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 8px 30px rgba(23, 23, 23, 0.025);
 }
 
 .member-account-card-wide {
   grid-column: 1 / -1;
-  min-height: 190px;
+  min-height: 180px;
   background:
-    linear-gradient(110deg, #fff 0%, #fff 58%, #fbf7eb 100%);
+    radial-gradient(circle at 88% 20%, rgba(212, 161, 30, 0.09), transparent 28%),
+    linear-gradient(110deg, #fff 0%, #fff 60%, #fbf7eb 100%);
+  border-color: #e0d7c3;
 }
 
 .member-account-card-heading {
@@ -2264,7 +2213,7 @@ img {
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  padding-bottom: 18px;
+  padding-bottom: 16px;
   border-bottom: 1px solid #eeeae2;
 }
 
@@ -2278,22 +2227,22 @@ img {
   color: #24211c;
   font-size: 17px;
   font-weight: 650;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 .member-account-detail-list {
   display: flex;
   flex-direction: column;
-  margin: 8px 0 18px;
+  padding-top: 2px;
 }
 
 .member-account-detail-list > div {
-  display: flex;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-height: 45px;
-  border-bottom: 1px solid #f0ede7;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid #eeeae2;
 }
 
 .member-account-detail-list > div:last-child {
@@ -2302,24 +2251,39 @@ img {
 
 .member-account-detail-list span {
   color: #8a867e;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .member-account-detail-list strong {
   min-width: 0;
-  color: #37342f;
+  color: #292620;
   font-size: 12px;
   font-weight: 650;
-  text-align: right;
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .member-account-detail-list > div {
+    grid-template-columns: 62px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 0;
+  }
+
+  .member-account-detail-list span {
+    font-size: 9px;
+  }
+
+  .member-account-detail-list strong {
+    font-size: 11px;
+  }
 }
 
 .member-address-preview {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-height: 145px;
-  padding: 20px 0;
+  min-height: 132px;
+  padding: 18px 0;
   color: #67635c;
   font-size: 12px;
   line-height: 1.55;
@@ -2332,16 +2296,16 @@ img {
 }
 
 .member-card-empty {
-  min-height: 145px;
+  min-height: 132px;
   margin: 0;
-  padding: 22px 0;
+  padding: 20px 0;
   color: #8a867e;
   font-size: 12px;
 }
 
 .member-card-description {
   max-width: 660px;
-  margin: 22px 0 24px;
+  margin: 20px 0 22px;
   color: #6f6b64;
   font-size: 13px;
   line-height: 1.7;
@@ -2359,6 +2323,83 @@ img {
 .member-card-link:hover {
   color: #b78300;
 }
+
+@media (max-width: 800px) {
+  .member-account-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .member-account-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .member-account-card-wide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .member-account-shell {
+    width: min(100% - 28px, 1180px);
+    padding-top: 18px;
+    padding-bottom: 42px;
+  }
+
+  .member-account-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 15px;
+    padding: 34px 0 22px;
+  }
+
+  .member-account-hero h1 {
+    font-size: 32px;
+  }
+
+  .member-account-hero p {
+    font-size: 12px;
+    line-height: 1.65;
+  }
+
+  .member-approved-badge {
+    min-height: 31px;
+    padding: 0 12px;
+    font-size: 8px;
+  }
+
+  .member-account-stat-grid {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .member-account-stat {
+    min-height: 72px;
+    padding: 15px 17px;
+  }
+
+  .member-account-card {
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .member-account-card-heading {
+    padding-bottom: 14px;
+  }
+
+  .member-address-preview,
+  .member-card-empty {
+    min-height: 112px;
+  }
+
+  .member-card-description {
+    margin: 18px 0 20px;
+    font-size: 12px;
+  }
+}
+
+/* ============================================================
+   MEMBER ACCOUNT ACTION BUTTONS
+   ============================================================ */
 
 .member-primary-button {
   display: inline-flex;
@@ -2554,77 +2595,75 @@ img {
 }
 
 /* ============================================================
-   MEMBER HEADER - FINAL DESIGN
+   MEMBER HEADER
    ============================================================ */
 
 .member-account-header {
   width: 100%;
-  box-sizing: border-box;
+  height: 86px;
   min-height: 86px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
   padding: 16px 22px;
+  overflow: hidden;
   border: 1px solid #e6e1d8;
   border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 8px 30px rgba(23, 23, 23, 0.025);
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
 }
 
-/* Real Ascend wordmark */
-
 .member-account-brand {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
+  position: relative;
+  display: block;
+  width: 205px;
+  height: 54px;
+  overflow: hidden;
+  flex: 0 0 205px;
 }
 
 .member-account-logo {
-  display: block;
-  width: 165px;
+  position: absolute;
+  width: 320px;
+  max-width: none;
   height: auto;
-  object-fit: contain;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  object-fit: initial;
 }
-
-/* Header actions */
 
 .member-account-header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 0 0 auto;
 }
 
 .member-account-header-actions form {
   margin: 0;
 }
 
-/* Match Approved Member badge treatment */
-
 .member-header-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-
   min-height: 40px;
   padding: 0 16px;
-
   border: 1px solid #d6a72c;
   border-radius: 10px;
-
   background: rgba(212, 161, 30, 0.06);
   color: #9a7108;
-
   font-family: inherit;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-decoration: none;
-
+  white-space: nowrap;
   cursor: pointer;
-
   transition:
     background 150ms ease,
     border-color 150ms ease,
@@ -2641,102 +2680,45 @@ img {
   appearance: none;
 }
 
-
-/* Member header mobile */
-
 @media (max-width: 640px) {
   .member-account-header {
-    min-height: 0;
-    padding: 14px 15px;
-    gap: 14px;
-  }
-
-  .member-account-logo {
-    width: 130px;
-  }
-
-  .member-account-header-actions {
-    gap: 6px;
-  }
-
-  .member-header-link {
-    min-height: 36px;
-    padding: 0 10px;
-    font-size: 9px;
-  }
-}
-
-
-/* Member header logo - final scale */
-
-.member-account-logo {
-  display: block;
-  width: 215px;
-  height: auto;
-  object-fit: contain;
-}
-
-@media (max-width: 640px) {
-  .member-account-logo {
-    width: 165px;
     height: auto;
-  }
-}
-
-
-/* Keep member header compact */
-.member-account-header {
-  height: 86px;
-  min-height: 86px;
-  padding: 16px 22px;
-  overflow: hidden;
-}
-
-/* Fixed logo viewport — does NOT grow header */
-.member-account-brand {
-  position: relative;
-  display: block;
-  width: 205px;
-  height: 54px;
-  overflow: hidden;
-  flex: 0 0 205px;
-}
-
-/* Enlarge the actual wordmark inside its fixed viewport */
-.member-account-logo {
-  position: absolute;
-  width: 245px;
-  max-width: none;
-  height: auto;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  object-fit: initial;
-}
-
-/* Buttons stay centered */
-.member-account-header-actions {
-  flex: 0 0 auto;
-}
-
-@media (max-width: 640px) {
-  .member-account-header {
-    height: 76px;
-    min-height: 76px;
-    padding: 12px 15px;
+    min-height: 0;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    overflow: visible;
   }
 
   .member-account-brand {
-    width: 160px;
-    height: 46px;
-    flex-basis: 160px;
+    width: 132px;
+    height: 44px;
+    flex: 0 0 132px;
   }
 
   .member-account-logo {
-    width: 195px;
+    width: 162px;
+  }
+
+  .member-account-header-actions {
+    min-width: 0;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    gap: 5px;
+  }
+
+  .member-header-link {
+    min-height: 34px;
+    padding: 0 8px;
+    gap: 4px;
+    font-size: 8px;
+  }
+
+  .member-header-link svg {
+    width: 13px;
+    height: 13px;
   }
 }
-
 
 /* ============================================================
    MEMBER PROFILE + SHIPPING
@@ -3411,5 +3393,1001 @@ img {
   .admin-variant-status {
     grid-column: 1 / -1;
     justify-content: flex-start;
+  }
+}
+
+/* ============================================================
+   MEMBER MESSAGES - MOBILE
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .member-message-hero {
+    padding-bottom: 22px;
+  }
+
+  .member-message-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .member-thread-row {
+    align-items: flex-start;
+    gap: 12px;
+    padding: 15px 0;
+  }
+
+  .member-thread-row > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .member-thread-row strong,
+  .member-thread-row span {
+    overflow-wrap: anywhere;
+  }
+
+  .member-thread-row small {
+    flex: 0 0 auto;
+  }
+
+  .member-new-message-form,
+  .member-thread-reply {
+    gap: 14px;
+    padding-top: 18px;
+  }
+
+  .member-message-bubble {
+    max-width: 92%;
+    padding: 13px 14px;
+    overflow-wrap: anywhere;
+  }
+
+  .member-message-meta {
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 7px;
+  }
+
+  .member-message-bubble p {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .member-thread-card {
+    padding-bottom: 20px;
+  }
+
+  .member-thread-reply .member-primary-button,
+  .member-new-message-form .member-primary-button {
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   ADMIN INVENTORY - MOBILE CARDS
+   ============================================================ */
+
+@media (max-width: 640px) {
+
+  .admin-inventory-heading {
+    align-items: stretch;
+  }
+
+  .admin-inventory-heading .admin-primary-button {
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+  }
+
+  .admin-inventory-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-inventory-summary > div {
+    padding: 15px 16px;
+  }
+
+  .admin-inventory-summary strong {
+    font-size: 20px;
+  }
+
+  .admin-inventory-panel {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .admin-inventory-table-wrap {
+    overflow: visible;
+  }
+
+  .admin-inventory-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
+    white-space: normal;
+  }
+
+  .admin-inventory-table thead {
+    display: none;
+  }
+
+  .admin-inventory-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .admin-inventory-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid #e7e5df;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 3px 14px rgba(0,0,0,.025);
+  }
+
+  .admin-inventory-table tbody tr:hover {
+    background: #fff;
+  }
+
+  .admin-inventory-table td {
+    display: flex;
+    width: auto !important;
+    min-width: 0;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    padding: 13px 15px;
+    border-bottom: 1px solid #efede8;
+    text-align: left !important;
+    white-space: normal;
+  }
+
+  .admin-inventory-table td::before {
+    color: #999;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .admin-inventory-table td:nth-child(1) {
+    grid-column: 1 / -1;
+    padding-top: 16px;
+  }
+
+  .admin-inventory-table td:nth-child(1)::before {
+    content: "Product";
+  }
+
+  .admin-inventory-table td:nth-child(2)::before {
+    content: "Member Price";
+  }
+
+  .admin-inventory-table td:nth-child(3)::before {
+    content: "Inventory";
+  }
+
+  .admin-inventory-table td:nth-child(4)::before {
+    content: "Active";
+  }
+
+  .admin-inventory-table td:nth-child(5)::before {
+    content: "Purchasable";
+  }
+
+  .admin-inventory-table td:nth-child(6)::before {
+    content: "Featured";
+  }
+
+  .admin-inventory-table td:nth-child(7)::before {
+    content: "Edit";
+  }
+
+  .admin-inventory-table td:nth-child(6),
+  .admin-inventory-table td:nth-child(7) {
+    border-bottom: 0;
+  }
+
+  .admin-inventory-product {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-inventory-product strong,
+  .admin-inventory-product span {
+    overflow-wrap: anywhere;
+  }
+
+  .admin-inventory-table td .admin-edit-button {
+    margin: 0;
+  }
+}
+
+/* ============================================================
+   ASCEND MEMBER ACCOUNT — PREMIUM VISUAL REFINEMENT
+   ============================================================ */
+
+.member-account-page {
+  background:
+    radial-gradient(
+      circle at 85% 4%,
+      rgba(212, 161, 30, 0.075),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 8% 48%,
+      rgba(0, 0, 0, 0.018),
+      transparent 25%
+    ),
+    #f7f6f3;
+}
+
+/* Hero */
+
+.member-account-hero {
+  position: relative;
+  padding: 58px 0 34px;
+  border-bottom: 1px solid rgba(212, 161, 30, 0.18);
+}
+
+.member-account-hero::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 38px;
+  width: 34px;
+  height: 2px;
+  background: #c59620;
+}
+
+.member-account-hero h1 {
+  margin-top: 13px;
+  font-size: clamp(36px, 4.5vw, 52px);
+  font-weight: 600;
+  letter-spacing: -0.055em;
+}
+
+.member-account-hero p {
+  max-width: 650px;
+  margin-top: 13px;
+  color: #706c65;
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.member-approved-badge {
+  align-self: center;
+  margin-bottom: 3px;
+  border-color: #cfae55;
+  background: #fffaf0;
+  box-shadow: 0 5px 18px rgba(183, 131, 0, 0.07);
+  color: #876300;
+}
+
+/* Dashboard stats */
+
+.member-account-stat-grid {
+  gap: 10px;
+  margin-top: 18px;
+  margin-bottom: 22px;
+}
+
+.member-account-stat {
+  position: relative;
+  min-height: 78px;
+  padding: 17px 19px;
+  border-color: #e1dbd0;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 5px 20px rgba(23, 23, 23, 0.018);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.member-account-stat:hover {
+  transform: translateY(-2px);
+  border-color: #d4b45f;
+  box-shadow: 0 10px 26px rgba(23, 23, 23, 0.045);
+}
+
+.member-account-stat > svg {
+  width: 18px;
+  height: 18px;
+  padding: 9px;
+  box-sizing: content-box;
+  border-radius: 50%;
+  background: #fff9ec;
+  color: #b78300;
+}
+
+.member-account-stat strong {
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+
+.member-account-stat span {
+  margin-top: 1px;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+
+.member-account-stat small {
+  font-size: 9px;
+}
+
+/* Main information cards */
+
+.member-account-grid {
+  gap: 14px;
+}
+
+.member-account-card {
+  padding: 22px 24px;
+  border-color: #e0dbd2;
+  border-radius: 13px;
+  box-shadow: 0 7px 26px rgba(23, 23, 23, 0.022);
+}
+
+.member-account-card-heading {
+  padding-bottom: 15px;
+}
+
+.member-account-card-heading h2 {
+  font-size: 16px;
+}
+
+.member-account-card-heading > svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Profile details */
+
+.member-account-detail-list {
+  margin-top: 1px;
+}
+
+.member-account-detail-list > div {
+  grid-template-columns: 70px minmax(0, 1fr);
+  padding: 10px 0;
+}
+
+.member-account-detail-list span {
+  color: #99938a;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.member-account-detail-list strong {
+  font-size: 11px;
+}
+
+/* Shipping */
+
+.member-address-preview {
+  min-height: 126px;
+  padding: 17px 0;
+}
+
+.member-address-preview strong {
+  font-size: 12px;
+}
+
+/* Links */
+
+.member-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.member-card-link::after {
+  content: "→";
+  font-size: 12px;
+  transition: transform 150ms ease;
+}
+
+.member-card-link:hover::after {
+  transform: translateX(3px);
+}
+
+/* Exclusive catalog — make this the hero destination */
+
+.member-account-card-wide {
+  position: relative;
+  min-height: 190px;
+  padding: 27px 24px;
+  overflow: hidden;
+  border-color: #d8c89e;
+  background:
+    radial-gradient(
+      circle at 92% 22%,
+      rgba(212, 161, 30, 0.15),
+      transparent 29%
+    ),
+    linear-gradient(
+      108deg,
+      #ffffff 0%,
+      #ffffff 52%,
+      #fcf7e9 100%
+    );
+}
+
+.member-account-card-wide::after {
+  content: "";
+  position: absolute;
+  right: -55px;
+  bottom: -75px;
+  width: 220px;
+  height: 220px;
+  border: 1px solid rgba(183, 131, 0, 0.12);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.member-account-card-wide .member-card-description {
+  max-width: 570px;
+  margin: 18px 0 23px;
+  color: #625e56;
+}
+
+.member-account-card-wide .member-card-link,
+.member-account-card-wide a {
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile */
+
+@media (max-width: 640px) {
+  .member-account-hero {
+    padding: 42px 0 24px;
+  }
+
+  .member-account-hero::before {
+    top: 27px;
+  }
+
+  .member-account-hero h1 {
+    margin-top: 11px;
+    font-size: 34px;
+  }
+
+  .member-account-hero p {
+    font-size: 12px;
+  }
+
+  .member-approved-badge {
+    align-self: flex-start;
+    margin-top: 1px;
+  }
+
+  .member-account-stat-grid {
+    margin-top: 14px;
+    margin-bottom: 16px;
+  }
+
+  .member-account-stat {
+    min-height: 68px;
+    padding: 14px 16px;
+  }
+
+  .member-account-stat > svg {
+    width: 16px;
+    height: 16px;
+    padding: 8px;
+  }
+
+  .member-account-card {
+    padding: 19px;
+  }
+
+  .member-account-card-wide {
+    min-height: 175px;
+    padding: 22px 19px;
+  }
+
+  .member-account-card-wide .member-card-description {
+    margin: 15px 0 20px;
+  }
+
+  .member-account-detail-list > div {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 9px;
+    padding: 9px 0;
+  }
+
+  .member-account-detail-list strong {
+    font-size: 11px;
+  }
+}
+
+
+/* ============================================================
+   MEMBER HEADER — MATCH PUBLIC ASCEND HEADER
+   ============================================================ */
+
+.member-account-header {
+  min-height: 86px;
+  padding: 0 22px;
+  border: 1px solid #e2ded6;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 5px 20px rgba(23, 23, 23, 0.025);
+}
+
+.member-account-brand {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  width: 205px;
+  height: 70px;
+  overflow: hidden;
+}
+
+.member-account-logo {
+  display: block;
+  width: auto;
+  height: 68px;
+  max-width: none;
+  object-fit: contain;
+  object-position: left center;
+  transform: translateX(-18px);
+}
+
+.member-account-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.member-header-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 17px;
+  border: 1px solid #d4d0c8;
+  border-radius: 999px;
+  background: #fff;
+  color: #171717;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.member-header-link:hover {
+  border-color: #d4a11e;
+  color: #9a7108;
+  box-shadow: 0 3px 12px rgba(212, 161, 30, 0.08);
+}
+
+.member-signout {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Mobile */
+
+@media (max-width: 640px) {
+  .member-account-header {
+    min-height: 86px;
+    padding: 0 12px 0 10px;
+  }
+
+  .member-account-brand {
+    width: 170px;
+    height: 70px;
+  }
+
+  .member-account-logo {
+    height: 60px;
+    transform: translateX(-10px);
+  }
+
+  .member-account-header-actions {
+    gap: 6px;
+  }
+
+  .member-header-link {
+    min-height: 36px;
+    padding: 0 11px;
+    font-size: 9px;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* ============================================================
+   MEMBER HEADER — FULL LOGO INSIDE EXISTING BRAND WINDOW
+   ============================================================ */
+
+.member-account-header {
+  height: 86px;
+  min-height: 86px;
+  padding: 16px 22px;
+}
+
+.member-account-brand {
+  position: relative;
+  display: block;
+  width: 205px;
+  height: 86px;
+  flex: 0 0 205px;
+  overflow: hidden;
+}
+
+.member-account-logo {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: 158px;
+  max-width: none;
+  height: auto;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+}
+
+.member-account-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.member-header-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 17px;
+  border: 1px solid #d4d0c8;
+  border-radius: 999px;
+  background: #fff;
+  color: #171717;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.member-header-link:hover {
+  border-color: #d4a11e;
+  color: #9a7108;
+  box-shadow: 0 3px 12px rgba(212, 161, 30, 0.08);
+}
+
+.member-signout {
+  background: #fff;
+}
+
+/* Mobile */
+
+@media (max-width: 640px) {
+  .member-account-header {
+    height: 72px;
+    min-height: 72px;
+    padding: 10px 13px 10px 16px;
+  }
+
+  .member-account-brand {
+    width: 120px;
+    height: 48px;
+    flex: 0 0 120px;
+  }
+
+  .member-account-logo {
+    width: 108px;
+  }
+
+  .member-account-header-actions {
+    margin-left: auto;
+    gap: 5px;
+  }
+
+  .member-header-link {
+    min-height: 35px;
+    padding: 0 10px;
+    gap: 5px;
+    font-size: 8px;
+    letter-spacing: 0.06em;
+  }
+
+  .member-header-link svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+
+/* ============================================================
+   MEMBER HEADER — FINAL LOGO / ACTION LAYOUT
+   ============================================================ */
+
+.member-account-header {
+  height: 86px;
+  min-height: 86px;
+  padding: 16px 22px;
+}
+
+.member-account-brand {
+  position: relative;
+  display: block;
+  width: 205px;
+  height: 86px;
+  flex: 0 0 205px;
+  overflow: hidden;
+}
+
+.member-account-logo {
+  position: absolute;
+  left: -10px;
+  top: 60%;
+  width: auto;
+  height: 92px;
+  max-width: none;
+  transform: translateY(-50%);
+  object-fit: contain;
+}
+
+.member-account-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.member-header-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 17px;
+  border: 1px solid #d4d0c8;
+  border-radius: 999px;
+  background: #fff;
+  color: #171717;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.member-header-link:hover {
+  border-color: #d4a11e;
+  color: #9a7108;
+  box-shadow: 0 3px 12px rgba(212, 161, 30, 0.08);
+}
+
+.member-signout {
+  background: #fff;
+}
+
+/* ============================================================
+   MOBILE MEMBER HEADER
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .member-account-header {
+    height: 92px;
+    min-height: 92px;
+    padding: 14px 12px 14px 16px;
+  }
+
+  .member-account-brand {
+    width: 140px;
+    height: 70px;
+    flex: 0 0 140px;
+  }
+
+  .member-account-logo {
+    left: -16px;
+    width: 185px;
+  }
+
+  .member-account-header-actions {
+    margin-left: auto;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .member-header-link {
+    min-height: 36px;
+    padding: 0 9px;
+    gap: 5px;
+    font-size: 8px;
+    letter-spacing: 0.055em;
+  }
+
+  .member-header-link svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+
+/* ============================================================
+   ADMIN MESSAGE DELETE
+   ============================================================ */
+
+.admin-message-row {
+  position: relative;
+}
+
+.admin-message-row-link {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.6fr) auto;
+  gap: 20px;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-message-row > form {
+  flex: 0 0 auto;
+  margin-left: 8px;
+}
+
+.admin-message-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #e1ddd5;
+  border-radius: 50%;
+  background: #fff;
+  color: #8a867e;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background 150ms ease;
+}
+
+.admin-message-delete:hover {
+  border-color: #c86b5d;
+  background: #fff8f6;
+  color: #a54035;
+}
+
+@media (max-width: 800px) {
+  .admin-message-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .admin-message-row-link {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .admin-message-row > form {
+    margin-left: 0;
+    align-self: center;
+  }
+}
+
+/* ============================================================
+   MEMBER HEADER — CANONICAL FINAL OVERRIDE
+   One consistent logo/header treatment across all member pages.
+   ============================================================ */
+
+.member-account-header {
+  height: 86px !important;
+  min-height: 86px !important;
+  padding: 16px 22px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.member-account-brand {
+  position: relative !important;
+  display: block !important;
+  width: 205px !important;
+  height: 54px !important;
+  flex: 0 0 205px !important;
+  overflow: hidden !important;
+}
+
+.member-account-logo {
+  position: absolute !important;
+  left: 0 !important;
+  top: 50% !important;
+  width: auto !important;
+  height: 76px !important;
+  max-width: none !important;
+  transform: translateY(-50%) !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+.member-account-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+  flex: 0 0 auto !important;
+}
+
+.member-header-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .member-account-header {
+    height: 92px !important;
+    min-height: 92px !important;
+    padding: 14px 12px 14px 16px !important;
+  }
+
+  .member-account-brand {
+    width: 140px !important;
+    height: 70px !important;
+    flex: 0 0 140px !important;
+  }
+
+  .member-account-logo {
+    left: 0 !important;
+    top: 50% !important;
+    width: auto !important;
+    height: 58px !important;
+    transform: translateY(-50%) !important;
+  }
+
+  .member-account-header-actions {
+    margin-left: auto !important;
+    gap: 5px !important;
   }
 }

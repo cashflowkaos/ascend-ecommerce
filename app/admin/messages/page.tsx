@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getMessageRetentionCutoff } from "@/lib/message-retention";
+import { deleteAdminThread } from "./actions";
+import ConfirmDelete from "@/components/ConfirmDelete";
 
 export const dynamic = "force-dynamic";
 
@@ -104,39 +106,57 @@ export default async function AdminMessagesPage() {
               const unread = unreadMap.get(thread.id) ?? 0;
 
               return (
-                <Link
-                  key={thread.id}
-                  href={`/admin/messages/${thread.id}`}
-                  className="admin-message-row"
-                >
-                  <div className="admin-message-member">
-                    <strong>
-                      {thread.user.firstName} {thread.user.lastName}
-                    </strong>
-                    <span>{thread.user.email}</span>
-                  </div>
+                <div key={thread.id} className="admin-message-row">
+                  <Link
+                    href={`/admin/messages/${thread.id}`}
+                    className="admin-message-row-link"
+                  >
+                    <div className="admin-message-member">
+                      <strong>
+                        {thread.user.firstName} {thread.user.lastName}
+                      </strong>
+                      <span>{thread.user.email}</span>
+                    </div>
 
-                  <div className="admin-message-preview">
-                    <strong>{thread.subject}</strong>
-                    <span>
-                      {latest
-                        ? latest.body.length > 100
-                          ? `${latest.body.slice(0, 100)}...`
-                          : latest.body
-                        : "No messages"}
-                    </span>
-                  </div>
-
-                  <div className="admin-message-status">
-                    {unread > 0 && (
-                      <span className="admin-message-unread">
-                        {unread} unread
+                    <div className="admin-message-preview">
+                      <strong>{thread.subject}</strong>
+                      <span>
+                        {latest
+                          ? latest.body.length > 100
+                            ? `${latest.body.slice(0, 100)}...`
+                            : latest.body
+                          : "No messages"}
                       </span>
-                    )}
+                    </div>
 
-                    <small>{thread.status}</small>
-                  </div>
-                </Link>
+                    <div className="admin-message-status">
+                      {unread > 0 && (
+                        <span className="admin-message-unread">
+                          {unread} unread
+                        </span>
+                      )}
+
+                      <small>{thread.status}</small>
+                    </div>
+                  </Link>
+
+                  <ConfirmDelete action={deleteAdminThread} message="Delete this conversation? This cannot be undone.">
+                    <input
+                      type="hidden"
+                      name="threadId"
+                      value={thread.id}
+                    />
+
+                    <button
+                      type="submit"
+                      className="admin-message-delete"
+                      title={`Delete ${thread.subject}`}
+                      aria-label={`Delete ${thread.subject}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </ConfirmDelete>
+                </div>
               );
             })
           )}

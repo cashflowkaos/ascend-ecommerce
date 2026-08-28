@@ -41,10 +41,10 @@ export default async function ContactPage() {
                 </h2>
 
                 <a
-                  href="mailto:ascendpepco@gmail.com"
+                  href="mailto:support@ascendpepco.com"
                   className="mt-2 block break-all text-lg font-medium text-neutral-950 transition hover:text-[#D4A11E] sm:text-xl"
                 >
-                  ascendpepco@gmail.com
+                  support@ascendpepco.com
                 </a>
               </div>
 

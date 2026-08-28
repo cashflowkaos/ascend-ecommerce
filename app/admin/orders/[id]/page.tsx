@@ -8,10 +8,12 @@ import {
   Package,
   Phone,
   UserRound,
+  Trash2,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
-import { markOrderPaid } from "../actions";
+import { deleteAdminOrder, markOrderPaid } from "../actions";
+import ConfirmDelete from "@/components/ConfirmDelete";
 
 export const dynamic = "force-dynamic";
 
@@ -153,6 +155,27 @@ export default async function OrderDetailPage({
           >
             {order.paymentStatus}
           </span>
+
+          {order.paymentStatus !== "PAID" &&
+            order.status !== "CONFIRMED" && (
+              <ConfirmDelete action={deleteAdminOrder} message="Delete this order? This cannot be undone.">
+                <input
+                  type="hidden"
+                  name="orderId"
+                  value={order.id}
+                />
+
+                <button
+                  type="submit"
+                  title="Delete Order"
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-red-200 bg-white px-4 text-[10px] font-semibold uppercase tracking-[0.1em] text-red-600 transition hover:bg-red-50"
+                >
+                  <Trash2 size={14} />
+                  Delete Order
+                </button>
+              </ConfirmDelete>
+            )}
+
         </div>
       </div>
 
@@ -217,26 +240,22 @@ export default async function OrderDetailPage({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[700px] border-collapse">
                 <thead>
                   <tr className="border-b border-neutral-200 bg-neutral-50/70 text-left">
                     <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
                       Product
                     </th>
-
                     <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
                       SKU
                     </th>
-
                     <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
                       Qty
                     </th>
-
                     <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
                       Unit Price
                     </th>
-
                     <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
                       Total
                     </th>
@@ -250,7 +269,7 @@ export default async function OrderDetailPage({
                       className="border-b border-neutral-100 last:border-b-0"
                     >
                       <td className="px-5 py-5">
-                        <strong className="block text-sm font-medium text-neutral-950">
+                        <strong className="block text-sm">
                           {item.productName}
                         </strong>
 
@@ -287,6 +306,63 @@ export default async function OrderDetailPage({
               </table>
             </div>
 
+            <div className="divide-y divide-neutral-100 md:hidden">
+              {order.items.map((item) => (
+                <div key={item.id} className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <strong className="block text-sm font-medium text-neutral-950">
+                        {item.productName}
+                      </strong>
+
+                      <span className="mt-1 block text-xs text-neutral-400">
+                        {item.strength}
+                      </span>
+
+                      {item.variant && (
+                        <span className="mt-1 block text-[11px] text-neutral-400">
+                          Current inventory:{" "}
+                          {item.variant.inventoryQty}
+                        </span>
+                      )}
+                    </div>
+
+                    <strong className="shrink-0 text-sm text-neutral-950">
+                      {money(Number(item.lineTotal))}
+                    </strong>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3">
+                    <div>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                        SKU
+                      </span>
+                      <span className="ml-2 text-xs text-neutral-600">
+                        {item.sku ?? "—"}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                        Qty
+                      </span>
+                      <span className="ml-2 text-xs font-medium text-neutral-900">
+                        {item.quantity}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                        Unit
+                      </span>
+                      <span className="ml-2 text-xs text-neutral-600">
+                        {money(Number(item.unitPrice))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
             <div className="border-t border-neutral-200 bg-neutral-50/50 px-5 py-5">
               <div className="ml-auto max-w-[340px] space-y-3">
                 <div className="flex justify-between gap-4 text-sm">

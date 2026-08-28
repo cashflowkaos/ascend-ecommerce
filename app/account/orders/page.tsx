@@ -167,7 +167,7 @@ export default async function MemberOrdersPage() {
             className="member-account-brand"
           >
             <Image
-              src="/logo/wordmark.png"
+              src="/logo/logo.png"
               alt="Ascend Peptide Co."
               width={250}
               height={95}
@@ -196,15 +196,6 @@ export default async function MemberOrdersPage() {
           </div>
         </header>
 
-        <div className="mb-7">
-          <Link
-            href="/account"
-            className="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 transition hover:text-[#D4A11E]"
-          >
-            <ArrowLeft size={16} />
-            Back to Account
-          </Link>
-        </div>
 
         <section className="member-account-hero">
           <div>

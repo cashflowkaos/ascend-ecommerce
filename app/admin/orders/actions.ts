@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 
@@ -183,4 +184,63 @@ export async function markOrderPaid(
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/inventory");
   revalidatePath("/compounds");
+}
+export async function deleteAdminOrder(
+  formData: FormData
+) {
+  const orderId = String(
+    formData.get("orderId") ?? ""
+  ).trim();
+
+  if (!orderId) {
+    throw new Error("Order ID is required.");
+  }
+
+  const order = await prisma.order.findUnique({
+    where: {
+      id: orderId,
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      paymentStatus: true,
+      status: true,
+    },
+  });
+
+  if (!order) {
+    throw new Error("Order not found.");
+  }
+
+  if (order.paymentStatus === "PAID") {
+    throw new Error(
+      "Paid orders cannot be deleted."
+    );
+  }
+
+  if (order.status === "CONFIRMED") {
+    throw new Error(
+      "Confirmed orders cannot be deleted."
+    );
+  }
+
+  await prisma.orderItem.deleteMany({
+    where: {
+      orderId,
+    },
+  });
+
+  await prisma.order.delete({
+    where: {
+      id: orderId,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath("/account");
+  revalidatePath("/account/orders");
+
+  redirect("/admin/orders");
 }

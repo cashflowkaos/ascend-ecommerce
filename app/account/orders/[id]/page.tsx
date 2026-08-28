@@ -83,7 +83,7 @@ export default async function MemberOrderDetailPage({
             className="member-account-brand"
           >
             <Image
-              src="/logo/wordmark.png"
+              src="/logo/logo.png"
               alt="Ascend Peptide Co."
               width={250}
               height={95}

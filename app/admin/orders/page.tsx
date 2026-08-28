@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
+import { deleteAdminOrder } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -213,125 +214,210 @@ export default async function OrdersPage() {
             No order requests have been submitted yet.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] border-collapse">
-              <thead>
-                <tr className="border-b border-neutral-200 bg-neutral-50/70 text-left">
-                  <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                    Order
-                  </th>
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[980px] border-collapse">
+                <thead>
+                  <tr className="border-b border-neutral-200 bg-neutral-50/70 text-left">
+                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                      Order
+                    </th>
+                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                      Customer
+                    </th>
+                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                      Date
+                    </th>
+                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                      Items
+                    </th>
+                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                      Merchandise
+                    </th>
+                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                      Order Status
+                    </th>
+                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                      Payment
+                    </th>
+                    <th className="px-5 py-4 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                      View
+                    </th>
+                  </tr>
+                </thead>
 
-                  <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                    Customer
-                  </th>
+                <tbody>
+                  {orders.map((order) => {
+                    const itemCount = order.items.reduce(
+                      (sum, item) => sum + item.quantity,
+                      0
+                    );
 
-                  <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                    Date
-                  </th>
+                    return (
+                      <tr
+                        key={order.id}
+                        className="border-b border-neutral-100 transition last:border-b-0 hover:bg-neutral-50/70"
+                      >
+                        <td className="px-5 py-5">
+                          <Link
+                            href={`/admin/orders/${order.id}`}
+                            className="font-semibold text-neutral-950 transition hover:text-[#D4A11E]"
+                          >
+                            {order.orderNumber}
+                          </Link>
+                        </td>
 
-                  <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                    Items
-                  </th>
+                        <td className="px-5 py-5">
+                          <div>
+                            <strong className="block text-sm font-medium text-neutral-900">
+                              {order.user.firstName}{" "}
+                              {order.user.lastName}
+                            </strong>
+                            <span className="mt-1 block text-xs text-neutral-400">
+                              {order.user.email}
+                            </span>
+                          </div>
+                        </td>
 
-                  <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                    Merchandise
-                  </th>
+                        <td className="whitespace-nowrap px-5 py-5 text-sm text-neutral-500">
+                          {formatDate(order.createdAt)}
+                        </td>
 
-                  <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                    Order Status
-                  </th>
+                        <td className="px-5 py-5 text-sm font-medium text-neutral-700">
+                          {itemCount}
+                        </td>
 
-                  <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                    Payment
-                  </th>
+                        <td className="px-5 py-5 text-sm font-semibold text-neutral-950">
+                          {money(Number(order.subtotal))}
+                        </td>
 
-                  <th className="px-5 py-4 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                    View
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {orders.map((order) => {
-                  const itemCount = order.items.reduce(
-                    (sum, item) => sum + item.quantity,
-                    0
-                  );
-
-                  return (
-                    <tr
-                      key={order.id}
-                      className="border-b border-neutral-100 transition last:border-b-0 hover:bg-neutral-50/70"
-                    >
-                      <td className="px-5 py-5">
-                        <Link
-                          href={`/admin/orders/${order.id}`}
-                          className="font-semibold text-neutral-950 transition hover:text-[#D4A11E]"
-                        >
-                          {order.orderNumber}
-                        </Link>
-                      </td>
-
-                      <td className="px-5 py-5">
-                        <div>
-                          <strong className="block text-sm font-medium text-neutral-900">
-                            {order.user.firstName}{" "}
-                            {order.user.lastName}
-                          </strong>
-
-                          <span className="mt-1 block text-xs text-neutral-400">
-                            {order.user.email}
+                        <td className="px-5 py-5">
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${orderStatusClasses(
+                              order.status
+                            )}`}
+                          >
+                            {order.status}
                           </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="whitespace-nowrap px-5 py-5 text-sm text-neutral-500">
-                        {formatDate(order.createdAt)}
-                      </td>
+                        <td className="px-5 py-5">
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${paymentStatusClasses(
+                              order.paymentStatus
+                            )}`}
+                          >
+                            {order.paymentStatus}
+                          </span>
+                        </td>
 
-                      <td className="px-5 py-5 text-sm font-medium text-neutral-700">
-                        {itemCount}
-                      </td>
+                        <td className="px-5 py-5 text-center">
+                          <Link
+                            href={`/admin/orders/${order.id}`}
+                            title={`View ${order.orderNumber}`}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-600 transition hover:border-[#D4A11E] hover:text-[#D4A11E]"
+                          >
+                            <Eye size={15} />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                      <td className="px-5 py-5 text-sm font-semibold text-neutral-950">
-                        {money(Number(order.subtotal))}
-                      </td>
+            <div className="divide-y divide-neutral-200 md:hidden">
+              {orders.map((order) => {
+                const itemCount = order.items.reduce(
+                  (sum, item) => sum + item.quantity,
+                  0
+                );
 
-                      <td className="px-5 py-5">
-                        <span
-                          className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${orderStatusClasses(
-                            order.status
-                          )}`}
-                        >
-                          {order.status}
+                return (
+                  <Link
+                    key={order.id}
+                    href={`/admin/orders/${order.id}`}
+                    className="block p-5 transition active:bg-neutral-50"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B1841A]">
+                          Order
                         </span>
-                      </td>
 
-                      <td className="px-5 py-5">
-                        <span
-                          className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${paymentStatusClasses(
-                            order.paymentStatus
-                          )}`}
-                        >
-                          {order.paymentStatus}
+                        <strong className="mt-1 block truncate text-base font-semibold text-neutral-950">
+                          {order.orderNumber}
+                        </strong>
+                      </div>
+
+                      <span className="shrink-0 text-sm font-medium text-neutral-400">
+                        View →
+                      </span>
+                    </div>
+
+                    <div className="mt-4">
+                      <strong className="block text-sm font-medium text-neutral-900">
+                        {order.user.firstName}{" "}
+                        {order.user.lastName}
+                      </strong>
+
+                      <span className="mt-1 block truncate text-xs text-neutral-400">
+                        {order.user.email}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
+                      <div>
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                          Date
                         </span>
-                      </td>
+                        <span className="mt-1 block text-xs text-neutral-600">
+                          {formatDate(order.createdAt)}
+                        </span>
+                      </div>
 
-                      <td className="px-5 py-5 text-center">
-                        <Link
-                          href={`/admin/orders/${order.id}`}
-                          title={`View ${order.orderNumber}`}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-600 transition hover:border-[#D4A11E] hover:text-[#D4A11E]"
-                        >
-                          <Eye size={15} />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      <div>
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                          Items
+                        </span>
+                        <span className="mt-1 block text-xs font-medium text-neutral-700">
+                          {itemCount}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                          Merchandise
+                        </span>
+                        <span className="mt-1 block text-sm font-semibold text-neutral-950">
+                          {money(Number(order.subtotal))}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span
+                        className={`inline-flex rounded-full border px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] ${orderStatusClasses(
+                          order.status
+                        )}`}
+                      >
+                        {order.status}
+                      </span>
+
+                      <span
+                        className={`inline-flex rounded-full border px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] ${paymentStatusClasses(
+                          order.paymentStatus
+                        )}`}
+                      >
+                        {order.paymentStatus}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
         )}
       </section>
     </div>
