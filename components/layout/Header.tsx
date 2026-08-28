@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, ShoppingCart, UserRound, X } from "lucide-react";
+import { LogOut, Menu, ShoppingCart, UserRound, X } from "lucide-react";
 import { CART_CHANGED_EVENT, getCartCount } from "@/lib/cart/cart";
+import { memberSignOut } from "@/app/account/actions";
 
 type HeaderProps = {
   memberMode?: boolean;
@@ -113,6 +114,16 @@ export default function Header({
                   <UserRound size={16} strokeWidth={1.8} />
                   My Account
                 </Link>
+
+                <form action={memberSignOut}>
+                  <button
+                    type="submit"
+                    className="flex h-11 items-center gap-2 rounded-full border border-neutral-300 bg-white px-5 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900 transition hover:border-[#D4A11E] hover:text-[#D4A11E]"
+                  >
+                    <LogOut size={16} strokeWidth={1.8} />
+                    Sign Out
+                  </button>
+                </form>
               </>
             ) : (
               <>
@@ -181,7 +192,7 @@ export default function Header({
             </Link>
 
             {memberMode ? (
-              <div className="grid grid-cols-2 gap-3 py-5">
+              <div className="grid gap-3 py-5 sm:grid-cols-3">
                 <Link
                   href="/cart"
                   onClick={() => setMenuOpen(false)}
@@ -199,6 +210,16 @@ export default function Header({
                   <UserRound size={16} strokeWidth={1.8} />
                   Account
                 </Link>
+
+                <form action={memberSignOut}>
+                  <button
+                    type="submit"
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-neutral-300 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-900"
+                  >
+                    <LogOut size={16} strokeWidth={1.8} />
+                    Sign Out
+                  </button>
+                </form>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 py-5">
