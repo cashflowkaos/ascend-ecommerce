@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 
 function normalizeComposition(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
@@ -67,6 +67,7 @@ function mapProduct<
       purchasable: variant.purchasable,
 
       available:
+        variant.active &&
         variant.purchasable &&
         memberPrice !== null &&
         (

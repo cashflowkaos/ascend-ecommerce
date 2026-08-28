@@ -1,9 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, ShoppingCart } from "lucide-react";
-import { addToCart } from "@/lib/cart/cart";
+import {
+  addToCart,
+  getCart,
+} from "@/lib/cart/cart";
 
 type Variant = {
   id: string;
@@ -40,6 +43,7 @@ export default function MemberPurchaseBox({
 
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [stockError, setStockError] = useState("");
 
   const selectedVariant =
     availableVariants.find(
@@ -77,8 +81,49 @@ export default function MemberPurchaseBox({
   function handleAddToCart() {
     if (
       !selectedVariant ||
-      selectedVariant.memberPrice === null
+      selectedVariant.memberPrice === null ||
+      !selectedVariant.available
     ) {
+      setStockError(
+        "This item is currently out of stock."
+      );
+      return;
+    }
+
+    const existingItem = getCart().find(
+      (item) =>
+        item.variantId === selectedVariant.id
+    );
+
+    const existingQuantity =
+      existingItem?.quantity ?? 0;
+
+    const requestedTotal =
+      existingQuantity + safeQuantity;
+
+    if (
+      selectedVariant.inventoryQty >= 0 &&
+      requestedTotal >
+        selectedVariant.inventoryQty
+    ) {
+      const remaining = Math.max(
+        0,
+        selectedVariant.inventoryQty -
+          existingQuantity
+      );
+
+      setAdded(false);
+
+      if (remaining === 0) {
+        setStockError(
+          `You already have all ${selectedVariant.inventoryQty} available units in your cart.`
+        );
+      } else {
+        setStockError(
+          `Only ${remaining} more available. You already have ${existingQuantity} in your cart.`
+        );
+      }
+
       return;
     }
 
@@ -94,6 +139,7 @@ export default function MemberPurchaseBox({
       image,
     });
 
+    setStockError("");
     setAdded(true);
 
     window.setTimeout(() => {
@@ -137,6 +183,7 @@ export default function MemberPurchaseBox({
               setVariantId(event.target.value);
               setQuantity(1);
               setAdded(false);
+              setStockError("");
             }}
             className="h-12 rounded-lg border border-neutral-300 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-[#D4A11E]"
           >
@@ -162,6 +209,7 @@ export default function MemberPurchaseBox({
             onChange={(event) => {
               setQuantity(Number(event.target.value));
               setAdded(false);
+              setStockError("");
             }}
             className="h-12 rounded-lg border border-neutral-300 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-[#D4A11E]"
           >
@@ -209,6 +257,14 @@ export default function MemberPurchaseBox({
         )}
       </button>
 
+      {stockError && (
+        <p
+          role="alert"
+          className="mt-3 text-center text-xs font-medium text-red-600"
+        >
+          {stockError}
+        </p>
+      )}
       <div className="mt-4 text-center">
         <Link
           href="/cart"
