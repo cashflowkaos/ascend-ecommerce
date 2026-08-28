@@ -1,8 +1,12 @@
-"use server";
+﻿"use server";
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import {
+  sendMembershipApplicationReceivedEmail,
+  sendNewMembershipApplicationAdminEmail,
+} from "@/lib/email";
 
 export async function registerMember(formData: FormData) {
   const firstName = String(formData.get("firstName") ?? "").trim();
@@ -92,7 +96,7 @@ export async function registerMember(formData: FormData) {
   const passwordHash = await hashPassword(password);
 
   try {
-    await prisma.user.create({
+    const member = await prisma.user.create({
       data: {
         firstName,
         lastName,
@@ -123,6 +127,27 @@ export async function registerMember(formData: FormData) {
         },
       },
     });
+
+    const emailResults = await Promise.allSettled([
+      sendMembershipApplicationReceivedEmail({
+        email: member.email,
+        firstName: member.firstName,
+      }),
+      sendNewMembershipApplicationAdminEmail({
+        firstName: member.firstName,
+        lastName: member.lastName,
+        email: member.email,
+      }),
+    ]);
+
+    for (const result of emailResults) {
+      if (result.status === "rejected") {
+        console.error(
+          "Membership application email failed:",
+          result.reason
+        );
+      }
+    }
   } catch (error) {
     console.error("Member registration failed:", error);
     redirect("/signup?error=failed");

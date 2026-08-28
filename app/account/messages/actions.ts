@@ -1,9 +1,10 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireApprovedMember } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendNewAdminMessageNotificationEmail } from "@/lib/email";
 
 function clean(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
@@ -36,6 +37,20 @@ export async function createMemberThread(formData: FormData) {
     },
   });
 
+  try {
+    await sendNewAdminMessageNotificationEmail({
+      memberFirstName: user.firstName,
+      memberLastName: user.lastName,
+      memberEmail: user.email,
+      subject,
+    });
+  } catch (error) {
+    console.error(
+      "ADMIN MESSAGE EMAIL: FAILED",
+      error
+    );
+  }
+
   revalidatePath("/account");
   revalidatePath("/account/messages");
   revalidatePath("/admin");
@@ -63,6 +78,11 @@ export async function replyMemberThread(formData: FormData) {
       id: threadId,
       userId: user.id,
     },
+    select: {
+      id: true,
+      subject: true,
+      status: true,
+    },
   });
 
   if (!thread) {
@@ -86,6 +106,20 @@ export async function replyMemberThread(formData: FormData) {
         status: "OPEN",
       },
     });
+  }
+
+  try {
+    await sendNewAdminMessageNotificationEmail({
+      memberFirstName: user.firstName,
+      memberLastName: user.lastName,
+      memberEmail: user.email,
+      subject: thread.subject,
+    });
+  } catch (error) {
+    console.error(
+      "ADMIN MESSAGE EMAIL: FAILED",
+      error
+    );
   }
 
   revalidatePath("/account");

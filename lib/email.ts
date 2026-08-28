@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+﻿import { Resend } from "resend";
 
 const FROM_EMAIL =
   "Ascend Peptide Co. <members@ascendpepco.com>";
@@ -63,6 +63,150 @@ function emailShell(content: string) {
       </body>
     </html>
   `;
+}
+
+export async function sendMembershipApplicationReceivedEmail({
+  email,
+  firstName,
+}: {
+  email: string;
+  firstName: string;
+}) {
+  const resend = getResend();
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    replyTo: REPLY_TO_EMAIL,
+    subject: "Ascend Membership Application Received",
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        Application Received
+      </h1>
+
+      <p style="
+        margin:0 0 16px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Hello ${firstName},
+      </p>
+
+      <p style="
+        margin:0 0 16px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        We received your Ascend Peptide Co. membership application.
+      </p>
+
+      <p style="
+        margin:0;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Your application is pending review. We will notify you by
+        email once your membership has been reviewed.
+      </p>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `Membership application confirmation email failed: ${error.message}`
+    );
+  }
+
+  return data;
+}
+
+export async function sendNewMembershipApplicationAdminEmail({
+  firstName,
+  lastName,
+  email,
+}: {
+  firstName: string;
+  lastName: string;
+  email: string;
+}) {
+  const resend = getResend();
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: REPLY_TO_EMAIL,
+    replyTo: email,
+    subject: `New Ascend Membership Application - ${firstName} ${lastName}`,
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        New Membership Application
+      </h1>
+
+      <p style="
+        margin:0 0 16px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        A new membership application has been submitted.
+      </p>
+
+      <p style="
+        margin:0 0 24px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        <strong>Name:</strong> ${firstName} ${lastName}<br />
+        <strong>Email:</strong> ${email}
+      </p>
+
+      <a
+        href="https://ascendpepco.com/admin/members"
+        style="
+          display:inline-block;
+          padding:12px 20px;
+          background:#b78300;
+          color:#ffffff;
+          font-family:Arial,sans-serif;
+          font-size:12px;
+          font-weight:700;
+          text-decoration:none;
+        "
+      >
+        Review Membership
+      </a>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `New membership admin email failed: ${error.message}`
+    );
+  }
+
+  return data;
 }
 
 export async function sendMemberApprovalEmail({
@@ -241,6 +385,86 @@ export async function sendMemberDeclinedEmail({
   return data;
 }
 
+
+export async function sendNewAdminMessageNotificationEmail({
+  memberFirstName,
+  memberLastName,
+  memberEmail,
+  subject,
+}: {
+  memberFirstName: string;
+  memberLastName: string;
+  memberEmail: string;
+  subject: string;
+}) {
+  const resend = getResend();
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: REPLY_TO_EMAIL,
+    replyTo: memberEmail,
+    subject: `New Member Message - ${memberFirstName} ${memberLastName}`,
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        New Member Message
+      </h1>
+
+      <p style="
+        margin:0 0 16px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        ${memberFirstName} ${memberLastName} sent a message
+        through the Ascend member portal.
+      </p>
+
+      <p style="
+        margin:0 0 24px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        <strong>Member:</strong> ${memberFirstName} ${memberLastName}<br />
+        <strong>Email:</strong> ${memberEmail}<br />
+        <strong>Subject:</strong> ${subject}
+      </p>
+
+      <a
+        href="https://ascendpepco.com/admin/messages"
+        style="
+          display:inline-block;
+          padding:12px 20px;
+          background:#b78300;
+          color:#ffffff;
+          font-family:Arial,sans-serif;
+          font-size:12px;
+          font-weight:700;
+          text-decoration:none;
+        "
+      >
+        View Messages
+      </a>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `Admin message notification email failed: ${error.message}`
+    );
+  }
+
+  return data;
+}
 
 export async function sendNewMessageNotificationEmail({
   email,
@@ -715,3 +939,5 @@ export async function sendOrderRequestCustomerEmail({
 
   return data;
 }
+
+
