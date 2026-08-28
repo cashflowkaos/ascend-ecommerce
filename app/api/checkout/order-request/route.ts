@@ -1,4 +1,4 @@
-import { randomBytes } from "crypto";
+﻿import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
@@ -272,15 +272,12 @@ export async function POST(request: Request) {
       continue;
     }
 
-    if (
-      !variant.purchasable ||
-      !variant.product.purchasable
-    ) {
-      errors.push(
-        `${variant.product.name} ${variant.strength} is not currently available for purchase.`
-      );
-      continue;
-    }
+    if (!variant.purchasable) {
+        errors.push(
+          `${variant.product.name} ${variant.strength} is not currently available for purchase.`
+        );
+        continue;
+      }
 
     if (variant.memberPrice === null) {
       errors.push(
@@ -548,3 +545,4 @@ export async function POST(request: Request) {
     total,
   });
 }
+
