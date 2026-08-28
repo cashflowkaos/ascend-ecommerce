@@ -1,19 +1,23 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   Loader2,
+  Minus,
+  Plus,
   ShoppingBag,
+  Trash2,
 } from "lucide-react";
 
 import {
   CART_CHANGED_EVENT,
   clearCart,
   getCart,
+  removeFromCart,
+  setCartQuantity,
 } from "@/lib/cart/cart";
 
 type ValidatedItem = {
@@ -122,6 +126,39 @@ export default function CheckoutOrderSummary() {
     }
   }
 
+  function changeQuantity(
+    item: ValidatedItem,
+    quantity: number
+  ) {
+    if (submitting) {
+      return;
+    }
+
+    const nextQuantity = Math.max(
+      0,
+      Math.floor(quantity)
+    );
+
+    if (
+      item.trackInventory &&
+      nextQuantity > item.inventoryQty
+    ) {
+      return;
+    }
+
+    setCartQuantity(
+      item.variantId,
+      nextQuantity
+    );
+  }
+
+  function removeItem(variantId: string) {
+    if (submitting) {
+      return;
+    }
+
+    removeFromCart(variantId);
+  }
   async function submitOrderRequest() {
     if (submitting || !valid || items.length === 0) {
       return;
@@ -283,38 +320,21 @@ export default function CheckoutOrderSummary() {
   return (
     <>
       <div className="mt-6 overflow-hidden rounded-[16px] border border-neutral-200">
-        {items.map((item, index) => (
-          <div
-            key={item.variantId}
-            className={`flex gap-4 p-4 ${
-              index !== items.length - 1
-                ? "border-b border-neutral-200"
-                : ""
-            }`}
-          >
-            <Link
-              href={`/compound/${item.slug}`}
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-neutral-50 p-2"
-            >
-              {item.image ? (
-                <Image
-                  src={item.image}
-                  alt={item.productName}
-                  width={64}
-                  height={64}
-                  className="max-h-full w-auto object-contain"
-                />
-              ) : (
-                <ShoppingBag
-                  size={20}
-                  strokeWidth={1.4}
-                  className="text-neutral-300"
-                />
-              )}
-            </Link>
+        {items.map((item, index) => {
+          const atInventoryLimit =
+            item.trackInventory &&
+            item.quantity >= item.inventoryQty;
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-3">
+          return (
+            <div
+              key={item.variantId}
+              className={`p-4 ${
+                index !== items.length - 1
+                  ? "border-b border-neutral-200"
+                  : ""
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <Link
                     href={`/compound/${item.slug}`}
@@ -323,8 +343,12 @@ export default function CheckoutOrderSummary() {
                     {item.productName}
                   </Link>
 
-                  <p className="mt-1 text-xs text-neutral-500">
+                  <p className="mt-1 text-xs font-medium text-neutral-500">
                     {item.strength}
+                  </p>
+
+                  <p className="mt-1 text-[11px] text-neutral-400">
+                    ${item.unitPrice.toFixed(2)} each
                   </p>
                 </div>
 
@@ -333,18 +357,78 @@ export default function CheckoutOrderSummary() {
                 </strong>
               </div>
 
-              <div className="mt-2 flex items-center justify-between gap-3 text-xs text-neutral-400">
-                <span>
-                  Qty {item.quantity}
-                </span>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 items-center overflow-hidden rounded-full border border-neutral-300 bg-white">
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() =>
+                        changeQuantity(
+                          item,
+                          item.quantity - 1
+                        )
+                      }
+                      aria-label={`Decrease ${item.productName} quantity`}
+                      className="flex h-full w-10 items-center justify-center transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Minus
+                        size={14}
+                        strokeWidth={1.8}
+                      />
+                    </button>
 
-                <span>
-                  ${item.unitPrice.toFixed(2)} each
-                </span>
+                    <span className="flex min-w-9 items-center justify-center text-sm font-semibold">
+                      {item.quantity}
+                    </span>
+
+                    <button
+                      type="button"
+                      disabled={
+                        submitting ||
+                        atInventoryLimit
+                      }
+                      onClick={() =>
+                        changeQuantity(
+                          item,
+                          item.quantity + 1
+                        )
+                      }
+                      aria-label={`Increase ${item.productName} quantity`}
+                      className="flex h-full w-10 items-center justify-center transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      <Plus
+                        size={14}
+                        strokeWidth={1.8}
+                      />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() =>
+                      removeItem(item.variantId)
+                    }
+                    className="inline-flex min-h-10 items-center gap-1.5 px-2 text-xs font-medium text-neutral-400 transition hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Trash2
+                      size={14}
+                      strokeWidth={1.7}
+                    />
+                    Remove
+                  </button>
+                </div>
+
+                {item.trackInventory && (
+                  <span className="text-[10px] text-neutral-400">
+                    {item.inventoryQty} available
+                  </span>
+                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {errors.length > 0 && (

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -175,10 +175,7 @@ export async function POST(request: Request) {
       continue;
     }
 
-    if (
-      !variant.purchasable ||
-      !variant.product.purchasable
-    ) {
+    if (!variant.purchasable) {
       errors.push(
         `${variant.product.name} ${variant.strength} is not currently available for purchase.`
       );
