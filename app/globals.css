@@ -4442,3 +4442,1892 @@ img {
     gap: 5px !important;
   }
 }
+
+/* ============================================================
+   ASCEND DISTRO - RESPONSIVE INVENTORY
+   ============================================================ */
+
+.admin-distro-page {
+  width: 100%;
+  max-width: 1500px;
+}
+
+.admin-distro-stats {
+  margin-bottom: 24px;
+}
+
+.admin-distro-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #e7e5df;
+}
+
+.admin-distro-table {
+  width: 100%;
+  min-width: 1180px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.admin-distro-table th {
+  padding: 12px 10px;
+  background: #fafaf8;
+  border-bottom: 1px solid #e8e6e0;
+  color: #777771;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.admin-distro-table td {
+  padding: 13px 10px;
+  border-bottom: 1px solid #efede8;
+  vertical-align: middle;
+  font-size: 10px;
+}
+
+.admin-distro-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-distro-table tbody tr:hover {
+  background: #fdfcf9;
+}
+
+.admin-distro-table th:nth-child(1),
+.admin-distro-table td:nth-child(1) {
+  width: 225px;
+}
+
+.admin-distro-table th:nth-child(2),
+.admin-distro-table td:nth-child(2) {
+  width: 170px;
+}
+
+.admin-distro-table th:nth-child(3),
+.admin-distro-table td:nth-child(3),
+.admin-distro-table th:nth-child(4),
+.admin-distro-table td:nth-child(4),
+.admin-distro-table th:nth-child(5),
+.admin-distro-table td:nth-child(5),
+.admin-distro-table th:nth-child(6),
+.admin-distro-table td:nth-child(6) {
+  width: 100px;
+}
+
+.admin-distro-table th:nth-child(7),
+.admin-distro-table td:nth-child(7) {
+  width: 90px;
+}
+
+.admin-distro-table th:nth-child(8),
+.admin-distro-table td:nth-child(8),
+.admin-distro-table th:nth-child(9),
+.admin-distro-table td:nth-child(9) {
+  width: 72px;
+  text-align: center;
+}
+
+.admin-distro-table th:nth-child(10),
+.admin-distro-table td:nth-child(10) {
+  width: 72px;
+  text-align: right;
+}
+
+.admin-distro-table td:first-child strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #171717;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.admin-distro-table td:first-child small {
+  display: block;
+  margin-top: 3px;
+  color: #858580;
+  font-size: 9px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+.admin-distro-table td:nth-child(2) small {
+  display: block;
+  margin: 2px 0;
+  color: #666;
+  font-size: 9px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.admin-distro-table .admin-money-input,
+.admin-distro-table .admin-number-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-distro-table .admin-switch {
+  margin: 0 auto;
+}
+
+.admin-distro-table .admin-save-button {
+  min-width: 58px;
+}
+
+
+/* ---------- DISTRO MOBILE ---------- */
+
+@media (max-width: 760px) {
+  .admin-distro-page {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-distro-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .admin-distro-stats > div:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .admin-distro-table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .admin-distro-table {
+    display: block;
+    min-width: 0;
+  }
+
+  .admin-distro-table thead {
+    display: none;
+  }
+
+  .admin-distro-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .admin-distro-table tr {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px 8px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e7e5df;
+  }
+
+  .admin-distro-table td {
+    width: auto !important;
+    padding: 0;
+    border: 0;
+    text-align: left !important;
+    min-width: 0;
+  }
+
+  .admin-distro-table td:nth-child(1) {
+    grid-column: 1 / -1;
+    padding-bottom: 11px;
+    border-bottom: 1px solid #efede8;
+  }
+
+  .admin-distro-table td:nth-child(1) strong {
+    font-size: 15px;
+  }
+
+  .admin-distro-table td:nth-child(1) small {
+    font-size: 10px;
+  }
+
+  .admin-distro-table td:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-distro-table td:nth-child(2)::before {
+    content: "BATCH";
+  }
+
+  .admin-distro-table td:nth-child(3)::before {
+    content: "COST";
+  }
+
+  .admin-distro-table td:nth-child(4)::before {
+    content: "TIER 1";
+  }
+
+  .admin-distro-table td:nth-child(5)::before {
+    content: "TIER 2";
+  }
+
+  .admin-distro-table td:nth-child(6)::before {
+    content: "TIER 3";
+  }
+
+  .admin-distro-table td:nth-child(7)::before {
+    content: "STOCK";
+  }
+
+  .admin-distro-table td:nth-child(8)::before {
+    content: "ENABLED";
+  }
+
+  .admin-distro-table td:nth-child(9)::before {
+    content: "AVAILABLE";
+  }
+
+  .admin-distro-table td:nth-child(n+2)::before {
+    display: block;
+    margin-bottom: 6px;
+    color: #999;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .08em;
+  }
+
+  .admin-distro-table td:nth-child(2) {
+    padding-bottom: 4px;
+  }
+
+  .admin-distro-table td:nth-child(3),
+  .admin-distro-table td:nth-child(4),
+  .admin-distro-table td:nth-child(5),
+  .admin-distro-table td:nth-child(6) {
+    grid-column: span 1;
+  }
+
+  .admin-distro-table td:nth-child(7) {
+    grid-column: span 2;
+  }
+
+  .admin-distro-table td:nth-child(8),
+  .admin-distro-table td:nth-child(9) {
+    grid-column: span 1;
+  }
+
+  .admin-distro-table td:nth-child(10) {
+    grid-column: 1 / -1;
+    padding-top: 4px;
+  }
+
+  .admin-distro-table .admin-money-input,
+  .admin-distro-table .admin-number-input {
+    height: 38px;
+  }
+
+  .admin-distro-table .admin-save-button {
+    width: 100%;
+    height: 38px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-distro-table tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-distro-table td:nth-child(3),
+  .admin-distro-table td:nth-child(4),
+  .admin-distro-table td:nth-child(5),
+  .admin-distro-table td:nth-child(6) {
+    grid-column: span 1;
+  }
+
+  .admin-distro-table td:nth-child(7) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-distro-table td:nth-child(8),
+  .admin-distro-table td:nth-child(9) {
+    grid-column: span 1;
+  }
+}
+
+/* ============================================================
+   DISTRO UI REFINEMENT V2
+   Desktop + Mobile
+   ============================================================ */
+
+/* ---------- PAGE / HEADER ---------- */
+
+.admin-distro-page {
+  max-width: 1440px;
+}
+
+.admin-distro-page h1 {
+  margin-bottom: 4px;
+}
+
+.admin-distro-page > p {
+  margin-top: 0;
+  color: #777771;
+}
+
+
+/* ---------- SUMMARY ---------- */
+
+.admin-distro-stats {
+  max-width: 760px;
+  margin-top: 18px;
+  margin-bottom: 24px;
+  gap: 10px;
+}
+
+.admin-distro-stats > div {
+  min-height: 72px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-distro-stats > div span,
+.admin-distro-stats > div small {
+  margin: 0;
+}
+
+.admin-distro-stats > div strong {
+  margin-left: auto;
+  font-family: Georgia, serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+
+/* ---------- DESKTOP TABLE ---------- */
+
+.admin-distro-table-wrap {
+  border-radius: 2px;
+}
+
+.admin-distro-table {
+  min-width: 1120px;
+}
+
+.admin-distro-table th {
+  height: 42px;
+  padding: 0 10px;
+  vertical-align: middle;
+}
+
+.admin-distro-table td {
+  height: 58px;
+  padding: 9px 10px;
+}
+
+
+/* Compound */
+
+.admin-distro-table th:nth-child(1),
+.admin-distro-table td:nth-child(1) {
+  width: 240px;
+}
+
+.admin-distro-table td:nth-child(1) strong {
+  margin-bottom: 3px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-distro-table td:nth-child(1) small {
+  margin-top: 2px;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+
+/* Batch */
+
+.admin-distro-table th:nth-child(2),
+.admin-distro-table td:nth-child(2) {
+  width: 175px;
+}
+
+.admin-distro-table td:nth-child(2) small {
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+
+/* Pricing */
+
+.admin-distro-table th:nth-child(3),
+.admin-distro-table td:nth-child(3),
+.admin-distro-table th:nth-child(4),
+.admin-distro-table td:nth-child(4),
+.admin-distro-table th:nth-child(5),
+.admin-distro-table td:nth-child(5),
+.admin-distro-table th:nth-child(6),
+.admin-distro-table td:nth-child(6) {
+  width: 92px;
+}
+
+
+/* Stock */
+
+.admin-distro-table th:nth-child(7),
+.admin-distro-table td:nth-child(7) {
+  width: 84px;
+}
+
+
+/* Toggles */
+
+.admin-distro-table th:nth-child(8),
+.admin-distro-table td:nth-child(8),
+.admin-distro-table th:nth-child(9),
+.admin-distro-table td:nth-child(9) {
+  width: 72px;
+  text-align: center;
+}
+
+
+/* Save */
+
+.admin-distro-table th:nth-child(10),
+.admin-distro-table td:nth-child(10) {
+  width: 64px;
+  text-align: center;
+}
+
+
+/* Inputs */
+
+.admin-distro-table .admin-money-input,
+.admin-distro-table .admin-number-input {
+  height: 34px;
+  border-color: #dedbd4;
+}
+
+.admin-distro-table .admin-money-input input {
+  height: 32px;
+  font-size: 9px;
+}
+
+.admin-distro-table .admin-number-input {
+  font-size: 9px;
+}
+
+.admin-distro-table .admin-save-button {
+  min-width: 54px;
+  height: 32px;
+  padding: 0 9px;
+}
+
+
+/* Make pricing section visually easier to scan */
+
+.admin-distro-table td:nth-child(4),
+.admin-distro-table td:nth-child(5),
+.admin-distro-table td:nth-child(6) {
+  background: #fffdf8;
+}
+
+.admin-distro-table th:nth-child(4),
+.admin-distro-table th:nth-child(5),
+.admin-distro-table th:nth-child(6) {
+  background: #f9f6ed;
+}
+
+
+/* ============================================================
+   TABLET / MOBILE
+   ============================================================ */
+
+@media (max-width: 760px) {
+
+  .admin-distro-page {
+    width: 100%;
+    max-width: none;
+  }
+
+
+  /* ---------- HEADER ---------- */
+
+  .admin-distro-page h1 {
+    font-size: 22px;
+  }
+
+  .admin-distro-page > p {
+    max-width: 330px;
+    font-size: 10px;
+    line-height: 1.55;
+  }
+
+
+  /* ---------- SUMMARY ---------- */
+
+  .admin-distro-stats {
+    width: 100%;
+    max-width: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 16px;
+    margin-bottom: 18px;
+  }
+
+  .admin-distro-stats > div,
+  .admin-distro-stats > div:first-child {
+    grid-column: auto;
+    min-height: 64px;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .admin-distro-stats > div strong {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .admin-distro-stats > div span,
+  .admin-distro-stats > div small {
+    font-size: 8px;
+  }
+
+
+  /* ---------- REMOVE DESKTOP TABLE BEHAVIOR ---------- */
+
+  .admin-distro-table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .admin-distro-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
+  }
+
+  .admin-distro-table thead {
+    display: none;
+  }
+
+  .admin-distro-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+
+  /* ---------- PRODUCT CARD ---------- */
+
+  .admin-distro-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px 8px;
+
+    width: 100%;
+    padding: 14px;
+
+    border: 1px solid #e5e2da;
+    background: #fff;
+  }
+
+  .admin-distro-table tbody tr:hover {
+    background: #fff;
+  }
+
+  .admin-distro-table td {
+    width: auto !important;
+    height: auto;
+    min-width: 0;
+
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+
+    text-align: left !important;
+  }
+
+
+  /* ---------- PRODUCT IDENTITY ---------- */
+
+  .admin-distro-table td:nth-child(1) {
+    grid-column: 1 / -1;
+
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ece9e2;
+  }
+
+  .admin-distro-table td:nth-child(1) strong {
+    margin: 0 0 4px;
+    font-size: 14px;
+  }
+
+  .admin-distro-table td:nth-child(1) small {
+    font-size: 9px;
+    line-height: 1.45;
+  }
+
+
+  /* ---------- BATCH ---------- */
+
+  .admin-distro-table td:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-distro-table td:nth-child(2)::before {
+    content: "BATCH";
+  }
+
+
+  /* ---------- FIELD LABELS ---------- */
+
+  .admin-distro-table td:nth-child(3)::before {
+    content: "COST";
+  }
+
+  .admin-distro-table td:nth-child(4)::before {
+    content: "TIER 1";
+  }
+
+  .admin-distro-table td:nth-child(5)::before {
+    content: "TIER 2";
+  }
+
+  .admin-distro-table td:nth-child(6)::before {
+    content: "TIER 3";
+  }
+
+  .admin-distro-table td:nth-child(7)::before {
+    content: "DISTRO STOCK";
+  }
+
+  .admin-distro-table td:nth-child(8)::before {
+    content: "ENABLED";
+  }
+
+  .admin-distro-table td:nth-child(9)::before {
+    content: "AVAILABLE";
+  }
+
+  .admin-distro-table td:nth-child(n+2)::before {
+    display: block;
+    margin-bottom: 6px;
+
+    color: #99958c;
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: .1em;
+  }
+
+
+  /* ---------- FOUR PRICE CELLS ---------- */
+
+  .admin-distro-table td:nth-child(3),
+  .admin-distro-table td:nth-child(4),
+  .admin-distro-table td:nth-child(5),
+  .admin-distro-table td:nth-child(6) {
+    grid-column: span 1;
+  }
+
+  .admin-distro-table .admin-money-input,
+  .admin-distro-table .admin-number-input {
+    width: 100%;
+    height: 38px;
+  }
+
+  .admin-distro-table .admin-money-input input {
+    height: 36px;
+    font-size: 10px;
+  }
+
+
+  /* ---------- STOCK + SWITCHES ---------- */
+
+  .admin-distro-table td:nth-child(7) {
+    grid-column: span 2;
+  }
+
+  .admin-distro-table td:nth-child(8),
+  .admin-distro-table td:nth-child(9) {
+    grid-column: span 1;
+  }
+
+  .admin-distro-table td:nth-child(8) .admin-switch,
+  .admin-distro-table td:nth-child(9) .admin-switch {
+    margin: 3px 0 0;
+  }
+
+
+  /* ---------- SAVE ---------- */
+
+  .admin-distro-table td:nth-child(10) {
+    grid-column: 1 / -1;
+    padding-top: 2px;
+  }
+
+  .admin-distro-table .admin-save-button {
+    width: 100%;
+    height: 38px;
+    font-size: 9px;
+  }
+}
+
+
+/* ============================================================
+   SMALL PHONES
+   ============================================================ */
+
+@media (max-width: 480px) {
+
+  .admin-distro-table tbody tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 13px;
+  }
+
+  .admin-distro-table td:nth-child(3),
+  .admin-distro-table td:nth-child(4),
+  .admin-distro-table td:nth-child(5),
+  .admin-distro-table td:nth-child(6) {
+    grid-column: span 1;
+  }
+
+  .admin-distro-table td:nth-child(7) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-distro-table td:nth-child(8),
+  .admin-distro-table td:nth-child(9) {
+    grid-column: span 1;
+  }
+}
+
+/* ============================================================
+   DISTRO UI REFINEMENT V3
+   Desktop readability + summary spacing
+   ============================================================ */
+
+@media (min-width: 761px) {
+
+  /* ---------- SUMMARY CARDS ---------- */
+
+  .admin-distro-stats {
+    width: 100%;
+    max-width: 1070px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .admin-distro-stats > div {
+    min-height: 78px;
+    padding: 16px 20px;
+  }
+
+  .admin-distro-stats > div span,
+  .admin-distro-stats > div small {
+    white-space: nowrap;
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .admin-distro-stats > div strong {
+    font-size: 25px;
+  }
+
+
+  /* ---------- INVENTORY READABILITY ---------- */
+
+  .admin-distro-table td {
+    height: 64px;
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
+  .admin-distro-table td:nth-child(1) strong {
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  .admin-distro-table td:nth-child(1) small {
+    font-size: 9px;
+    line-height: 1.45;
+  }
+
+  .admin-distro-table td:nth-child(2) small {
+    font-size: 9px;
+    line-height: 1.45;
+  }
+
+
+  /* ---------- INPUT READABILITY ---------- */
+
+  .admin-distro-table .admin-money-input input,
+  .admin-distro-table .admin-number-input {
+    font-size: 11px;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .admin-distro-table .admin-money-input input {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .admin-distro-table .admin-money-input span {
+    padding-left: 7px;
+    font-size: 9px;
+  }
+}
+
+/* ============================================================
+   DISTRO UI REFINEMENT V4
+   Readability + gold accents + true centered pricing
+   ============================================================ */
+
+@media (min-width: 761px) {
+
+  /* ---------- GOLD SUMMARY LABELS ---------- */
+
+  .admin-distro-stats > div span,
+  .admin-distro-stats > div small {
+    color: #b58412;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+
+
+  /* ---------- LARGER TABLE HEADERS ---------- */
+
+  .admin-distro-table th {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .07em;
+  }
+
+
+  /* ---------- COMPOUND ---------- */
+
+  .admin-distro-table td:nth-child(1) strong {
+    color: #b58412;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .admin-distro-table td:nth-child(1) small {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+
+  /* ---------- BATCH ---------- */
+
+  .admin-distro-table td:nth-child(2) small {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+
+  /* ---------- ROW HEIGHT ---------- */
+
+  .admin-distro-table td {
+    height: 70px;
+  }
+
+
+  /* ---------- TRUE CENTERED MONEY FIELDS ---------- */
+
+  .admin-distro-table .admin-money-input {
+    position: relative;
+    display: block;
+  }
+
+  .admin-distro-table .admin-money-input span {
+    position: absolute;
+    left: 7px;
+    top: 50%;
+    z-index: 1;
+
+    padding: 0;
+    transform: translateY(-50%);
+
+    color: #999;
+    font-size: 10px;
+    pointer-events: none;
+  }
+
+  .admin-distro-table .admin-money-input input {
+    width: 100%;
+    padding: 0 18px !important;
+
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center !important;
+  }
+
+  .admin-distro-table .admin-number-input {
+    padding-left: 8px;
+    padding-right: 8px;
+
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center !important;
+  }
+
+
+  /* ---------- SWITCH / SAVE SCALE ---------- */
+
+  .admin-distro-table .admin-save-button {
+    font-size: 10px;
+  }
+}
+
+
+/* Keep gold compound identity on mobile too */
+
+@media (max-width: 760px) {
+
+  .admin-distro-table td:nth-child(1) strong {
+    color: #b58412;
+  }
+
+  .admin-distro-stats > div span,
+  .admin-distro-stats > div small {
+    color: #b58412;
+    font-weight: 700;
+  }
+}
+
+/* DISTRO V5 - Gold column labels */
+
+.admin-distro-table th {
+  color: #b58412;
+}
+
+/* ============================================================
+   DISTRO ADD INVENTORY
+   ============================================================ */
+
+.admin-distro-add-button {
+  height: 38px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #b58412;
+  background: #b58412;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-distro-add-button:hover {
+  background: #171717;
+  border-color: #171717;
+}
+
+.admin-distro-add-panel {
+  margin: 18px 0 20px;
+  border: 1px solid #e4e1da;
+  background: #fff;
+}
+
+.admin-distro-add-panel > summary {
+  padding: 14px 18px;
+  color: #b58412;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  list-style-position: inside;
+}
+
+.admin-distro-add-panel[open] > summary {
+  border-bottom: 1px solid #ece9e2;
+}
+
+.admin-distro-add-form {
+  display: grid;
+  grid-template-columns:
+    minmax(150px, 1.3fr)
+    minmax(110px, .8fr)
+    minmax(200px, 1.6fr)
+    minmax(140px, 1fr)
+    100px
+    100px;
+  gap: 14px;
+  padding: 18px;
+  align-items: end;
+}
+
+.admin-distro-add-form label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-distro-add-form label > span {
+  color: #b58412;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.admin-distro-add-form input {
+  width: 100%;
+  height: 38px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid #dcd9d1;
+  background: #fff;
+  outline: 0;
+  font-size: 11px;
+}
+
+.admin-distro-add-form input:focus {
+  border-color: #b58412;
+}
+
+.admin-distro-add-pricing {
+  grid-column: 1 / -2;
+  align-self: center;
+  color: #88847b;
+  font-size: 9px;
+}
+
+.admin-distro-create-button {
+  grid-column: -2 / -1;
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid #171717;
+  background: #171717;
+  color: #fff;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.admin-distro-create-button:hover {
+  border-color: #b58412;
+  background: #b58412;
+  color: #fff;
+}
+
+
+/* ---------- TABLET ---------- */
+
+@media (max-width: 1100px) {
+  .admin-distro-add-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-distro-add-description {
+    grid-column: span 2;
+  }
+
+  .admin-distro-add-pricing {
+    grid-column: 1 / -2;
+  }
+
+  .admin-distro-create-button {
+    grid-column: auto;
+  }
+}
+
+
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 760px) {
+  .admin-page-header {
+    gap: 14px;
+  }
+
+  .admin-distro-add-button {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .admin-distro-add-panel {
+    margin-top: 12px;
+  }
+
+  .admin-distro-add-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .admin-distro-add-description {
+    grid-column: 1 / -1;
+  }
+
+  .admin-distro-add-pricing {
+    grid-column: 1 / -1;
+  }
+
+  .admin-distro-create-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .admin-distro-add-form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-distro-add-description,
+  .admin-distro-add-pricing,
+  .admin-distro-create-button {
+    grid-column: auto;
+  }
+}
+
+/* DISTRO ADD BUTTON - subtle gold */
+
+.admin-distro-add-button {
+  border: 1px solid #d4a11e;
+  background: rgba(212, 161, 30, 0.07);
+  color: #b58412;
+}
+
+.admin-distro-add-button:hover {
+  border-color: #d4a11e;
+  background: rgba(212, 161, 30, 0.14);
+  color: #9b710d;
+}
+
+/* DISTRO V6 - center all numeric fields */
+
+.admin-distro-table input.admin-money-input,
+.admin-distro-table input.admin-number-input {
+  text-align: center !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* ============================================================
+   MEMBER - DISTRO ACCESS
+   ============================================================ */
+
+.admin-member-distro-panel {
+  margin-top: 20px;
+}
+
+.admin-member-distro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-member-distro-control {
+  min-height: 66px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border: 1px solid #e6e3dc;
+  background: #fdfcf9;
+}
+
+.admin-member-distro-control > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-member-distro-control strong {
+  color: #b58412;
+  font-size: 11px;
+}
+
+.admin-member-distro-control > div > span {
+  color: #858580;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.admin-member-distro-tier {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.admin-member-distro-tier > span {
+  color: #b58412;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.admin-member-distro-tier select {
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid #dcd9d1;
+  background: #fff;
+  outline: 0;
+  font-size: 11px;
+}
+
+.admin-member-distro-tier select:focus {
+  border-color: #d4a11e;
+}
+
+.admin-member-distro-tier-guide {
+  max-width: 620px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid #e7e4dd;
+}
+
+.admin-member-distro-tier-guide > div {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-right: 1px solid #e7e4dd;
+}
+
+.admin-member-distro-tier-guide > div:last-child {
+  border-right: 0;
+}
+
+.admin-member-distro-tier-guide strong {
+  color: #b58412;
+  font-size: 10px;
+}
+
+.admin-member-distro-tier-guide span {
+  color: #858580;
+  font-size: 9px;
+}
+
+.admin-member-distro-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .admin-member-distro-control {
+    padding: 14px;
+  }
+
+  .admin-member-distro-tier {
+    max-width: none;
+  }
+
+  .admin-member-distro-tier-guide {
+    max-width: none;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-member-distro-tier-guide > div {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-right: 0;
+    border-bottom: 1px solid #e7e4dd;
+  }
+
+  .admin-member-distro-tier-guide > div:last-child {
+    border-bottom: 0;
+  }
+
+  .admin-member-distro-actions,
+  .admin-member-distro-actions button {
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   ASCEND DISTRO - MEMBER CATALOG
+   ============================================================ */
+
+.distro-page {
+  min-height: 100vh;
+  background: #f7f7f5;
+  color: #111;
+}
+
+.distro-shell {
+  width: min(1400px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}
+
+.distro-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 32px;
+}
+
+.distro-eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: #b58412;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .18em;
+}
+
+.distro-header h1 {
+  margin: 0;
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 400;
+  letter-spacing: -.035em;
+}
+
+.distro-header p {
+  max-width: 620px;
+  margin: 10px 0 0;
+  color: #73736e;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.distro-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.distro-tier-badge {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid rgba(212, 161, 30, .45);
+  background: rgba(212, 161, 30, .08);
+  color: #a5780e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.distro-cart-link {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 17px;
+  border: 1px solid #181818;
+  background: #181818;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: .18s ease;
+}
+
+.distro-cart-link:hover {
+  border-color: #d4a11e;
+  background: #d4a11e;
+  color: #111;
+}
+
+.distro-search-shell {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 0 16px;
+  border: 1px solid #deddd8;
+  background: #fff;
+  color: #aaa;
+}
+
+.distro-search-shell input {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-size: 13px;
+  outline: 0;
+}
+
+.distro-search-shell input::placeholder {
+  color: #aaa;
+}
+
+.distro-catalog {
+  overflow: hidden;
+  border: 1px solid #deddd8;
+  background: #fff;
+}
+
+.distro-catalog-head,
+.distro-catalog-row {
+  display: grid;
+  grid-template-columns:
+    minmax(300px, 1fr)
+    minmax(150px, .3fr)
+    100px
+    120px;
+  align-items: center;
+  column-gap: 20px;
+}
+
+.distro-catalog-head {
+  min-height: 42px;
+  padding: 0 20px;
+  border-bottom: 1px solid #deddd8;
+  background: #faf9f6;
+  color: #b58412;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.distro-catalog-row {
+  min-height: 70px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #ecebe7;
+}
+
+.distro-catalog-row:last-child {
+  border-bottom: 0;
+}
+
+.distro-catalog-row:hover {
+  background: #fdfcf9;
+}
+
+.distro-product-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.distro-product-name strong {
+  color: #b58412;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.distro-product-name span {
+  overflow: hidden;
+  color: #888883;
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.distro-sku {
+  color: #666;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.distro-stock {
+  color: #555;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.distro-price {
+  color: #111;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.distro-empty {
+  padding: 60px 20px;
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .distro-shell {
+    width: min(100% - 24px, 1400px);
+    padding-top: 28px;
+  }
+
+  .distro-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .distro-header-actions {
+    width: 100%;
+  }
+
+  .distro-tier-badge,
+  .distro-cart-link {
+    flex: 1;
+  }
+
+  .distro-catalog-head {
+    display: none;
+  }
+
+  .distro-catalog {
+    border: 0;
+    background: transparent;
+  }
+
+  .distro-catalog-row {
+    grid-template-columns: 1fr auto;
+    gap: 10px 18px;
+    min-height: 0;
+    margin-bottom: 10px;
+    padding: 16px;
+    border: 1px solid #deddd8;
+    background: #fff;
+  }
+
+  .distro-product-name {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .distro-sku {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .distro-stock {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+  }
+
+  .distro-stock::before {
+    content: "Stock ";
+    color: #aaa;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .distro-price {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
+}
+
+/* Member Distro Access */
+
+.member-distro-card {
+  border-color: rgba(212, 161, 30, .35);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(212, 161, 30, .06),
+      #fff 55%
+    );
+}
+
+.member-distro-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: auto;
+}
+
+.member-distro-tier {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid rgba(212, 161, 30, .4);
+  background: rgba(212, 161, 30, .08);
+  color: #a5780e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 600px) {
+  .member-distro-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .member-distro-tier,
+  .member-distro-card-footer .member-primary-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ============================================================
+   MEMBER + DISTRO CATALOG BUTTON ALIGNMENT
+   ============================================================ */
+
+.member-account-card-wide > .member-primary-button,
+.member-distro-card-footer .member-primary-button {
+  width: fit-content;
+  min-height: 42px;
+  margin-left: auto;
+  border: 1px solid #d4a11e !important;
+  background: rgba(212, 161, 30, 0.07) !important;
+  color: #b58412 !important;
+  box-shadow: none !important;
+}
+
+.member-account-card-wide > .member-primary-button:hover,
+.member-distro-card-footer .member-primary-button:hover {
+  border-color: #d4a11e !important;
+  background: rgba(212, 161, 30, 0.14) !important;
+  color: #9b710d !important;
+}
+
+@media (max-width: 600px) {
+  .member-account-card-wide > .member-primary-button,
+  .member-distro-card-footer .member-primary-button {
+    width: 100%;
+    margin-left: 0;
+    justify-content: center;
+  }
+}
+
+/* ============================================================
+   DISTRO CATALOG - CLEAN BUY GRID
+   ============================================================ */
+
+.distro-buy-catalog {
+  overflow: hidden;
+  border: 1px solid #e2dfd7;
+  background: #fff;
+}
+
+.distro-buy-head,
+.distro-buy-row {
+  display: grid !important;
+  grid-template-columns:
+    minmax(280px, 1fr)
+    150px
+    135px
+    100px
+    120px
+    125px !important;
+  gap: 18px;
+  align-items: center;
+}
+
+.distro-buy-head {
+  min-height: 42px;
+  padding: 0 20px;
+  border-bottom: 1px solid #e2dfd7;
+  background: #faf9f6;
+}
+
+.distro-buy-head span {
+  color: #b58412;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.distro-buy-row {
+  min-height: 82px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #ece9e2;
+}
+
+.distro-buy-row:last-child {
+  border-bottom: 0;
+}
+
+.distro-buy-product {
+  min-width: 0;
+}
+
+.distro-buy-product strong {
+  display: block;
+  color: #b58412;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.distro-buy-product span {
+  display: block;
+  margin-top: 5px;
+  color: #8a8882;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.distro-buy-sku {
+  color: #55534e;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.distro-availability {
+  width: fit-content;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.distro-available {
+  color: #8a6912;
+}
+
+.distro-unavailable {
+  color: #9a4b42;
+}
+
+.distro-buy-price {
+  color: #111;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.distro-buy-qty {
+  display: grid;
+  grid-template-columns: 34px 42px 34px;
+  width: 110px;
+  height: 38px;
+  overflow: hidden;
+  border: 1px solid #ddd9cf;
+  background: #fff;
+}
+
+.distro-buy-qty button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #77736b;
+  cursor: pointer;
+}
+
+.distro-buy-qty button:hover {
+  background: rgba(212, 161, 30, .08);
+  color: #b58412;
+}
+
+.distro-buy-qty span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid #eeeae1;
+  border-right: 1px solid #eeeae1;
+  color: #111;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.distro-buy-button {
+  display: inline-flex;
+  width: 125px;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #d4a11e;
+  background: rgba(212, 161, 30, .07);
+  color: #b58412;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.distro-buy-button:hover:not(:disabled) {
+  background: rgba(212, 161, 30, .14);
+  color: #966d0c;
+}
+
+.distro-buy-button:disabled {
+  border-color: #ddd9cf;
+  background: #f7f6f3;
+  color: #aaa69e;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .distro-buy-head,
+  .distro-buy-row {
+    grid-template-columns:
+      minmax(220px, 1fr)
+      110px
+      110px
+      90px
+      110px
+      115px !important;
+    gap: 10px;
+  }
+
+  .distro-buy-button {
+    width: 115px;
+  }
+}
+
+@media (max-width: 760px) {
+  .distro-buy-head {
+    display: none !important;
+  }
+
+  .distro-buy-row {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    gap: 12px 16px;
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .distro-buy-product {
+    grid-column: 1 / -1;
+  }
+
+  .distro-buy-sku {
+    grid-column: 1;
+  }
+
+  .distro-availability {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .distro-buy-price {
+    grid-column: 1;
+    font-size: 16px;
+  }
+
+  .distro-buy-qty {
+    grid-column: 1;
+  }
+
+  .distro-buy-button {
+    grid-column: 2;
+    align-self: end;
+    width: 125px;
+  }
+}

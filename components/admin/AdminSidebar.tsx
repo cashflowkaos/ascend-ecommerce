@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Boxes,
+  Building2,
   LayoutDashboard,
   MessageSquare,
   PackageCheck,
@@ -12,6 +13,7 @@ import {
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/inventory", label: "Inventory", icon: Boxes },
+  { href: "/admin/distro", label: "Distro", icon: Building2 },
   { href: "/admin/members", label: "Members", icon: Users },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/messages", label: "Messages", icon: MessageSquare },
@@ -50,3 +52,4 @@ export default function AdminSidebar() {
     </aside>
   );
 }
+

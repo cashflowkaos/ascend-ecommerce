@@ -1,4 +1,4 @@
-﻿import { randomBytes } from "crypto";
+import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
@@ -11,6 +11,17 @@ import { prisma } from "@/lib/prisma";
 type RequestedCartItem = {
   variantId?: unknown;
   quantity?: unknown;
+};
+
+type ValidatedOrderItem = {
+  productId: string | null;
+  variantId: string | null;
+  productName: string;
+  strength: string;
+  sku: string | null;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
 };
 
 function createOrderNumber() {
@@ -136,6 +147,8 @@ export async function POST(request: Request) {
       firstName: true,
       lastName: true,
       email: true,
+      distroEnabled: true,
+      distroTier: true,
 
       addresses: {
         orderBy: [
@@ -195,37 +208,59 @@ export async function POST(request: Request) {
     );
   }
 
-  const variantIds = Array.from(
-    normalized.keys()
-  );
+  const retailIds: string[] = [];
+  const distroIds: string[] = [];
+
+  for (const cartId of normalized.keys()) {
+    if (cartId.startsWith("distro:")) {
+      const distroId = cartId.slice(
+        "distro:".length
+      );
+
+      if (distroId) {
+        distroIds.push(distroId);
+      }
+    } else {
+      retailIds.push(cartId);
+    }
+  }
+
+  const orderChannel =
+    retailIds.length > 0 && distroIds.length > 0
+      ? "MIXED"
+      : distroIds.length > 0
+        ? "DISTRO"
+        : "RETAIL";
 
   const variants =
-    await prisma.productVariant.findMany({
-      where: {
-        id: {
-          in: variantIds,
-        },
-      },
-      select: {
-        id: true,
-        strength: true,
-        sku: true,
-        memberPrice: true,
-        inventoryQty: true,
-        active: true,
-        purchasable: true,
-
-        product: {
+    retailIds.length > 0
+      ? await prisma.productVariant.findMany({
+          where: {
+            id: {
+              in: retailIds,
+            },
+          },
           select: {
             id: true,
-            name: true,
+            strength: true,
+            sku: true,
+            memberPrice: true,
+            inventoryQty: true,
             active: true,
             purchasable: true,
-            trackInventory: true,
+
+            product: {
+              select: {
+                id: true,
+                name: true,
+                active: true,
+                purchasable: true,
+                trackInventory: true,
+              },
+            },
           },
-        },
-      },
-    });
+        })
+      : [];
 
   const variantMap = new Map(
     variants.map((variant) => [
@@ -234,26 +269,139 @@ export async function POST(request: Request) {
     ])
   );
 
-  const validatedItems: {
-    productId: string;
-    variantId: string;
-    productName: string;
-    strength: string;
-    sku: string | null;
-    quantity: number;
-    unitPrice: number;
-    lineTotal: number;
-  }[] = [];
+  const distroProducts =
+    distroIds.length > 0 &&
+    member.distroEnabled &&
+    member.distroTier
+      ? await prisma.distroProduct.findMany({
+          where: {
+            id: {
+              in: distroIds,
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+            enabled: true,
+            available: true,
 
+            ...(member.distroTier === "TIER_1"
+              ? { tier1Price: true }
+              : member.distroTier === "TIER_2"
+                ? { tier2Price: true }
+                : { tier3Price: true }),
+          },
+        })
+      : [];
+
+  const distroMap = new Map(
+    distroProducts.map((product) => [
+      product.id,
+      product,
+    ])
+  );
+
+  const validatedItems: ValidatedOrderItem[] = [];
   const errors: string[] = [];
 
   for (const [
-    variantId,
+    cartId,
     quantity,
   ] of normalized.entries()) {
-    const variant = variantMap.get(
-      variantId
-    );
+    if (cartId.startsWith("distro:")) {
+      if (
+        !member.distroEnabled ||
+        !member.distroTier
+      ) {
+        errors.push(
+          "Your account does not currently have Distro access."
+        );
+        continue;
+      }
+
+      const distroId = cartId.slice(
+        "distro:".length
+      );
+
+      const product = distroMap.get(distroId);
+
+      if (!product) {
+        errors.push(
+          "A Distro product in your cart is no longer available."
+        );
+        continue;
+      }
+
+      if (!product.enabled) {
+        errors.push(
+          `${product.name} is no longer active.`
+        );
+        continue;
+      }
+
+      if (!product.available) {
+        errors.push(
+          `${product.name} is currently out of stock.`
+        );
+        continue;
+      }
+
+      let distroPrice: unknown = null;
+
+      if (
+        member.distroTier === "TIER_1" &&
+        "tier1Price" in product
+      ) {
+        distroPrice = product.tier1Price;
+      }
+
+      if (
+        member.distroTier === "TIER_2" &&
+        "tier2Price" in product
+      ) {
+        distroPrice = product.tier2Price;
+      }
+
+      if (
+        member.distroTier === "TIER_3" &&
+        "tier3Price" in product
+      ) {
+        distroPrice = product.tier3Price;
+      }
+
+      if (distroPrice === null) {
+        errors.push(
+          `${product.name} does not currently have Distro pricing.`
+        );
+        continue;
+      }
+
+      const unitPrice = Number(distroPrice);
+
+      if (!Number.isFinite(unitPrice)) {
+        errors.push(
+          `${product.name} has invalid Distro pricing.`
+        );
+        continue;
+      }
+
+      validatedItems.push({
+        // Distro products do not use retail Product/ProductVariant FKs.
+        productId: null,
+        variantId: null,
+        productName: product.name,
+        strength: "Distro",
+        sku: product.sku,
+        quantity,
+        unitPrice,
+        lineTotal: unitPrice * quantity,
+      });
+
+      continue;
+    }
+
+    const variant = variantMap.get(cartId);
 
     if (!variant) {
       errors.push(
@@ -273,11 +421,11 @@ export async function POST(request: Request) {
     }
 
     if (!variant.purchasable) {
-        errors.push(
-          `${variant.product.name} ${variant.strength} is not currently available for purchase.`
-        );
-        continue;
-      }
+      errors.push(
+        `${variant.product.name} ${variant.strength} is not currently available for purchase.`
+      );
+      continue;
+    }
 
     if (variant.memberPrice === null) {
       errors.push(
@@ -300,9 +448,6 @@ export async function POST(request: Request) {
       variant.memberPrice
     );
 
-    const lineTotal =
-      unitPrice * quantity;
-
     validatedItems.push({
       productId: variant.product.id,
       variantId: variant.id,
@@ -311,7 +456,7 @@ export async function POST(request: Request) {
       sku: variant.sku,
       quantity,
       unitPrice,
-      lineTotal,
+      lineTotal: unitPrice * quantity,
     });
   }
 
@@ -341,8 +486,6 @@ export async function POST(request: Request) {
 
   // Temporary order-request checkout:
   // shipping and tax are currently zero.
-  // These can later be replaced with real shipping/tax
-  // calculation before online payment is enabled.
   const shippingAmount = 0;
   const taxAmount = 0;
 
@@ -370,6 +513,7 @@ export async function POST(request: Request) {
 
           status: "PENDING",
           paymentStatus: "UNPAID",
+          channel: orderChannel,
 
           subtotal: subtotal.toFixed(2),
           shippingAmount:
@@ -545,4 +689,3 @@ export async function POST(request: Request) {
     total,
   });
 }
-

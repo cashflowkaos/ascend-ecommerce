@@ -244,3 +244,47 @@ export async function resetMemberPassword(formData: FormData) {
 
   revalidateMemberPages(id);
 }
+
+
+export async function updateMemberDistroAccess(formData: FormData) {
+  await requireAdmin();
+
+  const id = String(formData.get("id") ?? "").trim();
+  const distroEnabled = formData.get("distroEnabled") === "on";
+  const tierRaw = String(formData.get("distroTier") ?? "").trim();
+
+  if (!id) {
+    throw new Error("Member ID is required.");
+  }
+
+  await getMember(id);
+
+  const validTiers = ["TIER_1", "TIER_2", "TIER_3"] as const;
+
+  if (
+    distroEnabled &&
+    !validTiers.includes(
+      tierRaw as (typeof validTiers)[number]
+    )
+  ) {
+    throw new Error(
+      "A valid Distro pricing tier is required when Distro access is enabled."
+    );
+  }
+
+  await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      distroEnabled,
+      distroTier: distroEnabled
+        ? (tierRaw as "TIER_1" | "TIER_2" | "TIER_3")
+        : null,
+    },
+  });
+
+  revalidateMemberPages(id);
+  revalidatePath("/distro");
+  revalidatePath("/account");
+}

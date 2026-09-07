@@ -12,4 +12,5 @@ export {
   requireUser,
   requireAdmin,
   requireApprovedMember,
+  requireDistroMember,
 } from "./session";

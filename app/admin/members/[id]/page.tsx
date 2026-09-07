@@ -20,13 +20,14 @@ import {
   disableMember,
   resetMemberPassword,
   updateMemberAccount,
+  updateMemberDistroAccess,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 function formatDate(value: Date | null) {
   if (!value) {
-    return "—";
+    return "-";
   }
 
   return new Intl.DateTimeFormat("en-US", {
@@ -93,6 +94,8 @@ export default async function MemberReviewPage({
       ageCertifiedAt: true,
       createdAt: true,
       updatedAt: true,
+      distroEnabled: true,
+      distroTier: true,
 
       addresses: {
         orderBy: [
@@ -432,6 +435,98 @@ export default async function MemberReviewPage({
         </article>
       </section>
 
+      <section className="admin-panel admin-member-distro-panel">
+        <div className="admin-panel-heading">
+          <div>
+            <span className="admin-eyebrow">
+              DISTRO ACCESS
+            </span>
+
+            <h2>Wholesale Access</h2>
+
+            <p>
+              Enable this member for the private Distro catalog and
+              assign their wholesale pricing tier.
+            </p>
+          </div>
+        </div>
+
+        <form
+          action={updateMemberDistroAccess}
+          className="admin-member-distro-form"
+        >
+          <input
+            type="hidden"
+            name="id"
+            value={member.id}
+          />
+
+          <div className="admin-member-distro-control">
+            <div>
+              <strong>Distro Access</strong>
+              <span>
+                Allow this member to access Distro inventory and pricing.
+              </span>
+            </div>
+
+            <label className="admin-switch">
+              <input
+                type="checkbox"
+                name="distroEnabled"
+                defaultChecked={member.distroEnabled}
+              />
+              <span></span>
+            </label>
+          </div>
+
+          <label className="admin-member-distro-tier">
+            <span>Pricing Tier</span>
+
+            <select
+              name="distroTier"
+              defaultValue={member.distroTier ?? "TIER_1"}
+            >
+              <option value="TIER_1">
+                Tier 1 - 40% markup
+              </option>
+
+              <option value="TIER_2">
+                Tier 2 - 35% markup
+              </option>
+
+              <option value="TIER_3">
+                Tier 3 - 30% markup
+              </option>
+            </select>
+          </label>
+
+          <div className="admin-member-distro-tier-guide">
+            <div>
+              <strong>Tier 1</strong>
+              <span>40% markup</span>
+            </div>
+
+            <div>
+              <strong>Tier 2</strong>
+              <span>35% markup</span>
+            </div>
+
+            <div>
+              <strong>Tier 3</strong>
+              <span>30% markup</span>
+            </div>
+          </div>
+
+          <div className="admin-member-distro-actions">
+            <button
+              type="submit"
+              className="admin-member-button admin-member-button-approve"
+            >
+              Save Distro Access
+            </button>
+          </div>
+        </form>
+      </section>
       <section className="admin-panel admin-member-decision-panel">
         <div className="admin-panel-heading">
           <div>

@@ -28,6 +28,12 @@ enum MemberStatus {
   DECLINED
 }
 
+enum DistroTier {
+  TIER_1
+  TIER_2
+  TIER_3
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
@@ -71,12 +77,13 @@ model User {
   lastName     String
   phone        String?
 
-  role   UserRole     @default(MEMBER)
-  status MemberStatus @default(PENDING)
-
-  approvedAt  DateTime?
-  disabledAt  DateTime?
-  lastLoginAt DateTime?
+  role          UserRole     @default(MEMBER)
+  status        MemberStatus @default(PENDING)
+  distroEnabled Boolean      @default(false)
+  distroTier    DistroTier?
+  approvedAt    DateTime?
+  disabledAt    DateTime?
+  lastLoginAt   DateTime?
 
   dateOfBirth        DateTime?
   ageCertifiedAt     DateTime?
@@ -171,6 +178,7 @@ model Product {
   researchNotice String? @db.Text
 
   memberPrice Decimal? @db.Decimal(10, 2)
+  cost        Decimal? @db.Decimal(10, 2)
 
   featured    Boolean @default(false)
   active      Boolean @default(true)
@@ -212,6 +220,7 @@ model ProductVariant {
   sku      String? @unique
 
   memberPrice Decimal? @db.Decimal(10, 2)
+  cost        Decimal? @db.Decimal(10, 2)
 
   inventoryQty Int @default(0)
   lowStockAt   Int @default(5)
@@ -287,6 +296,12 @@ model InventoryMovement {
 // ORDERS
 // ============================================================
 
+enum OrderChannel {
+  RETAIL
+  DISTRO
+  MIXED
+}
+
 model Order {
   id          String @id @default(cuid())
   orderNumber String @unique
@@ -296,6 +311,7 @@ model Order {
 
   status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(UNPAID)
+  channel       OrderChannel  @default(RETAIL)
 
   subtotal       Decimal @db.Decimal(10, 2)
   shippingAmount Decimal @default(0) @db.Decimal(10, 2)
@@ -449,4 +465,43 @@ model MessageBroadcast {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+model DistroProduct {
+  id          String @id @default(cuid())
+  sku         String @unique
+  name        String
+  description String
+
+  cost       Decimal? @db.Decimal(10, 2)
+  tier1Price Decimal? @db.Decimal(10, 2)
+  tier2Price Decimal? @db.Decimal(10, 2)
+  tier3Price Decimal? @db.Decimal(10, 2)
+
+  inventoryQty Int     @default(0)
+  enabled      Boolean @default(true)
+  available    Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  batches DistroBatch[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([enabled, sortOrder])
+}
+
+model DistroBatch {
+  id String @id @default(cuid())
+
+  productId String
+  product   DistroProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  batchNumber String
+
+  createdAt DateTime @default(now())
+
+  @@unique([productId, batchNumber])
+  @@index([productId])
 }

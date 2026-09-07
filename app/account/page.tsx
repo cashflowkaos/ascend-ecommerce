@@ -39,6 +39,8 @@ export default async function AccountPage() {
       phone: true,
       status: true,
       approvedAt: true,
+      distroEnabled: true,
+      distroTier: true,
       createdAt: true,
       addresses: {
         orderBy: [
@@ -296,7 +298,7 @@ export default async function AccountPage() {
 
               <div>
                 <span>Phone</span>
-                <strong>{member.phone || "—"}</strong>
+                <strong>{member.phone || "-"}</strong>
               </div>
             </div>
 
@@ -379,6 +381,44 @@ export default async function AccountPage() {
               Browse Member Catalog
             </Link>
           </article>
+
+          {member.distroEnabled && member.distroTier && (
+            <article className="member-account-card member-account-card-wide member-distro-card">
+              <div className="member-account-card-heading">
+                <div>
+                  <span className="admin-eyebrow">
+                    ASCEND DISTRO
+                  </span>
+
+                  <h2>Distribution Access</h2>
+                </div>
+
+                <Package size={19} />
+              </div>
+
+              <p className="member-card-description">
+                Access the private Ascend distribution catalog
+                with your assigned wholesale pricing.
+              </p>
+
+              <div className="member-distro-card-footer">
+                <span className="member-distro-tier">
+                  {member.distroTier === "TIER_1"
+                    ? "Tier 1"
+                    : member.distroTier === "TIER_2"
+                      ? "Tier 2"
+                      : "Tier 3"}
+                </span>
+
+                <Link
+                  href="/distro"
+                  className="member-primary-button"
+                >
+                  Enter Distro
+                </Link>
+              </div>
+            </article>
+          )}
         </section>
       </div>
     </main>

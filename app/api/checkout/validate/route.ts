@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -106,39 +106,52 @@ export async function POST(request: Request) {
     });
   }
 
-  const variantIds = Array.from(
-    normalized.keys()
-  );
+  const retailIds: string[] = [];
+  const distroIds: string[] = [];
+
+  for (const id of normalized.keys()) {
+    if (id.startsWith("distro:")) {
+      const distroId = id.slice("distro:".length);
+
+      if (distroId) {
+        distroIds.push(distroId);
+      }
+    } else {
+      retailIds.push(id);
+    }
+  }
 
   const variants =
-    await prisma.productVariant.findMany({
-      where: {
-        id: {
-          in: variantIds,
-        },
-      },
-      select: {
-        id: true,
-        strength: true,
-        sku: true,
-        memberPrice: true,
-        inventoryQty: true,
-        active: true,
-        purchasable: true,
-
-        product: {
+    retailIds.length > 0
+      ? await prisma.productVariant.findMany({
+          where: {
+            id: {
+              in: retailIds,
+            },
+          },
           select: {
             id: true,
-            slug: true,
-            name: true,
-            image: true,
+            strength: true,
+            sku: true,
+            memberPrice: true,
+            inventoryQty: true,
             active: true,
             purchasable: true,
-            trackInventory: true,
+
+            product: {
+              select: {
+                id: true,
+                slug: true,
+                name: true,
+                image: true,
+                active: true,
+                purchasable: true,
+                trackInventory: true,
+              },
+            },
           },
-        },
-      },
-    });
+        })
+      : [];
 
   const variantMap = new Map(
     variants.map((variant) => [
@@ -147,16 +160,158 @@ export async function POST(request: Request) {
     ])
   );
 
+  const distroMember =
+    distroIds.length > 0
+      ? await prisma.user.findUnique({
+          where: {
+            id: user.id,
+          },
+          select: {
+            distroEnabled: true,
+            distroTier: true,
+          },
+        })
+      : null;
+
+  const distroProducts =
+    distroIds.length > 0 &&
+    distroMember?.distroEnabled &&
+    distroMember.distroTier
+      ? await prisma.distroProduct.findMany({
+          where: {
+            id: {
+              in: distroIds,
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+            description: true,
+            enabled: true,
+            available: true,
+
+            ...(distroMember.distroTier === "TIER_1"
+              ? { tier1Price: true }
+              : distroMember.distroTier === "TIER_2"
+                ? { tier2Price: true }
+                : { tier3Price: true }),
+          },
+        })
+      : [];
+
+  const distroMap = new Map(
+    distroProducts.map((product) => [
+      product.id,
+      product,
+    ])
+  );
+
   const validatedItems = [];
   const errors: string[] = [];
 
   for (const [
-    variantId,
+    cartId,
     quantity,
   ] of normalized.entries()) {
-    const variant = variantMap.get(
-      variantId
-    );
+    if (cartId.startsWith("distro:")) {
+      const distroId = cartId.slice(
+        "distro:".length
+      );
+
+      if (
+        !distroMember?.distroEnabled ||
+        !distroMember.distroTier
+      ) {
+        errors.push(
+          "Your account does not currently have Distro access."
+        );
+        continue;
+      }
+
+      const product = distroMap.get(distroId);
+
+      if (!product) {
+        errors.push(
+          "A Distro product in your cart is no longer available."
+        );
+        continue;
+      }
+
+      if (!product.enabled) {
+        errors.push(
+          `${product.name} is no longer active.`
+        );
+        continue;
+      }
+
+      if (!product.available) {
+        errors.push(
+          `${product.name} is currently out of stock.`
+        );
+        continue;
+      }
+
+      let distroPrice: unknown = null;
+
+      if (
+        distroMember.distroTier === "TIER_1" &&
+        "tier1Price" in product
+      ) {
+        distroPrice = product.tier1Price;
+      }
+
+      if (
+        distroMember.distroTier === "TIER_2" &&
+        "tier2Price" in product
+      ) {
+        distroPrice = product.tier2Price;
+      }
+
+      if (
+        distroMember.distroTier === "TIER_3" &&
+        "tier3Price" in product
+      ) {
+        distroPrice = product.tier3Price;
+      }
+
+      if (distroPrice === null) {
+        errors.push(
+          `${product.name} does not currently have Distro pricing.`
+        );
+        continue;
+      }
+
+      const unitPrice = Number(distroPrice);
+
+      if (!Number.isFinite(unitPrice)) {
+        errors.push(
+          `${product.name} has invalid Distro pricing.`
+        );
+        continue;
+      }
+
+      validatedItems.push({
+        productId: product.id,
+        variantId: cartId,
+        slug: "distro",
+        productName: product.name,
+        image: null,
+        strength: "Distro",
+        sku: product.sku,
+        quantity,
+        unitPrice,
+        lineTotal: unitPrice * quantity,
+
+        // Distro inventory quantity is informational only.
+        inventoryQty: null,
+        trackInventory: false,
+      });
+
+      continue;
+    }
+
+    const variant = variantMap.get(cartId);
 
     if (!variant) {
       errors.push(

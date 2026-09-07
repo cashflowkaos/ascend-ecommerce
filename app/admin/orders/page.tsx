@@ -265,6 +265,12 @@ export default async function OrdersPage() {
                           >
                             {order.orderNumber}
                           </Link>
+
+                          {order.channel !== "RETAIL" && (
+                            <span className="mt-2 block w-fit rounded-full border border-[#D4A11E]/40 bg-[#D4A11E]/5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#A77C13]">
+                              {order.channel}
+                            </span>
+                          )}
                         </td>
 
                         <td className="px-5 py-5">
@@ -349,10 +355,16 @@ export default async function OrdersPage() {
                         <strong className="mt-1 block truncate text-base font-semibold text-neutral-950">
                           {order.orderNumber}
                         </strong>
+
+                        {order.channel !== "RETAIL" && (
+                          <span className="mt-2 block w-fit rounded-full border border-[#D4A11E]/40 bg-[#D4A11E]/5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#A77C13]">
+                            {order.channel}
+                          </span>
+                        )}
                       </div>
 
                       <span className="shrink-0 text-sm font-medium text-neutral-400">
-                        View →
+                        View Ã¢â€ â€™
                       </span>
                     </div>
 

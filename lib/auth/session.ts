@@ -167,3 +167,26 @@ export async function requireApprovedMember() {
 
   return user;
 }
+
+
+export async function requireDistroMember() {
+  const user = await requireUser();
+
+  if (user.role !== "MEMBER") {
+    redirect("/admin");
+  }
+
+  if (user.status !== "APPROVED") {
+    redirect("/account");
+  }
+
+  if (user.mustChangePassword) {
+    redirect("/account/password");
+  }
+
+  if (!user.distroEnabled || !user.distroTier) {
+    redirect("/account");
+  }
+
+  return user;
+}

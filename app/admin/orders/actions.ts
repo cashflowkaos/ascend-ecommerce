@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function markOrderPaid(
   formData: FormData
 ) {
-  const orderId = String(
+    await requireAdmin();
+
+const orderId = String(
     formData.get("orderId") ?? ""
   ).trim();
 
@@ -188,7 +191,9 @@ export async function markOrderPaid(
 export async function deleteAdminOrder(
   formData: FormData
 ) {
-  const orderId = String(
+    await requireAdmin();
+
+const orderId = String(
     formData.get("orderId") ?? ""
   ).trim();
 

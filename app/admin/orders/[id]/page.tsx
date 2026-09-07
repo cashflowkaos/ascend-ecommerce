@@ -140,7 +140,13 @@ export default async function OrderDetailPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span
+          {order.channel !== "RETAIL" && (
+          <span className="inline-flex rounded-full border border-[#D4A11E]/40 bg-[#D4A11E]/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#A77C13]">
+            {order.channel}
+          </span>
+        )}
+
+        <span
             className={`inline-flex rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] ${orderStatusClasses(
               order.status
             )}`}
@@ -286,7 +292,7 @@ export default async function OrderDetailPage({
                       </td>
 
                       <td className="px-5 py-5 text-sm text-neutral-500">
-                        {item.sku ?? "—"}
+                        {item.sku ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
                       </td>
 
                       <td className="px-5 py-5 text-sm font-medium">
@@ -338,7 +344,7 @@ export default async function OrderDetailPage({
                         SKU
                       </span>
                       <span className="ml-2 text-xs text-neutral-600">
-                        {item.sku ?? "—"}
+                        {item.sku ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
                       </span>
                     </div>
 
@@ -558,9 +564,11 @@ export default async function OrderDetailPage({
                 </h2>
 
                 <p className="mt-3 text-sm leading-6 text-neutral-500">
-                  Use this after payment has been received and verified.
-                  Recording payment will confirm the order and deduct
-                  the ordered quantities from variant inventory.
+                  {order.channel === "DISTRO"
+                    ? "Use this after payment has been received and verified. Recording payment will confirm the Distro order."
+                    : order.channel === "MIXED"
+                      ? "Use this after payment has been received and verified. Recording payment will confirm the order and deduct only tracked retail inventory. Distro items are not deducted."
+                      : "Use this after payment has been received and verified. Recording payment will confirm the order and deduct the ordered quantities from tracked retail inventory."}
                 </p>
 
                 <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
