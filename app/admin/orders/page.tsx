@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   Clock3,
   DollarSign,
@@ -364,7 +364,7 @@ export default async function OrdersPage() {
                       </div>
 
                       <span className="shrink-0 text-sm font-medium text-neutral-400">
-                        View Ã¢â€ â€™
+                            {"View >"}
                       </span>
                     </div>
 

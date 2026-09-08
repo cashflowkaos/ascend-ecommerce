@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { createDistroItem, updateDistroItem } from "./actions";
+import { createDistroItem, deleteDistroItem, updateDistroItem } from "./actions";
+import ConfirmDeleteButton from "./ConfirmDeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -167,15 +168,34 @@ export default async function DistroPage() {
 
                 return (
                   <tr key={product.id}>
-                    <td>
+                     <td>
                       <div>
-                        <strong>{product.name}</strong>
+                        <input
+                          form={formId}
+                          name="name"
+                          type="text"
+                          defaultValue={product.name}
+                          required
+                        />
                       </div>
+
                       <div>
-                        <small>{product.sku}</small>
+                        <input
+                          form={formId}
+                          name="sku"
+                          type="text"
+                          defaultValue={product.sku}
+                          required
+                        />
                       </div>
+
                       <div>
-                        <small>{product.description}</small>
+                        <input
+                          form={formId}
+                          name="description"
+                          type="text"
+                          defaultValue={product.description}
+                        />
                       </div>
                     </td>
 
@@ -288,6 +308,15 @@ export default async function DistroPage() {
                         >
                           Save
                         </button>
+                      </form>
+
+                      <form action={deleteDistroItem}>
+                        <input
+                          type="hidden"
+                          name="id"
+                          value={product.id}
+                        />
+                        <ConfirmDeleteButton />
                       </form>
                     </td>
                   </tr>

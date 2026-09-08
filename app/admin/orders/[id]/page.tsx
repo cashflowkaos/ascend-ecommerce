@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -292,7 +292,7 @@ export default async function OrderDetailPage({
                       </td>
 
                       <td className="px-5 py-5 text-sm text-neutral-500">
-                        {item.sku ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
+                            {item.sku ?? "-"}
                       </td>
 
                       <td className="px-5 py-5 text-sm font-medium">
@@ -344,7 +344,7 @@ export default async function OrderDetailPage({
                         SKU
                       </span>
                       <span className="ml-2 text-xs text-neutral-600">
-                        {item.sku ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
+                            {item.sku ?? "-"}
                       </span>
                     </div>
 

@@ -43,6 +43,18 @@ export async function updateDistroItem(formData: FormData) {
     throw new Error("Distro product ID is required.");
   }
 
+  const name = text(formData, "name");
+  const sku = text(formData, "sku").toUpperCase();
+  const description = text(formData, "description");
+
+  if (!name) {
+    throw new Error("Compound name is required.");
+  }
+
+  if (!sku) {
+    throw new Error("SKU is required.");
+  }
+
   const cost = optionalMoney(formData, "cost");
   const tier1Override = optionalMoney(formData, "tier1");
   const tier2Override = optionalMoney(formData, "tier2");
@@ -58,6 +70,9 @@ export async function updateDistroItem(formData: FormData) {
   await prisma.distroProduct.update({
     where: { id },
     data: {
+      name,
+      sku,
+      description,
       cost: cost === null ? null : cost.toFixed(2),
       tier1Price: calculatedPrice(tier1Override, cost, 1.4),
       tier2Price: calculatedPrice(tier2Override, cost, 1.35),
@@ -130,6 +145,20 @@ export async function createDistroItem(formData: FormData) {
           }
         : undefined,
     },
+  });
+
+  revalidatePath("/admin/distro");
+}
+
+export async function deleteDistroItem(formData: FormData) {
+  const id = text(formData, "id");
+
+  if (!id) {
+    throw new Error("Distro product ID is required.");
+  }
+
+  await prisma.distroProduct.delete({
+    where: { id },
   });
 
   revalidatePath("/admin/distro");
