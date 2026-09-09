@@ -1026,3 +1026,521 @@ export async function sendMemberBroadcastEmail({
 
   return data;
 }
+
+export async function sendPickupSchedulingRequiredEmail({
+  email,
+  firstName,
+  orderNumber,
+  orderId,
+}: {
+  email: string;
+  firstName: string;
+  orderNumber: string;
+  orderId: string;
+}) {
+  const resend = getResend();
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://ascendpepco.com";
+
+  const orderUrl =
+    `${baseUrl}/account/orders/${orderId}`;
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    replyTo: REPLY_TO_EMAIL,
+    subject: `Action Required: Select Pickup Time - ${orderNumber}`,
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        Pickup Time Required
+      </h1>
+
+      <p style="
+        margin:0 0 16px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Hi ${escapeHtml(firstName)},
+      </p>
+
+      <p style="
+        margin:0 0 22px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Your order
+        <strong>${escapeHtml(orderNumber)}</strong>
+        is ready for pickup scheduling.
+      </p>
+
+      <div style="
+        margin:0 0 24px;
+        padding:18px;
+        background:#faf8f3;
+        border:1px solid #e8e4dc;
+      ">
+        <strong style="
+          display:block;
+          margin-bottom:6px;
+          font-family:Arial,sans-serif;
+          font-size:13px;
+          color:#171717;
+        ">
+          Action Required
+        </strong>
+
+        <span style="
+          font-family:Arial,sans-serif;
+          font-size:13px;
+          line-height:1.7;
+          color:#55514b;
+        ">
+          Sign in to your Ascend account and go to
+          Orders ? Order Details to select an available
+          pickup date and time.
+        </span>
+      </div>
+
+      <a
+        href="${orderUrl}"
+        style="
+          display:inline-block;
+          padding:13px 20px;
+          background:#b78300;
+          color:#ffffff;
+          text-decoration:none;
+          font-family:Arial,sans-serif;
+          font-size:13px;
+          font-weight:700;
+        "
+      >
+        Select Pickup Time
+      </a>
+
+      <p style="
+        margin:24px 0 0;
+        font-family:Arial,sans-serif;
+        font-size:12px;
+        line-height:1.7;
+        color:#77736b;
+      ">
+        Your pickup location will be provided after
+        your selected pickup time has been confirmed.
+      </p>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `Pickup scheduling email failed: ${error.message}`
+    );
+  }
+
+  return data;
+}
+
+export async function sendPickupTimeSelectedAdminEmail({
+  orderNumber,
+  orderId,
+  customerFirstName,
+  customerLastName,
+  customerEmail,
+  pickupScheduledAt,
+}: {
+  orderNumber: string;
+  orderId: string;
+  customerFirstName: string;
+  customerLastName: string;
+  customerEmail: string;
+  pickupScheduledAt: Date;
+}) {
+  const resend = getResend();
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://ascendpepco.com";
+
+  const adminOrderUrl =
+    `${baseUrl}/admin/orders/${orderId}`;
+
+  const pickupDate = new Intl.DateTimeFormat(
+    "en-US",
+    {
+      timeZone: "America/Los_Angeles",
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }
+  ).format(pickupScheduledAt);
+
+  const pickupTime = new Intl.DateTimeFormat(
+    "en-US",
+    {
+      timeZone: "America/Los_Angeles",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    }
+  ).format(pickupScheduledAt);
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: REPLY_TO_EMAIL,
+    replyTo: customerEmail,
+    subject: `Pickup Time Selected - ${orderNumber}`,
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        Pickup Confirmation Required
+      </h1>
+
+      <p style="
+        margin:0 0 22px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        A member has selected a pickup time.
+        Review the appointment and provide the pickup
+        address to confirm it.
+      </p>
+
+      <div style="
+        margin:0 0 24px;
+        padding:18px;
+        background:#faf8f3;
+        border:1px solid #e8e4dc;
+        font-family:Arial,sans-serif;
+        font-size:13px;
+        line-height:1.8;
+        color:#55514b;
+      ">
+        <strong>Order:</strong>
+        ${escapeHtml(orderNumber)}<br />
+
+        <strong>Customer:</strong>
+        ${escapeHtml(customerFirstName)}
+        ${escapeHtml(customerLastName)}<br />
+
+        <strong>Selected Date:</strong>
+        ${escapeHtml(pickupDate)}<br />
+
+        <strong>Selected Time:</strong>
+        ${escapeHtml(pickupTime)}
+      </div>
+
+      <a
+        href="${adminOrderUrl}"
+        style="
+          display:inline-block;
+          padding:13px 20px;
+          background:#b78300;
+          color:#ffffff;
+          text-decoration:none;
+          font-family:Arial,sans-serif;
+          font-size:13px;
+          font-weight:700;
+        "
+      >
+        Review &amp; Confirm Pickup
+      </a>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `Pickup admin notification email failed: ${error.message}`
+    );
+  }
+
+  return data;
+}
+
+export async function sendPickupConfirmedEmail({
+  email,
+  firstName,
+  orderNumber,
+  orderId,
+  pickupScheduledAt,
+  pickupAddress1,
+  pickupAddress2,
+  pickupCity,
+  pickupState,
+  pickupPostalCode,
+}: {
+  email: string;
+  firstName: string;
+  orderNumber: string;
+  orderId: string;
+  pickupScheduledAt: Date;
+  pickupAddress1: string;
+  pickupAddress2?: string | null;
+  pickupCity: string;
+  pickupState: string;
+  pickupPostalCode: string;
+}) {
+  const resend = getResend();
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://ascendpepco.com";
+
+  const orderUrl =
+    `${baseUrl}/account/orders/${orderId}`;
+
+  const pickupDate = new Intl.DateTimeFormat(
+    "en-US",
+    {
+      timeZone: "America/Los_Angeles",
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }
+  ).format(pickupScheduledAt);
+
+  const pickupTime = new Intl.DateTimeFormat(
+    "en-US",
+    {
+      timeZone: "America/Los_Angeles",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    }
+  ).format(pickupScheduledAt);
+
+  const address2 = pickupAddress2
+    ? `<br />${escapeHtml(pickupAddress2)}`
+    : "";
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    replyTo: REPLY_TO_EMAIL,
+    subject: `Pickup Confirmed - ${orderNumber}`,
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        Pickup Confirmed
+      </h1>
+
+      <p style="
+        margin:0 0 16px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Hi ${escapeHtml(firstName)},
+      </p>
+
+      <p style="
+        margin:0 0 22px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Your pickup appointment for order
+        <strong>${escapeHtml(orderNumber)}</strong>
+        has been confirmed.
+      </p>
+
+      <div style="
+        margin:0 0 24px;
+        padding:18px;
+        background:#faf8f3;
+        border:1px solid #e8e4dc;
+        font-family:Arial,sans-serif;
+        font-size:13px;
+        line-height:1.8;
+        color:#55514b;
+      ">
+        <strong>Date:</strong>
+        ${escapeHtml(pickupDate)}<br />
+
+        <strong>Time:</strong>
+        ${escapeHtml(pickupTime)}<br /><br />
+
+        <strong>Pickup Location:</strong><br />
+        ${escapeHtml(pickupAddress1)}
+        ${address2}<br />
+        ${escapeHtml(pickupCity)},
+        ${escapeHtml(pickupState)}
+        ${escapeHtml(pickupPostalCode)}
+      </div>
+
+      <p style="
+        margin:0 0 22px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        You can also view your confirmed pickup details
+        from your Ascend account under Orders.
+      </p>
+
+      <a
+        href="${orderUrl}"
+        style="
+          display:inline-block;
+          padding:13px 20px;
+          background:#b78300;
+          color:#ffffff;
+          text-decoration:none;
+          font-family:Arial,sans-serif;
+          font-size:13px;
+          font-weight:700;
+        "
+      >
+        View Order Details
+      </a>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `Pickup confirmation email failed: ${error.message}`
+    );
+  }
+
+  return data;
+}
+export async function sendOrderShippedEmail({
+  email,
+  firstName,
+  orderNumber,
+  orderId,
+  trackingNumber,
+}: {
+  email: string;
+  firstName: string;
+  orderNumber: string;
+  orderId: string;
+  trackingNumber: string;
+}) {
+  const resend = getResend();
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://ascendpepco.com";
+
+  const orderUrl =
+    `${baseUrl}/account/orders/${orderId}`;
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    replyTo: REPLY_TO_EMAIL,
+    subject: `Your Order Has Shipped - ${orderNumber}`,
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        Your Order Has Shipped
+      </h1>
+
+      <p style="
+        margin:0 0 16px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Hi ${escapeHtml(firstName)},
+      </p>
+
+      <p style="
+        margin:0 0 22px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Your order
+        <strong>${escapeHtml(orderNumber)}</strong>
+        has been shipped.
+      </p>
+
+      <div style="
+        margin:0 0 24px;
+        padding:18px;
+        background:#faf8f3;
+        border:1px solid #e8e4dc;
+        font-family:Arial,sans-serif;
+        font-size:13px;
+        line-height:1.8;
+        color:#55514b;
+      ">
+        <strong>Tracking Number:</strong><br />
+        ${escapeHtml(trackingNumber)}
+      </div>
+
+      <p style="
+        margin:0 0 22px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        You can view your order details and tracking
+        information from your Ascend account under Orders.
+      </p>
+
+      <a
+        href="${orderUrl}"
+        style="
+          display:inline-block;
+          padding:13px 20px;
+          background:#b78300;
+          color:#ffffff;
+          text-decoration:none;
+          font-family:Arial,sans-serif;
+          font-size:13px;
+          font-weight:700;
+        "
+      >
+        View Order
+      </a>
+    `),
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}

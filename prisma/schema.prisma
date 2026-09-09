@@ -43,6 +43,16 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum FulfillmentMethod {
+  SHIPPING
+  PICKUP
+}
+
+enum OrderPaymentMethod {
+  CASH
+  ZELLE
+}
+
 enum PaymentStatus {
   UNPAID
   PENDING
@@ -92,11 +102,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sessions       Session[]
-  addresses      Address[]
-  orders         Order[]
-  messageThreads MessageThread[]
-  messages       Message[]
+  sessions             Session[]
+  addresses            Address[]
+  orders               Order[]
+  messageThreads       MessageThread[]
+  messages             Message[]
+  orderActivities      OrderActivity[]
+  pickupAvailability   PickupAvailability? @relation(fields: [pickupAvailabilityId], references: [id])
+  pickupAvailabilityId String?
 
   @@index([status])
   @@index([role])
@@ -309,9 +322,11 @@ model Order {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  status        OrderStatus   @default(PENDING)
-  paymentStatus PaymentStatus @default(UNPAID)
-  channel       OrderChannel  @default(RETAIL)
+  status        OrderStatus         @default(PENDING)
+  paymentStatus PaymentStatus       @default(UNPAID)
+  paymentMethod OrderPaymentMethod?
+  paidAt        DateTime?
+  channel       OrderChannel        @default(RETAIL)
 
   subtotal       Decimal @db.Decimal(10, 2)
   shippingAmount Decimal @default(0) @db.Decimal(10, 2)
@@ -332,6 +347,16 @@ model Order {
   customerNote String? @db.Text
   adminNote    String? @db.Text
 
+  fulfillmentMethod FulfillmentMethod?
+
+  pickupScheduledAt DateTime?
+  pickupConfirmedAt DateTime?
+  pickupAddress1    String?
+  pickupAddress2    String?
+  pickupCity        String?
+  pickupState       String?
+  pickupPostalCode  String?
+
   trackingNumber String?
   shippedAt      DateTime?
   completedAt    DateTime?
@@ -340,7 +365,9 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items OrderItem[]
+  items              OrderItem[]
+  orderActivities    OrderActivity[]
+  pickupAvailability PickupAvailability?
 
   @@index([userId])
   @@index([status])
@@ -350,6 +377,25 @@ model Order {
 // ============================================================
 // ORDER ITEMS
 // ============================================================
+
+model OrderActivity {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  adminId String
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  action  String
+  details String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([adminId])
+  @@index([createdAt])
+}
 
 model OrderItem {
   id String @id @default(cuid())
@@ -504,4 +550,21 @@ model DistroBatch {
 
   @@unique([productId, batchNumber])
   @@index([productId])
+}
+
+model PickupAvailability {
+  id       String   @id @default(cuid())
+  startsAt DateTime
+  endsAt   DateTime
+  isActive Boolean  @default(true)
+
+  bookedOrderId String? @unique
+  bookedOrder   Order?  @relation(fields: [bookedOrderId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+
+  @@index([startsAt])
+  @@index([isActive])
 }

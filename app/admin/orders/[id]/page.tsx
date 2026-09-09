@@ -1,18 +1,30 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  Box,
+  Check,
+  Circle,
   Mail,
   MapPin,
   Package,
   Phone,
-  UserRound,
   Trash2,
+  UserRound,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
-import { deleteAdminOrder, markOrderPaid } from "../actions";
+import {
+  beginOrder,
+  changeOrderPaymentMethod,
+  confirmOrderInventory,
+  completePickupOrder,
+  completeShippingOrder,
+  confirmPickupDetails,
+  deleteAdminOrder,
+  markOrderPaid,
+  markOrderShipped,
+  selectFulfillmentMethod,
+} from "../actions";
 import ConfirmDelete from "@/components/ConfirmDelete";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +78,22 @@ function paymentStatusClasses(status: string) {
   }
 }
 
+function activityLabel(action: string) {
+  switch (action) {
+    case "ORDER_STARTED":
+      return "Order started";
+    case "INVENTORY_CONFIRMED":
+      return "Inventory confirmed";
+    case "PAYMENT_CONFIRMED":
+      return "Payment confirmed";
+    default:
+      return action
+        .toLowerCase()
+        .replaceAll("_", " ")
+        .replace(/^\w/, (value) => value.toUpperCase());
+  }
+}
+
 export default async function OrderDetailPage({
   params,
 }: {
@@ -74,9 +102,7 @@ export default async function OrderDetailPage({
   const { id } = await params;
 
   const order = await prisma.order.findUnique({
-    where: {
-      id,
-    },
+    where: { id },
 
     include: {
       user: {
@@ -88,11 +114,24 @@ export default async function OrderDetailPage({
         },
       },
 
+      orderActivities: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        include: {
+          admin: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+
       items: {
         orderBy: {
           createdAt: "asc",
         },
-
         include: {
           variant: {
             select: {
@@ -111,60 +150,301 @@ export default async function OrderDetailPage({
     notFound();
   }
 
+  const inventoryConfirmed = order.orderActivities.some(
+    (activity) => activity.action === "INVENTORY_CONFIRMED"
+  );
+
+  const orderStarted =
+    order.status !== "PENDING" ||
+    order.orderActivities.some(
+      (activity) => activity.action === "ORDER_STARTED"
+    );
+
+  const paymentConfirmed = order.paymentStatus === "PAID";
+
+  const fulfilled =
+    order.status === "SHIPPED" ||
+    order.status === "COMPLETED";
+
+  const completed = order.status === "COMPLETED";
+
   const totalUnits = order.items.reduce(
     (sum, item) => sum + item.quantity,
     0
   );
 
+  const customerName =
+    `${order.user.firstName} ${order.user.lastName}`.trim();
+
+  const shippingName =
+    `${order.shippingFirstName} ${order.shippingLastName}`.trim();
+
+  const workflow = [
+    {
+      label: "Order Started",
+      complete: orderStarted,
+    },
+    {
+      label: "Inventory Confirmation",
+      complete: inventoryConfirmed,
+    },
+    {
+      label: "Payment",
+      complete: paymentConfirmed,
+    },
+    {
+      label: "Fulfillment",
+      complete: fulfilled,
+    },
+    {
+      label: "Complete",
+      complete: completed,
+    },
+  ];
+
   return (
-    <div>
+    <div className="space-y-6">
       <Link
         href="/admin/orders"
-        className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-neutral-500 transition hover:text-[#D4A11E]"
+        className="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 transition hover:text-[#D4A11E]"
       >
         <ArrowLeft size={16} />
         Back to Orders
       </Link>
 
-      <div className="admin-page-heading">
-        <div>
-          <span className="admin-eyebrow">
-            ORDER REQUEST
-          </span>
+      <section className="admin-panel p-6 lg:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <span className="admin-eyebrow">
+              ORDER REQUEST
+            </span>
 
-          <h1>{order.orderNumber}</h1>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950">
+              {order.orderNumber}
+            </h1>
 
-          <p>
-            Submitted {formatDate(order.createdAt)}
-          </p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-neutral-500">
+              <span>{customerName}</span>
+              <span className="text-neutral-300">|</span>
+              <span>
+                Submitted {formatDate(order.createdAt)}
+              </span>
+              <span className="text-neutral-300">|</span>
+              <span>
+                {totalUnits} {totalUnits === 1 ? "unit" : "units"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-start gap-4 lg:items-end">
+            <div className="flex flex-wrap gap-2">
+              {order.channel !== "RETAIL" && (
+                <span className="inline-flex rounded-full border border-[#D4A11E]/40 bg-[#D4A11E]/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#A77C13]">
+                  {order.channel}
+                </span>
+              )}
+
+              <span
+                className={`inline-flex rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] ${orderStatusClasses(
+                  order.status
+                )}`}
+              >
+                {order.status}
+              </span>
+
+              <span
+                className={`inline-flex rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] ${paymentStatusClasses(
+                  order.paymentStatus
+                )}`}
+              >
+                {order.paymentStatus === "PAID" && order.paymentMethod === "CASH" ? "COD" : order.paymentStatus}
+              </span>
+            </div>
+
+            <div className="text-left lg:text-right">
+              <span className="block text-xs uppercase tracking-[0.12em] text-neutral-400">
+                Order Total
+              </span>
+              <strong className="mt-1 block text-3xl font-semibold text-neutral-950">
+                {money(Number(order.total))}
+              </strong>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {order.channel !== "RETAIL" && (
-          <span className="inline-flex rounded-full border border-[#D4A11E]/40 bg-[#D4A11E]/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#A77C13]">
-            {order.channel}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <section className="admin-panel overflow-hidden">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-5">
+            <div>
+              <span className="admin-eyebrow">
+                ORDER
+              </span>
+              <h2 className="mt-1 text-lg font-semibold">
+                Order Items
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-neutral-500">
+              <Package size={17} />
+              {totalUnits} {totalUnits === 1 ? "unit" : "units"}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[680px] text-left">
+              <thead>
+                <tr className="border-b border-neutral-200 bg-neutral-50/70 text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                  <th className="px-6 py-3">
+                    Product
+                  </th>
+                  <th className="px-4 py-3">
+                    SKU
+                  </th>
+                  <th className="px-4 py-3 text-center">
+                    Qty
+                  </th>
+                  <th className="px-4 py-3 text-right">
+                    Unit
+                  </th>
+                  <th className="px-6 py-3 text-right">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {order.items.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="border-b border-neutral-100 last:border-0"
+                  >
+                    <td className="px-6 py-5">
+                      <strong className="block text-sm font-semibold text-neutral-900">
+                        {item.productName}
+                      </strong>
+                      <span className="mt-1 block text-xs text-neutral-400">
+                        {item.strength}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-5 text-sm text-neutral-500">
+                      {item.variant?.sku || "-"}
+                    </td>
+
+                    <td className="px-4 py-5 text-center text-sm font-semibold">
+                      {item.quantity}
+                    </td>
+
+                    <td className="px-4 py-5 text-right text-sm text-neutral-600">
+                      {money(Number(item.unitPrice))}
+                    </td>
+
+                    <td className="px-6 py-5 text-right text-sm font-semibold">
+                      {money(Number(item.lineTotal))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="ml-auto w-full max-w-sm border-t border-neutral-200 p-6">
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between gap-4 text-neutral-500">
+                <span>Subtotal</span>
+                <span>{money(Number(order.subtotal))}</span>
+              </div>
+
+              <div className="flex justify-between gap-4 text-neutral-500">
+                <span>Shipping</span>
+                <span>{money(Number(order.shippingAmount))}</span>
+              </div>
+
+              <div className="flex justify-between gap-4 text-neutral-500">
+                <span>Tax</span>
+                <span>{money(Number(order.taxAmount))}</span>
+              </div>
+
+              <div className="flex justify-between gap-4 border-t border-neutral-200 pt-4 text-base">
+                <strong>Total</strong>
+                <strong>{money(Number(order.total))}</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="admin-panel p-6">
+          <span className="admin-eyebrow">
+            ORDER WORKFLOW
           </span>
-        )}
 
-        <span
-            className={`inline-flex rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] ${orderStatusClasses(
-              order.status
-            )}`}
-          >
-            {order.status}
-          </span>
+          <h2 className="mt-1 text-lg font-semibold">
+            Processing
+          </h2>
 
-          <span
-            className={`inline-flex rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] ${paymentStatusClasses(
-              order.paymentStatus
-            )}`}
-          >
-            {order.paymentStatus}
-          </span>
+          <div className="mt-6 space-y-1">
+            {workflow.map((step, index) => {
+              const previousComplete =
+                index === 0 ||
+                workflow[index - 1].complete;
 
-          {order.paymentStatus !== "PAID" &&
-            order.status !== "CONFIRMED" && (
-              <ConfirmDelete action={deleteAdminOrder} message="Delete this order? This cannot be undone.">
+              const active =
+                !step.complete &&
+                previousComplete;
+
+              return (
+                <div
+                  key={step.label}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-3 ${
+                    active
+                      ? "bg-[#D4A11E]/5"
+                      : ""
+                  }`}
+                >
+                  <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
+                      step.complete
+                        ? "border-green-200 bg-green-50 text-green-700"
+                        : active
+                          ? "border-[#D4A11E] bg-white text-[#A77C13]"
+                          : "border-neutral-200 bg-white text-neutral-300"
+                    }`}
+                  >
+                    {step.complete ? (
+                      <Check size={14} />
+                    ) : (
+                      <Circle size={10} />
+                    )}
+                  </span>
+
+                  <div>
+                    <span
+                      className={`block text-sm font-semibold ${
+                        active
+                          ? "text-neutral-950"
+                          : step.complete
+                            ? "text-neutral-700"
+                            : "text-neutral-400"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+
+                    {active && (
+                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-[#A77C13]">
+                        Current Step
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-6 border-t border-neutral-200 pt-6">
+            {order.status === "PENDING" && (
+              <form action={beginOrder}>
                 <input
                   type="hidden"
                   name="orderId"
@@ -173,419 +453,16 @@ export default async function OrderDetailPage({
 
                 <button
                   type="submit"
-                  title="Delete Order"
-                  className="inline-flex h-10 items-center gap-2 rounded-full border border-red-200 bg-white px-4 text-[10px] font-semibold uppercase tracking-[0.1em] text-red-600 transition hover:bg-red-50"
+                  className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#D4A11E] px-5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-[#b98b17]"
                 >
-                  <Trash2 size={14} />
-                  Delete Order
+                  Begin Order
                 </button>
-              </ConfirmDelete>
+              </form>
             )}
 
-        </div>
-      </div>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <article className="admin-panel flex items-center gap-4 p-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100 text-neutral-700">
-            <Package size={19} />
-          </div>
-
-          <div>
-            <span className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-400">
-              Units
-            </span>
-
-            <strong className="mt-1 block text-2xl">
-              {totalUnits}
-            </strong>
-          </div>
-        </article>
-
-        <article className="admin-panel flex items-center gap-4 p-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100 text-neutral-700">
-            <Box size={19} />
-          </div>
-
-          <div>
-            <span className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-400">
-              Line Items
-            </span>
-
-            <strong className="mt-1 block text-2xl">
-              {order.items.length}
-            </strong>
-          </div>
-        </article>
-
-        <article className="admin-panel flex items-center gap-4 p-5">
-          <div>
-            <span className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-400">
-              Merchandise
-            </span>
-
-            <strong className="mt-1 block text-2xl">
-              {money(Number(order.subtotal))}
-            </strong>
-          </div>
-        </article>
-      </section>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_0.8fr]">
-
-        <div className="space-y-6">
-
-          <section className="admin-panel overflow-hidden">
-            <div className="admin-panel-heading">
-              <div>
-                <span className="admin-eyebrow">
-                  ITEMS
-                </span>
-
-                <h2>Order Contents</h2>
-              </div>
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[700px] border-collapse">
-                <thead>
-                  <tr className="border-b border-neutral-200 bg-neutral-50/70 text-left">
-                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                      Product
-                    </th>
-                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                      SKU
-                    </th>
-                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                      Qty
-                    </th>
-                    <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                      Unit Price
-                    </th>
-                    <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {order.items.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="border-b border-neutral-100 last:border-b-0"
-                    >
-                      <td className="px-5 py-5">
-                        <strong className="block text-sm">
-                          {item.productName}
-                        </strong>
-
-                        <span className="mt-1 block text-xs text-neutral-400">
-                          {item.strength}
-                        </span>
-
-                        {item.variant && (
-                          <span className="mt-1 block text-[11px] text-neutral-400">
-                            Current inventory:{" "}
-                            {item.variant.inventoryQty}
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-5 py-5 text-sm text-neutral-500">
-                            {item.sku ?? "-"}
-                      </td>
-
-                      <td className="px-5 py-5 text-sm font-medium">
-                        {item.quantity}
-                      </td>
-
-                      <td className="px-5 py-5 text-sm">
-                        {money(Number(item.unitPrice))}
-                      </td>
-
-                      <td className="px-5 py-5 text-right text-sm font-semibold">
-                        {money(Number(item.lineTotal))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="divide-y divide-neutral-100 md:hidden">
-              {order.items.map((item) => (
-                <div key={item.id} className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <strong className="block text-sm font-medium text-neutral-950">
-                        {item.productName}
-                      </strong>
-
-                      <span className="mt-1 block text-xs text-neutral-400">
-                        {item.strength}
-                      </span>
-
-                      {item.variant && (
-                        <span className="mt-1 block text-[11px] text-neutral-400">
-                          Current inventory:{" "}
-                          {item.variant.inventoryQty}
-                        </span>
-                      )}
-                    </div>
-
-                    <strong className="shrink-0 text-sm text-neutral-950">
-                      {money(Number(item.lineTotal))}
-                    </strong>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3">
-                    <div>
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
-                        SKU
-                      </span>
-                      <span className="ml-2 text-xs text-neutral-600">
-                            {item.sku ?? "-"}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
-                        Qty
-                      </span>
-                      <span className="ml-2 text-xs font-medium text-neutral-900">
-                        {item.quantity}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
-                        Unit
-                      </span>
-                      <span className="ml-2 text-xs text-neutral-600">
-                        {money(Number(item.unitPrice))}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-neutral-200 bg-neutral-50/50 px-5 py-5">
-              <div className="ml-auto max-w-[340px] space-y-3">
-                <div className="flex justify-between gap-4 text-sm">
-                  <span className="text-neutral-500">
-                    Merchandise
-                  </span>
-
-                  <strong>
-                    {money(Number(order.subtotal))}
-                  </strong>
-                </div>
-
-                <div className="flex justify-between gap-4 text-sm">
-                  <span className="text-neutral-500">
-                    Shipping
-                  </span>
-
-                  <span className="text-neutral-500">
-                    To be confirmed
-                  </span>
-                </div>
-
-                <div className="flex justify-between gap-4 text-sm">
-                  <span className="text-neutral-500">
-                    Tax
-                  </span>
-
-                  <span className="text-neutral-500">
-                    Not collected online
-                  </span>
-                </div>
-
-                <div className="flex justify-between gap-4 border-t border-neutral-200 pt-3">
-                  <span className="font-medium">
-                    Request Total
-                  </span>
-
-                  <strong className="text-lg">
-                    {money(Number(order.total))}
-                  </strong>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {(order.customerNote || order.adminNote) && (
-            <section className="admin-panel p-6">
-              <span className="admin-eyebrow">
-                NOTES
-              </span>
-
-              <h2 className="mt-1 text-lg font-semibold">
-                Order Notes
-              </h2>
-
-              {order.customerNote && (
-                <div className="mt-5">
-                  <strong className="text-xs uppercase tracking-[0.12em] text-neutral-500">
-                    Customer Note
-                  </strong>
-
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700">
-                    {order.customerNote}
-                  </p>
-                </div>
-              )}
-
-              {order.adminNote && (
-                <div className="mt-5 border-t border-neutral-200 pt-5">
-                  <strong className="text-xs uppercase tracking-[0.12em] text-neutral-500">
-                    Admin Note
-                  </strong>
-
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700">
-                    {order.adminNote}
-                  </p>
-                </div>
-              )}
-            </section>
-          )}
-
-        </div>
-
-        <div className="space-y-6">
-
-          <section className="admin-panel p-6">
-            <span className="admin-eyebrow">
-              MEMBER
-            </span>
-
-            <h2 className="mt-1 text-lg font-semibold">
-              Customer
-            </h2>
-
-            <div className="mt-5 flex gap-3">
-              <UserRound
-                size={18}
-                className="mt-0.5 shrink-0 text-[#D4A11E]"
-              />
-
-              <div>
-                <strong className="block text-sm">
-                  {order.user.firstName}{" "}
-                  {order.user.lastName}
-                </strong>
-
-                <a
-                  href={`mailto:${order.user.email}`}
-                  className="mt-2 flex items-center gap-2 text-xs text-neutral-500 transition hover:text-[#D4A11E]"
-                >
-                  <Mail size={13} />
-                  {order.user.email}
-                </a>
-
-                {order.user.phone && (
-                  <a
-                    href={`tel:${order.user.phone}`}
-                    className="mt-2 flex items-center gap-2 text-xs text-neutral-500 transition hover:text-[#D4A11E]"
-                  >
-                    <Phone size={13} />
-                    {order.user.phone}
-                  </a>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className="admin-panel p-6">
-            <span className="admin-eyebrow">
-              FULFILLMENT
-            </span>
-
-            <h2 className="mt-1 text-lg font-semibold">
-              Shipping Address
-            </h2>
-
-            <div className="mt-5 flex gap-3">
-              <MapPin
-                size={18}
-                className="mt-0.5 shrink-0 text-[#D4A11E]"
-              />
-
-              <address className="not-italic text-sm leading-6 text-neutral-600">
-                <strong className="block text-neutral-950">
-                  {order.shippingFirstName}{" "}
-                  {order.shippingLastName}
-                </strong>
-
-                {order.shippingCompany && (
-                  <span className="block">
-                    {order.shippingCompany}
-                  </span>
-                )}
-
-                <span className="block">
-                  {order.shippingAddress1}
-                </span>
-
-                {order.shippingAddress2 && (
-                  <span className="block">
-                    {order.shippingAddress2}
-                  </span>
-                )}
-
-                <span className="block">
-                  {order.shippingCity},{" "}
-                  {order.shippingState}{" "}
-                  {order.shippingPostalCode}
-                </span>
-
-                <span className="block">
-                  {order.shippingCountry}
-                </span>
-
-                {order.shippingPhone && (
-                  <span className="mt-2 block">
-                    {order.shippingPhone}
-                  </span>
-                )}
-              </address>
-            </div>
-          </section>
-
-          {order.paymentStatus !== "PAID" &&
-            order.status !== "CANCELLED" && (
-              <section className="admin-panel p-6">
-                <span className="admin-eyebrow">
-                  ORDER ACTION
-                </span>
-
-                <h2 className="mt-1 text-lg font-semibold">
-                  Record Payment
-                </h2>
-
-                <p className="mt-3 text-sm leading-6 text-neutral-500">
-                  {order.channel === "DISTRO"
-                    ? "Use this after payment has been received and verified. Recording payment will confirm the Distro order."
-                    : order.channel === "MIXED"
-                      ? "Use this after payment has been received and verified. Recording payment will confirm the order and deduct only tracked retail inventory. Distro items are not deducted."
-                      : "Use this after payment has been received and verified. Recording payment will confirm the order and deduct the ordered quantities from tracked retail inventory."}
-                </p>
-
-                <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <strong className="text-xs font-semibold uppercase tracking-[0.1em] text-amber-800">
-                    Inventory Action
-                  </strong>
-
-                  <p className="mt-1 text-xs leading-5 text-amber-700">
-                    This action records the products as sold. Only
-                    click after payment has actually been received.
-                  </p>
-                </div>
-
-                <form
-                  action={markOrderPaid}
-                  className="mt-5"
-                >
+            {order.status === "PROCESSING" &&
+              !inventoryConfirmed && (
+                <form action={confirmOrderInventory}>
                   <input
                     type="hidden"
                     name="orderId"
@@ -594,53 +471,653 @@ export default async function OrderDetailPage({
 
                   <button
                     type="submit"
-                    className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#D4A11E] px-5 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#b98b17]"
+                    className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#D4A11E] px-5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-[#b98b17]"
                   >
-                    Mark Paid & Confirm Order
+                    Confirm Inventory
                   </button>
                 </form>
-              </section>
+              )}
+
+            {inventoryConfirmed &&
+              order.paymentStatus !== "PAID" &&
+              order.status !== "CANCELLED" && (
+                <div>
+                  <p className="mb-4 text-sm leading-6 text-neutral-500">
+                    Inventory is confirmed. Select the
+                    payment method after payment has been
+                    received.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <form action={markOrderPaid}>
+                      <input
+                        type="hidden"
+                        name="orderId"
+                        value={order.id}
+                      />
+                      <input
+                        type="hidden"
+                        name="paymentMethod"
+                        value="CASH"
+                      />
+
+                      <button
+                        type="submit"
+                        className="flex min-h-11 w-full items-center justify-center rounded-full border border-[#D4A11E] bg-white px-4 text-xs font-semibold uppercase tracking-[0.1em] text-[#A77C13] transition hover:bg-[#D4A11E]/5"
+                      >
+                        Cash
+                      </button>
+                    </form>
+
+                    <form action={markOrderPaid}>
+                      <input
+                        type="hidden"
+                        name="orderId"
+                        value={order.id}
+                      />
+                      <input
+                        type="hidden"
+                        name="paymentMethod"
+                        value="ZELLE"
+                      />
+
+                      <button
+                        type="submit"
+                        className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#D4A11E] px-4 text-xs font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#b98b17]"
+                      >
+                        Zelle
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+            {order.paymentStatus === "PAID" &&
+              !order.fulfillmentMethod &&
+              !fulfilled && (
+                <div>
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                    <span className="text-xs font-semibold uppercase tracking-[0.1em] text-green-700">
+                      Payment Confirmed
+                    </span>
+
+                    <p className="mt-1 text-sm text-green-800">
+                      {order.paymentMethod
+                        ? `Paid via ${order.paymentMethod}.`
+                        : "Payment has been received."}
+                      {" "}Choose how this order will be fulfilled.
+                    </p>
+                  </div>
+
+                  <form
+                    action={changeOrderPaymentMethod}
+                    className="mt-3"
+                  >
+                    <input
+                      type="hidden"
+                      name="orderId"
+                      value={order.id}
+                    />
+                    <input
+                      type="hidden"
+                      name="paymentMethod"
+                      value={
+                        order.paymentMethod === "CASH"
+                          ? "ZELLE"
+                          : "CASH"
+                      }
+                    />
+
+                    <button
+                      type="submit"
+                      className="text-xs font-medium text-neutral-500 underline underline-offset-4 transition hover:text-neutral-900"
+                    >
+                      {order.paymentMethod === "CASH"
+                        ? "Change Payment to Zelle"
+                        : "Change Payment to Cash"}
+                    </button>
+                  </form>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <form action={selectFulfillmentMethod}>
+                      <input
+                        type="hidden"
+                        name="orderId"
+                        value={order.id}
+                      />
+                      <input
+                        type="hidden"
+                        name="fulfillmentMethod"
+                        value="SHIPPING"
+                      />
+
+                      <button
+                        type="submit"
+                        className="flex min-h-11 w-full items-center justify-center rounded-full border border-[#D4A11E] bg-white px-4 text-xs font-semibold uppercase tracking-[0.1em] text-[#A77C13] transition hover:bg-[#D4A11E]/5"
+                      >
+                        Shipping
+                      </button>
+                    </form>
+
+                    <form action={selectFulfillmentMethod}>
+                      <input
+                        type="hidden"
+                        name="orderId"
+                        value={order.id}
+                      />
+                      <input
+                        type="hidden"
+                        name="fulfillmentMethod"
+                        value="PICKUP"
+                      />
+
+                      <button
+                        type="submit"
+                        className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#D4A11E] px-4 text-xs font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#b98b17]"
+                      >
+                        Pickup
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+            {order.fulfillmentMethod === "PICKUP" &&
+              !order.pickupScheduledAt &&
+              !completed && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-amber-800">
+                    Waiting for Member
+                  </span>
+
+                  <p className="mt-1 text-sm leading-6 text-amber-800">
+                    Pickup selected. The member needs to choose an available pickup date and time.
+                  </p>
+                </div>
+              )}
+            {order.fulfillmentMethod === "PICKUP" &&
+              order.pickupScheduledAt &&
+              !order.pickupConfirmedAt &&
+              !completed && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-amber-800">
+                    Pickup Time Selected
+                  </span>
+
+                  <p className="mt-1 text-sm leading-6 text-amber-800">
+                    {new Intl.DateTimeFormat("en-US", {
+                      timeZone: "America/Los_Angeles",
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      timeZoneName: "short",
+                    }).format(order.pickupScheduledAt)}
+                  </p>
+
+                  <p className="mt-2 text-sm text-amber-800">
+                    Enter the pickup location and confirm the appointment.
+                  </p>
+
+                  <form action={confirmPickupDetails} className="mt-4 space-y-3">
+                    <input type="hidden" name="orderId" value={order.id} />
+
+                    <input
+                      name="pickupAddress1"
+                      placeholder="Street address"
+                      required
+                      className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm text-neutral-950 outline-none focus:border-[#D4A11E]"
+                    />
+
+                    <input
+                      name="pickupAddress2"
+                      placeholder="Suite / Unit (optional)"
+                      className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm text-neutral-950 outline-none focus:border-[#D4A11E]"
+                    />
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <input
+                        name="pickupCity"
+                        placeholder="City"
+                        required
+                        className="rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm text-neutral-950 outline-none focus:border-[#D4A11E]"
+                      />
+
+                      <input
+                        name="pickupState"
+                        placeholder="State"
+                        required
+                        className="rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm text-neutral-950 outline-none focus:border-[#D4A11E]"
+                      />
+
+                      <input
+                        name="pickupPostalCode"
+                        placeholder="ZIP"
+                        required
+                        className="rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm text-neutral-950 outline-none focus:border-[#D4A11E]"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full rounded-lg bg-[#D4A11E] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                    >
+                      Confirm Pickup
+                    </button>
+                  </form>
+                </div>
+              )}
+
+            {order.fulfillmentMethod === "PICKUP" &&
+              order.pickupScheduledAt &&
+              order.pickupConfirmedAt &&
+              !completed && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-green-800">
+                    Pickup Confirmed
+                  </span>
+
+                  <p className="mt-1 text-sm font-medium leading-6 text-green-900">
+                    {new Intl.DateTimeFormat("en-US", {
+                      timeZone: "America/Los_Angeles",
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      timeZoneName: "short",
+                    }).format(order.pickupScheduledAt)}
+                  </p>
+
+                  <div className="mt-3 text-sm leading-6 text-green-800">
+                    <div>{order.pickupAddress1}</div>
+                    {order.pickupAddress2 && <div>{order.pickupAddress2}</div>}
+                    <div>
+                      {order.pickupCity}, {order.pickupState}{" "}
+                      {order.pickupPostalCode}
+                    </div>
+                  </div>
+
+                  <form action={completePickupOrder} className="mt-4">
+                    <input type="hidden" name="orderId" value={order.id} />
+
+                    <button
+                      type="submit"
+                      className="w-full rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800"
+                    >
+                      Complete Pickup
+                    </button>
+                  </form>
+                </div>
+              )}
+            {order.fulfillmentMethod === "SHIPPING" &&
+              !order.shippedAt &&
+              !completed && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-blue-700">
+                    Ready to Ship
+                  </span>
+
+                  <p className="mt-1 text-sm leading-6 text-blue-800">
+                    Shipping selected. Enter the tracking number when the package is ready to leave.
+                  </p>
+
+                  <div className="mt-4 rounded-lg border border-blue-200 bg-white p-4 text-sm leading-6 text-neutral-600">
+                    <strong className="block text-neutral-900">
+                      {shippingName}
+                    </strong>
+
+                    <span className="block">
+                      {order.shippingAddress1}
+                    </span>
+
+                    {order.shippingAddress2 && (
+                      <span className="block">
+                        {order.shippingAddress2}
+                      </span>
+                    )}
+
+                    <span className="block">
+                      {order.shippingCity}, {order.shippingState}{" "}
+                      {order.shippingPostalCode}
+                    </span>
+                  </div>
+
+                  <form action={markOrderShipped} className="mt-4">
+                    <input
+                      type="hidden"
+                      name="orderId"
+                      value={order.id}
+                    />
+
+                    <label className="block text-xs font-semibold uppercase tracking-[0.1em] text-blue-800">
+                      Tracking Number
+                    </label>
+
+                    <input
+                      type="text"
+                      name="trackingNumber"
+                      required
+                      autoComplete="off"
+                      placeholder="Enter tracking number"
+                      className="mt-2 min-h-11 w-full rounded-lg border border-blue-200 bg-white px-3 text-sm text-neutral-900 outline-none transition focus:border-[#D4A11E]"
+                    />
+
+                    <button
+                      type="submit"
+                      className="mt-3 flex min-h-11 w-full items-center justify-center rounded-full bg-[#D4A11E] px-4 text-xs font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#b98b17]"
+                    >
+                      Mark as Shipped
+                    </button>
+                  </form>
+                </div>
+              )}
+
+            {order.fulfillmentMethod === "SHIPPING" &&
+              order.shippedAt &&
+              order.status === "SHIPPED" &&
+              !completed && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-green-800">
+                    Order Shipped
+                  </span>
+
+                  <p className="mt-1 text-sm leading-6 text-green-800">
+                    This order has been marked as shipped.
+                  </p>
+
+                  <div className="mt-4 rounded-lg border border-green-200 bg-white p-4 text-sm leading-6 text-neutral-600">
+                    <div>
+                      <span className="text-xs text-neutral-400">
+                        Tracking Number
+                      </span>
+                      <strong className="mt-1 block text-neutral-900">
+                        {order.trackingNumber}
+                      </strong>
+                    </div>
+
+                    <div className="mt-3">
+                      <span className="text-xs text-neutral-400">
+                        Shipped
+                      </span>
+                      <strong className="mt-1 block text-neutral-900">
+                        {formatDate(order.shippedAt)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <form
+                    action={completeShippingOrder}
+                    className="mt-4"
+                  >
+                    <input
+                      type="hidden"
+                      name="orderId"
+                      value={order.id}
+                    />
+
+                    <button
+                      type="submit"
+                      className="w-full rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800"
+                    >
+                      Complete Order
+                    </button>
+                  </form>
+                </div>
+              )}
+
+            {completed && (
+              <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800">
+                This order is complete.
+              </div>
             )}
+          </div>
 
-          <section className="admin-panel p-6">
-            <span className="admin-eyebrow">
-              PAYMENT
-            </span>
-
-            <h2 className="mt-1 text-lg font-semibold">
-              Payment & Fulfillment
-            </h2>
-
-            <p className="mt-4 text-sm leading-6 text-neutral-500">
-              Payment and shipping are coordinated directly
-              with the member after the order request is received.
-            </p>
-
-            <div className="mt-5 border-t border-neutral-200 pt-5">
+          {order.paymentMethod && (
+            <div className="mt-6 border-t border-neutral-200 pt-5">
               <span className="text-xs text-neutral-400">
-                Current payment status
+                Payment Method
               </span>
-
               <strong className="mt-1 block text-sm">
-                {order.paymentStatus}
+                {order.paymentMethod}
+              </strong>
+
+              {order.paidAt && (
+                <span className="mt-1 block text-xs text-neutral-400">
+                  {formatDate(order.paidAt)}
+                </span>
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="admin-panel p-6">
+          <div className="flex items-center gap-3">
+            <UserRound
+              size={18}
+              className="text-[#D4A11E]"
+            />
+            <div>
+              <span className="admin-eyebrow">
+                CUSTOMER
+              </span>
+              <h2 className="mt-1 text-lg font-semibold">
+                Member Information
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            <div>
+              <span className="text-xs text-neutral-400">
+                Name
+              </span>
+              <strong className="mt-1 block text-sm">
+                {customerName}
               </strong>
             </div>
 
+            <div className="flex items-start gap-3">
+              <Mail
+                size={16}
+                className="mt-0.5 text-neutral-400"
+              />
+              <a
+                href={`mailto:${order.user.email}`}
+                className="text-sm text-neutral-600 hover:text-[#D4A11E]"
+              >
+                {order.user.email}
+              </a>
+            </div>
+
+            {order.user.phone && (
+              <div className="flex items-start gap-3">
+                <Phone
+                  size={16}
+                  className="mt-0.5 text-neutral-400"
+                />
+                <span className="text-sm text-neutral-600">
+                  {order.user.phone}
+                </span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="admin-panel p-6">
+          <div className="flex items-center gap-3">
+            <MapPin
+              size={18}
+              className="text-[#D4A11E]"
+            />
+            <div>
+              <span className="admin-eyebrow">
+                DELIVERY
+              </span>
+              <h2 className="mt-1 text-lg font-semibold">
+                Shipping Information
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-6 text-sm leading-6 text-neutral-600">
+            <strong className="block text-neutral-900">
+              {shippingName}
+            </strong>
+
+            {order.shippingCompany && (
+              <span className="block">
+                {order.shippingCompany}
+              </span>
+            )}
+
+            <span className="block">
+              {order.shippingAddress1}
+            </span>
+
+            {order.shippingAddress2 && (
+              <span className="block">
+                {order.shippingAddress2}
+              </span>
+            )}
+
+            <span className="block">
+              {order.shippingCity}, {order.shippingState}{" "}
+              {order.shippingPostalCode}
+            </span>
+
+            {order.shippingPhone && (
+              <div className="mt-4 flex items-center gap-3">
+                <Phone
+                  size={16}
+                  className="text-neutral-400"
+                />
+                <span>{order.shippingPhone}</span>
+              </div>
+            )}
+
             {order.trackingNumber && (
-              <div className="mt-4 border-t border-neutral-200 pt-4">
+              <div className="mt-5 border-t border-neutral-200 pt-4">
                 <span className="text-xs text-neutral-400">
                   Tracking Number
                 </span>
-
-                <strong className="mt-1 block text-sm">
+                <strong className="mt-1 block text-sm text-neutral-900">
                   {order.trackingNumber}
                 </strong>
               </div>
             )}
-          </section>
-
-        </div>
+          </div>
+        </section>
       </div>
+
+      {(order.customerNote || order.adminNote) && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {order.customerNote && (
+            <section className="admin-panel p-6">
+              <span className="admin-eyebrow">
+                CUSTOMER NOTE
+              </span>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-neutral-600">
+                {order.customerNote}
+              </p>
+            </section>
+          )}
+
+          {order.adminNote && (
+            <section className="admin-panel p-6">
+              <span className="admin-eyebrow">
+                INTERNAL NOTE
+              </span>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-neutral-600">
+                {order.adminNote}
+              </p>
+            </section>
+          )}
+        </div>
+      )}
+
+      <section className="admin-panel p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="admin-eyebrow">
+              INTERNAL ACTIVITY
+            </span>
+            <h2 className="mt-1 text-lg font-semibold">
+              Order History
+            </h2>
+          </div>
+
+          <span className="text-xs text-neutral-400">
+            Admin only
+          </span>
+        </div>
+
+        {order.orderActivities.length > 0 ? (
+          <div className="mt-6 divide-y divide-neutral-100 border-t border-neutral-200">
+            {[...order.orderActivities]
+              .reverse()
+              .map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <strong className="block text-sm font-semibold text-neutral-900">
+                      {activityLabel(activity.action)}
+                    </strong>
+
+                    <span className="mt-1 block text-xs text-neutral-500">
+                      {activity.details || "No additional details."}
+                    </span>
+                  </div>
+
+                  <div className="text-left sm:text-right">
+                    <span className="block text-xs font-medium text-neutral-600">
+                      {activity.admin.firstName}{" "}
+                      {activity.admin.lastName}
+                    </span>
+
+                    <span className="mt-1 block text-xs text-neutral-400">
+                      {formatDate(activity.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <p className="mt-5 text-sm text-neutral-500">
+            No order activity has been recorded yet.
+          </p>
+        )}
+      </section>
+
+      {order.status !== "COMPLETED" && (
+          <div className="flex justify-end">
+            <ConfirmDelete
+              action={deleteAdminOrder}
+              message={`Delete ${order.orderNumber}? This cannot be undone.`}
+            >
+              <input
+                type="hidden"
+                name="orderId"
+                value={order.id}
+              />
+
+              <button
+                type="submit"
+                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-red-200 bg-white px-4 text-xs font-semibold uppercase tracking-[0.1em] text-red-600 transition hover:bg-red-50"
+              >
+                <Trash2 size={14} />
+                Delete Order
+              </button>
+            </ConfirmDelete>
+          </div>
+        )}
     </div>
   );
 }

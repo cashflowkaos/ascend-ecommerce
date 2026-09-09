@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   Boxes,
   Building2,
+  CalendarClock,
   LayoutDashboard,
   MessageSquare,
   PackageCheck,
@@ -16,6 +17,7 @@ const links = [
   { href: "/admin/distro", label: "Distro", icon: Building2 },
   { href: "/admin/members", label: "Members", icon: Users },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/pickup", label: "Pickup", icon: CalendarClock },
   { href: "/admin/messages", label: "Messages", icon: MessageSquare },
 ];
 

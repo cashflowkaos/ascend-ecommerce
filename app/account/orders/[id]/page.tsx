@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import {
   ArrowLeft,
   Box,
+  CalendarClock,
   CreditCard,
   LogOut,
   MapPin,
@@ -13,7 +14,10 @@ import {
 
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ensurePickupAvailability } from "@/lib/pickupAvailability";
 import { memberSignOut } from "../../actions";
+import { scheduleOrderPickup } from "../pickup-actions";
+import PickupTimeSelector from "../PickupTimeSelector";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +37,24 @@ function formatStatus(status: string) {
     .replace(/\b\w/g, (letter) =>
       letter.toUpperCase()
     );
+}
+
+function formatPickupDate(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
+function formatPickupTime(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(date);
 }
 
 export default async function MemberOrderDetailPage({
@@ -73,6 +95,46 @@ export default async function MemberOrderDetailPage({
   if (!order) {
     notFound();
   }
+  await ensurePickupAvailability();
+
+  const pickupSlots =
+    order.paymentStatus === "PAID" &&
+    order.fulfillmentMethod === "PICKUP" &&
+    !order.pickupScheduledAt
+      ? await prisma.pickupAvailability.findMany({
+          where: {
+            isActive: true,
+            bookedOrderId: null,
+            startsAt: {
+              gt: new Date(),
+            },
+          },
+          orderBy: {
+            startsAt: "asc",
+          },
+        })
+      : [];
+
+  const pickupDays = pickupSlots.reduce<
+    Record<string, typeof pickupSlots>
+  >((groups, slot) => {
+    const key = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Los_Angeles",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(slot.startsAt);
+
+    if (!groups[key]) {
+      groups[key] = [];
+    }
+
+    groups[key].push(slot);
+    return groups;
+  }, {});
+
+  const pickupDayEntries = Object.entries(pickupDays);
+
 
   return (
     <main className="member-account-page">
@@ -154,7 +216,7 @@ export default async function MemberOrderDetailPage({
           </div>
         </section>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.45fr_0.8fr]">
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <section className="space-y-6">
             <article className="member-account-card">
               <div className="member-account-card-heading">
@@ -183,12 +245,12 @@ export default async function MemberOrderDetailPage({
                       <p className="mt-1 text-xs text-neutral-500">
                         {item.strength}
                         {item.sku
-                          ? ` · ${item.sku}`
+                          ? ` | ${item.sku}`
                           : ""}
                       </p>
 
                       <p className="mt-1 text-xs text-neutral-500">
-                        Qty {item.quantity} ×{" "}
+                        Qty {item.quantity} x{" "}
                         {formatMoney(item.unitPrice)}
                       </p>
                     </div>
@@ -276,6 +338,103 @@ export default async function MemberOrderDetailPage({
           </section>
 
           <aside className="space-y-6">
+            {order.fulfillmentMethod === "PICKUP" &&
+              order.paymentStatus === "PAID" && (
+                <article className="member-account-card">
+                  <div className="member-account-card-heading">
+                    <div>
+                      <span className="admin-eyebrow">
+                        PICKUP
+                      </span>
+
+                      <h2>
+                        {!order.pickupScheduledAt
+                          ? "Choose Your Pickup Time"
+                          : order.pickupConfirmedAt
+                            ? "Pickup Confirmed"
+                            : "Pickup Time Selected"}
+                      </h2>
+                    </div>
+
+                    <CalendarClock size={19} />
+                  </div>
+
+                  {order.pickupScheduledAt ? (
+                    <div className="mt-5 rounded-xl border border-[#D4A11E]/30 bg-[#D4A11E]/5 p-4">
+                      <strong className="block text-sm text-neutral-950">
+                        {formatPickupDate(
+                          order.pickupScheduledAt
+                        )}
+                      </strong>
+
+                      <span className="mt-1 block text-sm text-neutral-600">
+                        {formatPickupTime(
+                          order.pickupScheduledAt
+                        )}
+                      </span>
+
+                      {order.pickupConfirmedAt ? (
+                        <div className="mt-4 border-t border-[#D4A11E]/20 pt-4">
+                          <span className="block text-xs font-semibold uppercase tracking-[0.1em] text-neutral-500">
+                            Pickup Location
+                          </span>
+
+                          <div className="mt-2 text-sm leading-6 text-neutral-800">
+                            <div>{order.pickupAddress1}</div>
+
+                            {order.pickupAddress2 && (
+                              <div>{order.pickupAddress2}</div>
+                            )}
+
+                            <div>
+                              {order.pickupCity}, {order.pickupState}{" "}
+                              {order.pickupPostalCode}
+                            </div>
+                          </div>
+
+                          <p className="mt-3 text-xs leading-5 text-neutral-500">
+                            Your pickup appointment has been confirmed.
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-xs leading-5 text-neutral-500">
+                          Your pickup time has been selected. Ascend will
+                          confirm your pickup location shortly.
+                        </p>
+                      )}
+                    </div>
+                  ) : pickupSlots.length === 0 ? (
+                    <p className="mt-5 text-sm leading-6 text-neutral-500">
+                      There are currently no pickup appointments
+                      available. Please check back soon.
+                    </p>
+                  ) : (
+                    <PickupTimeSelector
+                      orderId={order.id}
+                      days={pickupDayEntries.map(
+                        ([dateKey, daySlots]) => {
+                          const firstSlot = daySlots[0];
+                          const lastSlot =
+                            daySlots[daySlots.length - 1];
+
+                          return {
+                            dateKey,
+                            label: formatPickupDate(
+                              firstSlot.startsAt
+                            ),
+                            windowLabel: `${formatPickupTime(
+                              firstSlot.startsAt
+                            )} - ${formatPickupTime(
+                              lastSlot.endsAt
+                            )}`,
+                            slots: daySlots,
+                          };
+                        }
+                      )}
+                    />                  )}
+                </article>
+              )}
+
             <article className="member-account-card">
               <div className="member-account-card-heading">
                 <div>
