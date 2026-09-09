@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -274,7 +274,7 @@ export default async function OrderDetailPage({
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <section className="admin-panel overflow-hidden">
+        <section className="admin-panel min-w-0 overflow-hidden">
           <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-5">
             <div>
               <span className="admin-eyebrow">
@@ -291,7 +291,66 @@ export default async function OrderDetailPage({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile order items */}
+          <div className="md:hidden">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="border-b border-neutral-100 px-5 py-5 last:border-0"
+              >
+                <div>
+                  <strong className="block text-sm font-semibold text-neutral-900">
+                    {item.productName}
+                  </strong>
+
+                  <span className="mt-1 block text-xs text-neutral-400">
+                    {item.strength}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-[1.25fr_.55fr_1fr_1fr] gap-x-3">
+                  <div>
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                      SKU
+                    </span>
+                    <span className="mt-1.5 block whitespace-nowrap text-xs text-neutral-600">
+                      {item.sku || item.variant?.sku || "-"}
+                    </span>
+                  </div>
+
+                  <div className="text-center">
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                      Qty
+                    </span>
+                    <span className="mt-1.5 block text-sm font-semibold text-neutral-900">
+                      {item.quantity}
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                      Unit
+                    </span>
+                    <span className="mt-1.5 block whitespace-nowrap text-xs text-neutral-600">
+                      {money(Number(item.unitPrice))}
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                      Total
+                    </span>
+                    <span className="mt-1.5 block whitespace-nowrap text-xs font-semibold text-neutral-900">
+                      {money(Number(item.lineTotal))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop order items */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[680px] text-left">
               <thead>
                 <tr className="border-b border-neutral-200 bg-neutral-50/70 text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
@@ -329,7 +388,7 @@ export default async function OrderDetailPage({
                     </td>
 
                     <td className="px-4 py-5 text-sm text-neutral-500">
-                      {item.variant?.sku || "-"}
+                      {item.sku || item.variant?.sku || "-"}
                     </td>
 
                     <td className="px-4 py-5 text-center text-sm font-semibold">
@@ -348,7 +407,6 @@ export default async function OrderDetailPage({
               </tbody>
             </table>
           </div>
-
           <div className="ml-auto w-full max-w-sm border-t border-neutral-200 p-6">
             <div className="space-y-3 text-sm">
               <div className="flex justify-between gap-4 text-neutral-500">
@@ -1121,3 +1179,14 @@ export default async function OrderDetailPage({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+

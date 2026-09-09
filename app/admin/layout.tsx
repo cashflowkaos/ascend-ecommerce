@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import AdminThemeInit from "@/components/admin/AdminThemeInit";
 import { requireAdmin } from "@/lib/auth";
 import { signOut } from "./auth-actions";
 
@@ -17,6 +18,7 @@ export default async function AdminLayout({
 
   return (
     <div className="admin-shell">
+      <AdminThemeInit />
       <AdminSidebar />
 
       <main className="admin-main">

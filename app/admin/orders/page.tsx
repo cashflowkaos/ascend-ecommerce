@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   Clock3,
   DollarSign,
@@ -635,8 +635,8 @@ export default async function OrdersPage() {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="grid min-w-[980px] grid-cols-7 divide-x divide-neutral-200">
+        <div className="overflow-hidden md:overflow-x-auto">
+          <div className="grid grid-cols-1 divide-y divide-neutral-200 md:min-w-[980px] md:grid-cols-7 md:divide-x md:divide-y-0">
             {pickupDays.map((day, dayIndex) => (
               <div key={day.dateKey} className="min-w-0">
                 <div
@@ -943,3 +943,4 @@ export default async function OrdersPage() {
     </div>
   );
 }
+

@@ -595,7 +595,7 @@ function orderItemsHtml(
       (item) => `
         <tr>
           <td style="
-            padding:12px 8px;
+            padding:16px 8px;
             border-bottom:1px solid #e8e4dc;
             font-family:Arial,sans-serif;
             font-size:13px;
@@ -614,7 +614,7 @@ function orderItemsHtml(
           </td>
 
           <td style="
-            padding:12px 8px;
+            padding:16px 8px;
             border-bottom:1px solid #e8e4dc;
             font-family:Arial,sans-serif;
             font-size:13px;
@@ -625,7 +625,7 @@ function orderItemsHtml(
           </td>
 
           <td style="
-            padding:12px 8px;
+            padding:16px 8px;
             border-bottom:1px solid #e8e4dc;
             font-family:Arial,sans-serif;
             font-size:13px;
@@ -636,7 +636,7 @@ function orderItemsHtml(
           </td>
 
           <td style="
-            padding:12px 8px;
+            padding:16px 8px;
             border-bottom:1px solid #e8e4dc;
             font-family:Arial,sans-serif;
             font-size:13px;
@@ -895,7 +895,7 @@ export async function sendOrderRequestCustomerEmail({
         cellspacing="0"
         style="border-collapse:collapse;"
       >
-        <tbody>
+        <thead><tr><th style="padding:10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">PRODUCT</th><th style="padding:10px 8px;text-align:center;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">QTY</th><th style="padding:10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">PRICE</th><th style="padding:10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">TOTAL</th></tr></thead><tbody>
           ${orderItemsHtml(items)}
         </tbody>
       </table>
