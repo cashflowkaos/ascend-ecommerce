@@ -13,8 +13,12 @@ export default async function AdminMessagesPage() {
 
   const threads = await prisma.messageThread.findMany({
     where: {
-      updatedAt: {
-        gte: retentionCutoff,
+      messages: {
+        some: {
+          createdAt: {
+            gte: retentionCutoff,
+          },
+        },
       },
     },
     orderBy: {
@@ -165,4 +169,5 @@ export default async function AdminMessagesPage() {
     </div>
   );
 }
+
 

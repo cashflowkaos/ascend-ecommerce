@@ -33,8 +33,12 @@ export default async function MemberMessagesPage({
   const threads = await prisma.messageThread.findMany({
     where: {
       userId: user.id,
-      updatedAt: {
-        gte: retentionCutoff,
+      messages: {
+        some: {
+          createdAt: {
+            gte: retentionCutoff,
+          },
+        },
       },
     },
     orderBy: {

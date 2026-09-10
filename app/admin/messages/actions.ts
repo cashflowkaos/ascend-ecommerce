@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotificationEmail } from "@/lib/email";
+import { getOrCreateMemberMessageThread } from "@/lib/member-message-thread";
 
 function clean(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
@@ -38,20 +39,14 @@ export async function createAdminThread(formData: FormData) {
     redirect("/admin/messages/new?error=member");
   }
 
-  const thread = await prisma.messageThread.create({
+  const thread =
+    await getOrCreateMemberMessageThread(member.id);
+
+  await prisma.message.create({
     data: {
-      userId: member.id,
-      subject,
-      status: "OPEN",
-      messages: {
-        create: {
-          senderId: admin.id,
-          body,
-        },
-      },
-    },
-    select: {
-      id: true,
+      threadId: thread.id,
+      senderId: admin.id,
+      body,
     },
   });
 
@@ -215,17 +210,14 @@ export async function sendMemberBroadcast(formData: FormData) {
   let emailFailureCount = 0;
 
   for (const member of members) {
-    await prisma.messageThread.create({
+    const thread =
+      await getOrCreateMemberMessageThread(member.id);
+
+    await prisma.message.create({
       data: {
-        userId: member.id,
-        subject,
-        status: "OPEN",
-        messages: {
-          create: {
-            senderId: admin.id,
-            body,
-          },
-        },
+        threadId: thread.id,
+        senderId: admin.id,
+        body,
       },
     });
 

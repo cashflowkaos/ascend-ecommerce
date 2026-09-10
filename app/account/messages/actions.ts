@@ -1,10 +1,11 @@
-﻿"use server";
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireApprovedMember } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendNewAdminMessageNotificationEmail } from "@/lib/email";
+import { getOrCreateMemberMessageThread } from "@/lib/member-message-thread";
 
 function clean(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
@@ -17,23 +18,20 @@ export async function createMemberThread(formData: FormData) {
     redirect("/admin/messages");
   }
 
-  const subject = clean(formData.get("subject"));
   const body = clean(formData.get("body"));
 
-  if (!subject || !body) {
+  if (!body) {
     redirect("/account/messages?error=missing");
   }
 
-  const thread = await prisma.messageThread.create({
+  const thread =
+    await getOrCreateMemberMessageThread(user.id);
+
+  await prisma.message.create({
     data: {
-      userId: user.id,
-      subject,
-      messages: {
-        create: {
-          senderId: user.id,
-          body,
-        },
-      },
+      threadId: thread.id,
+      senderId: user.id,
+      body,
     },
   });
 
@@ -42,7 +40,7 @@ export async function createMemberThread(formData: FormData) {
       memberFirstName: user.firstName,
       memberLastName: user.lastName,
       memberEmail: user.email,
-      subject,
+      subject: "Ascend Support",
     });
   } catch (error) {
     console.error(
@@ -53,6 +51,7 @@ export async function createMemberThread(formData: FormData) {
 
   revalidatePath("/account");
   revalidatePath("/account/messages");
+  revalidatePath(`/account/messages/${thread.id}`);
   revalidatePath("/admin");
   revalidatePath("/admin/messages");
 
@@ -113,7 +112,7 @@ export async function replyMemberThread(formData: FormData) {
       memberFirstName: user.firstName,
       memberLastName: user.lastName,
       memberEmail: user.email,
-      subject: thread.subject,
+      subject: "Ascend Support",
     });
   } catch (error) {
     console.error(
