@@ -36,12 +36,7 @@ export async function createMemberThread(formData: FormData) {
   });
 
   try {
-    await sendNewAdminMessageNotificationEmail({
-      memberFirstName: user.firstName,
-      memberLastName: user.lastName,
-      memberEmail: user.email,
-      subject: "Ascend Support",
-    });
+    await sendNewAdminMessageNotificationEmail();
   } catch (error) {
     console.error(
       "ADMIN MESSAGE EMAIL: FAILED",
@@ -108,12 +103,7 @@ export async function replyMemberThread(formData: FormData) {
   }
 
   try {
-    await sendNewAdminMessageNotificationEmail({
-      memberFirstName: user.firstName,
-      memberLastName: user.lastName,
-      memberEmail: user.email,
-      subject: "Ascend Support",
-    });
+    await sendNewAdminMessageNotificationEmail();
   } catch (error) {
     console.error(
       "ADMIN MESSAGE EMAIL: FAILED",
@@ -129,3 +119,4 @@ export async function replyMemberThread(formData: FormData) {
 
   redirect(`/account/messages/${threadId}`);
 }
+

@@ -53,7 +53,6 @@ export async function createAdminThread(formData: FormData) {
   try {
     await sendNewMessageNotificationEmail({
       email: member.email,
-      firstName: member.firstName,
     });
   } catch (error) {
     console.error(
@@ -112,21 +111,10 @@ export async function replyAdminThread(formData: FormData) {
   }
 
   try {
-    console.log(
-      "MESSAGE EMAIL: attempting delivery to",
-      thread.user.email
-    );
-
-    const emailResult = await sendNewMessageNotificationEmail({
+await sendNewMessageNotificationEmail({
       email: thread.user.email,
-      firstName: thread.user.firstName,
     });
-
-    console.log(
-      "MESSAGE EMAIL: SUCCESS",
-      emailResult
-    );
-  } catch (error) {
+} catch (error) {
     console.error(
       "MESSAGE EMAIL: FAILED",
       error
@@ -224,7 +212,6 @@ export async function sendMemberBroadcast(formData: FormData) {
     try {
       await sendNewMessageNotificationEmail({
         email: member.email,
-        firstName: member.firstName,
       });
 
       emailSuccessCount++;
@@ -300,3 +287,5 @@ export async function deleteAdminThread(formData: FormData) {
 
   redirect("/admin/messages");
 }
+
+

@@ -386,24 +386,13 @@ export async function sendMemberDeclinedEmail({
 }
 
 
-export async function sendNewAdminMessageNotificationEmail({
-  memberFirstName,
-  memberLastName,
-  memberEmail,
-  subject,
-}: {
-  memberFirstName: string;
-  memberLastName: string;
-  memberEmail: string;
-  subject: string;
-}) {
+export async function sendNewAdminMessageNotificationEmail() {
   const resend = getResend();
 
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: REPLY_TO_EMAIL,
-    replyTo: memberEmail,
-    subject: `New Member Message - ${memberFirstName} ${memberLastName}`,
+    subject: "New Message in Ascend",
     html: emailShell(`
       <h1 style="
         margin:0 0 18px;
@@ -413,19 +402,8 @@ export async function sendNewAdminMessageNotificationEmail({
         line-height:1.25;
         color:#171717;
       ">
-        New Member Message
+        New Message
       </h1>
-
-      <p style="
-        margin:0 0 16px;
-        font-family:Arial,sans-serif;
-        font-size:14px;
-        line-height:1.75;
-        color:#55514b;
-      ">
-        ${memberFirstName} ${memberLastName} sent a message
-        through the Ascend member portal.
-      </p>
 
       <p style="
         margin:0 0 24px;
@@ -434,9 +412,8 @@ export async function sendNewAdminMessageNotificationEmail({
         line-height:1.75;
         color:#55514b;
       ">
-        <strong>Member:</strong> ${memberFirstName} ${memberLastName}<br />
-        <strong>Email:</strong> ${memberEmail}<br />
-        <strong>Subject:</strong> ${subject}
+        A new member message is waiting in the Ascend inbox.
+        Sign in to view it.
       </p>
 
       <a
@@ -468,18 +445,15 @@ export async function sendNewAdminMessageNotificationEmail({
 
 export async function sendNewMessageNotificationEmail({
   email,
-  firstName,
 }: {
   email: string;
-  firstName: string;
 }) {
   const resend = getResend();
 
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: email,
-    replyTo: REPLY_TO_EMAIL,
-    subject: "You Have a New Message from Ascend",
+    subject: "New Message in Ascend",
     html: emailShell(`
       <h1 style="
         margin:0 0 18px;
@@ -493,25 +467,14 @@ export async function sendNewMessageNotificationEmail({
       </h1>
 
       <p style="
-        margin:0 0 16px;
-        font-family:Arial,sans-serif;
-        font-size:14px;
-        line-height:1.75;
-        color:#55514b;
-      ">
-        Hello ${firstName},
-      </p>
-
-      <p style="
         margin:0 0 24px;
         font-family:Arial,sans-serif;
         font-size:14px;
         line-height:1.75;
         color:#55514b;
       ">
-        You have a new message from Ascend Peptide Co.
-        Sign in to your member account to view and reply to
-        your conversation.
+        A new message is waiting in your Ascend inbox.
+        Sign in to view it.
       </p>
 
       <a
@@ -537,8 +500,7 @@ export async function sendNewMessageNotificationEmail({
         line-height:1.7;
         color:#77736b;
       ">
-        For privacy, the contents of your message are only
-        available after signing in to your Ascend account.
+        Message contents are only available after signing in.
       </p>
     `),
   });
@@ -551,7 +513,6 @@ export async function sendNewMessageNotificationEmail({
 
   return data;
 }
-
 type OrderRequestEmailItem = {
   productName: string;
   strength: string;
@@ -934,93 +895,6 @@ export async function sendOrderRequestCustomerEmail({
   if (error) {
     throw new Error(
       `Customer order request email failed: ${error.message}`
-    );
-  }
-
-  return data;
-}
-
-export async function sendMemberBroadcastEmail({
-  email,
-  firstName,
-  subject,
-  message,
-}: {
-  email: string;
-  firstName: string;
-  subject: string;
-  message: string;
-}) {
-  const resend = getResend();
-
-  const safeFirstName = firstName
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-
-  const safeMessage = message
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
-    .replace(/\r?\n/g, "<br />");
-
-  const { data, error } = await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    replyTo: REPLY_TO_EMAIL,
-    subject,
-    html: emailShell(`
-      <h1 style="
-        margin:0 0 18px;
-        font-family:Georgia,serif;
-        font-size:28px;
-        font-weight:500;
-        line-height:1.25;
-        color:#171717;
-      ">
-        Member Announcement
-      </h1>
-
-      <p style="
-        margin:0 0 18px;
-        font-family:Arial,sans-serif;
-        font-size:14px;
-        line-height:1.75;
-        color:#55514b;
-      ">
-        Hello ${safeFirstName},
-      </p>
-
-      <div style="
-        margin:0;
-        font-family:Arial,sans-serif;
-        font-size:14px;
-        line-height:1.75;
-        color:#55514b;
-      ">
-        ${safeMessage}
-      </div>
-
-      <p style="
-        margin:28px 0 0;
-        font-family:Arial,sans-serif;
-        font-size:12px;
-        line-height:1.7;
-        color:#77736b;
-      ">
-        This announcement was sent to Ascend Peptide Co.
-        members.
-      </p>
-    `),
-  });
-
-  if (error) {
-    throw new Error(
-      `Broadcast email failed: ${error.message}`
     );
   }
 
@@ -1544,3 +1418,5 @@ export async function sendOrderShippedEmail({
 
   return data;
 }
+
+
