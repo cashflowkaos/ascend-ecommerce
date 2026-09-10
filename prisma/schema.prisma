@@ -497,7 +497,6 @@ model MessageBroadcast {
   id String @id @default(cuid())
 
   subject String
-  body    String @db.Text
 
   recipientCount Int @default(0)
 

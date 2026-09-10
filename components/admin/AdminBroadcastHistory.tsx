@@ -6,7 +6,6 @@ import {
 type Broadcast = {
   id: string;
   subject: string;
-  body: string;
   recipientCount: number;
 
   sentByName: string;
@@ -43,12 +42,7 @@ export default function AdminBroadcastHistory({
       ) : (
         <div className="space-y-3">
           {broadcasts.map((broadcast) => {
-            const preview =
-              broadcast.body.length > 160
-                ? `${broadcast.body.slice(0, 160)}...`
-                : broadcast.body;
-
-            return (
+return (
               <div
                 key={broadcast.id}
                 className="rounded-[14px] border border-neutral-200 bg-white p-4"
@@ -84,10 +78,6 @@ export default function AdminBroadcastHistory({
                     </span>
                   </div>
                 </div>
-
-                <p className="mt-3 whitespace-pre-line text-sm leading-6 text-neutral-600">
-                  {preview}
-                </p>
               </div>
             );
           })}

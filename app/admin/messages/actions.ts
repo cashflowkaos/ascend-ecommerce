@@ -183,7 +183,6 @@ export async function sendMemberBroadcast(formData: FormData) {
     await prisma.messageBroadcast.create({
       data: {
         subject,
-        body,
         recipientCount: members.length,
         sentById: admin.id,
         sentByName: adminName || "Ascend Admin",
@@ -219,7 +218,7 @@ export async function sendMemberBroadcast(formData: FormData) {
       emailFailureCount++;
 
       console.error(
-        `BROADCAST EMAIL FAILED: ${member.email}`,
+        "BROADCAST EMAIL FAILED",
         error
       );
     }
@@ -287,5 +286,3 @@ export async function deleteAdminThread(formData: FormData) {
 
   redirect("/admin/messages");
 }
-
-

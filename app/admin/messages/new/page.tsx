@@ -42,7 +42,6 @@ export default async function AdminNewMessagePage({
         select: {
           id: true,
           subject: true,
-          body: true,
           recipientCount: true,
           sentByName: true,
           createdAt: true,
