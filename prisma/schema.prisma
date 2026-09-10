@@ -442,7 +442,7 @@ model MessageThread {
 
   messages Message[]
 
-  @@index([userId])
+  @@unique([userId])
   @@index([status])
   @@index([updatedAt])
 }
