@@ -1,4 +1,4 @@
-﻿export const MESSAGE_RETENTION_DAYS = 14;
+export const MESSAGE_RETENTION_DAYS = 3;
 
 export function getMessageRetentionCutoff() {
   const cutoff = new Date();
