@@ -74,7 +74,6 @@ export async function replyMemberThread(formData: FormData) {
     },
     select: {
       id: true,
-      subject: true,
       status: true,
     },
   });
@@ -119,4 +118,3 @@ export async function replyMemberThread(formData: FormData) {
 
   redirect(`/account/messages/${threadId}`);
 }
-

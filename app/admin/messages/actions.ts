@@ -15,10 +15,9 @@ export async function createAdminThread(formData: FormData) {
   const admin = await requireAdmin();
 
   const userId = clean(formData.get("userId"));
-  const subject = clean(formData.get("subject"));
   const body = clean(formData.get("body"));
 
-  if (!userId || !subject || !body) {
+  if (!userId  || !body) {
     redirect("/admin/messages/new?error=missing");
   }
 

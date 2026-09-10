@@ -151,7 +151,7 @@ export default async function MemberMessagesPage({
                     >
                       <div>
                         <strong>
-                          {thread.subject}
+                          Ascend Support
                         </strong>
 
                         <span>
@@ -197,7 +197,7 @@ export default async function MemberMessagesPage({
 
             {params.error === "missing" && (
               <div className="member-profile-error">
-                Enter a subject and message.
+                Enter a message.
               </div>
             )}
 
@@ -205,16 +205,6 @@ export default async function MemberMessagesPage({
               action={createMemberThread}
               className="member-new-message-form"
             >
-              <label className="member-profile-field">
-                <span>Subject</span>
-
-                <input
-                  name="subject"
-                  maxLength={120}
-                  required
-                  placeholder="How can we help?"
-                />
-              </label>
 
               <label className="member-profile-field">
                 <span>Message</span>

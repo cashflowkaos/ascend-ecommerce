@@ -73,7 +73,7 @@ export default async function AdminMessageThreadPage({
       <div className="admin-page-heading">
         <div>
           <span className="admin-eyebrow">MEMBER CONVERSATION</span>
-          <h1>{thread.subject}</h1>
+          <h1>Ascend Support</h1>
           <p>
             {thread.user.firstName} {thread.user.lastName}
             {" · "}

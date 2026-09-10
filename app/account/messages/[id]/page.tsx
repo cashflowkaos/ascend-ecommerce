@@ -101,7 +101,7 @@ export default async function MemberMessageThreadPage({
         <section className="member-account-hero member-message-hero">
           <div>
             <span className="admin-eyebrow">ASCEND SUPPORT</span>
-            <h1>{thread.subject}</h1>
+            <h1>Ascend Support</h1>
             <p>
               Private conversation with Ascend Peptide Co.
             </p>

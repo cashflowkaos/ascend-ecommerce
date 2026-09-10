@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import {
@@ -16,7 +16,6 @@ import { createAdminThread } from "@/app/admin/messages/actions";
 
 type ThreadResult = {
   id: string;
-  subject: string;
   status: string;
   updatedAt: string;
   latestMessage: string | null;
@@ -129,8 +128,7 @@ export default function AdminMessageMemberSearch() {
           <h2>Find Member or Conversation</h2>
 
           <p>
-            Search by member name, email, or
-            conversation subject.
+            Search by member name or email.
           </p>
         </div>
 
@@ -148,7 +146,7 @@ export default function AdminMessageMemberSearch() {
               onChange={(event) =>
                 setQuery(event.target.value)
               }
-              placeholder="Start typing a member or conversation..."
+              placeholder="Start typing a member name or email..."
               autoComplete="off"
             />
           </label>
@@ -277,7 +275,7 @@ export default function AdminMessageMemberSearch() {
                   >
                     <div className="admin-message-member">
                       <strong>
-                        {thread.subject}
+                        Ascend Support
                       </strong>
 
                       <span>
@@ -347,18 +345,6 @@ export default function AdminMessageMemberSearch() {
                 />
 
                 <label className="member-profile-field">
-                  <span>Subject</span>
-
-                  <input
-                    type="text"
-                    name="subject"
-                    required
-                    maxLength={120}
-                    placeholder="Message subject"
-                  />
-                </label>
-
-                <label className="member-profile-field">
                   <span>Message</span>
 
                   <textarea
@@ -384,4 +370,3 @@ export default function AdminMessageMemberSearch() {
     </section>
   );
 }
-

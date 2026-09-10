@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -39,16 +39,6 @@ export async function GET(request: Request) {
             mode: "insensitive",
           },
         },
-        {
-          messageThreads: {
-            some: {
-              subject: {
-                contains: q,
-                mode: "insensitive",
-              },
-            },
-          },
-        },
       ],
     },
 
@@ -74,11 +64,10 @@ export async function GET(request: Request) {
           updatedAt: "desc",
         },
 
-        take: 10,
+        take: 1,
 
         select: {
           id: true,
-          subject: true,
           status: true,
           updatedAt: true,
 
@@ -109,7 +98,6 @@ export async function GET(request: Request) {
       threads: member.messageThreads.map(
         (thread) => ({
           id: thread.id,
-          subject: thread.subject,
           status: thread.status,
           updatedAt: thread.updatedAt,
           latestMessage:
