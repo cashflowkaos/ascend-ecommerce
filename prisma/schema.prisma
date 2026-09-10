@@ -442,7 +442,7 @@ model MessageThread {
 
   messages Message[]
 
-  @@index([userId])
+  @@unique([userId])
   @@index([status])
   @@index([updatedAt])
 }
@@ -495,9 +495,6 @@ model ContactInquiry {
 
 model MessageBroadcast {
   id String @id @default(cuid())
-
-  subject String
-  body    String @db.Text
 
   recipientCount Int @default(0)
 

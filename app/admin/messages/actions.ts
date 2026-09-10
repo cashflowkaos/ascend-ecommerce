@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotificationEmail } from "@/lib/email";
+import { getOrCreateMemberMessageThread } from "@/lib/member-message-thread";
 
 function clean(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
@@ -14,10 +15,9 @@ export async function createAdminThread(formData: FormData) {
   const admin = await requireAdmin();
 
   const userId = clean(formData.get("userId"));
-  const subject = clean(formData.get("subject"));
   const body = clean(formData.get("body"));
 
-  if (!userId || !subject || !body) {
+  if (!userId  || !body) {
     redirect("/admin/messages/new?error=missing");
   }
 
@@ -38,27 +38,20 @@ export async function createAdminThread(formData: FormData) {
     redirect("/admin/messages/new?error=member");
   }
 
-  const thread = await prisma.messageThread.create({
+  const thread =
+    await getOrCreateMemberMessageThread(member.id);
+
+  await prisma.message.create({
     data: {
-      userId: member.id,
-      subject,
-      status: "OPEN",
-      messages: {
-        create: {
-          senderId: admin.id,
-          body,
-        },
-      },
-    },
-    select: {
-      id: true,
+      threadId: thread.id,
+      senderId: admin.id,
+      body,
     },
   });
 
   try {
     await sendNewMessageNotificationEmail({
       email: member.email,
-      firstName: member.firstName,
     });
   } catch (error) {
     console.error(
@@ -117,21 +110,10 @@ export async function replyAdminThread(formData: FormData) {
   }
 
   try {
-    console.log(
-      "MESSAGE EMAIL: attempting delivery to",
-      thread.user.email
-    );
-
-    const emailResult = await sendNewMessageNotificationEmail({
+await sendNewMessageNotificationEmail({
       email: thread.user.email,
-      firstName: thread.user.firstName,
     });
-
-    console.log(
-      "MESSAGE EMAIL: SUCCESS",
-      emailResult
-    );
-  } catch (error) {
+} catch (error) {
     console.error(
       "MESSAGE EMAIL: FAILED",
       error
@@ -199,8 +181,6 @@ export async function sendMemberBroadcast(formData: FormData) {
   const broadcast =
     await prisma.messageBroadcast.create({
       data: {
-        subject,
-        body,
         recipientCount: members.length,
         sentById: admin.id,
         sentByName: adminName || "Ascend Admin",
@@ -215,24 +195,20 @@ export async function sendMemberBroadcast(formData: FormData) {
   let emailFailureCount = 0;
 
   for (const member of members) {
-    await prisma.messageThread.create({
+    const thread =
+      await getOrCreateMemberMessageThread(member.id);
+
+    await prisma.message.create({
       data: {
-        userId: member.id,
-        subject,
-        status: "OPEN",
-        messages: {
-          create: {
-            senderId: admin.id,
-            body,
-          },
-        },
+        threadId: thread.id,
+        senderId: admin.id,
+        body,
       },
     });
 
     try {
       await sendNewMessageNotificationEmail({
         email: member.email,
-        firstName: member.firstName,
       });
 
       emailSuccessCount++;
@@ -240,7 +216,7 @@ export async function sendMemberBroadcast(formData: FormData) {
       emailFailureCount++;
 
       console.error(
-        `BROADCAST EMAIL FAILED: ${member.email}`,
+        "BROADCAST EMAIL FAILED",
         error
       );
     }

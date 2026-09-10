@@ -13,8 +13,12 @@ export default async function AdminMessagesPage() {
 
   const threads = await prisma.messageThread.findMany({
     where: {
-      updatedAt: {
-        gte: retentionCutoff,
+      messages: {
+        some: {
+          createdAt: {
+            gte: retentionCutoff,
+          },
+        },
       },
     },
     orderBy: {
@@ -119,7 +123,7 @@ export default async function AdminMessagesPage() {
                     </div>
 
                     <div className="admin-message-preview">
-                      <strong>{thread.subject}</strong>
+                      <strong>Ascend Support</strong>
                       <span>
                         {latest
                           ? latest.body.length > 100
@@ -150,8 +154,8 @@ export default async function AdminMessagesPage() {
                     <button
                       type="submit"
                       className="admin-message-delete"
-                      title={`Delete ${thread.subject}`}
-                      aria-label={`Delete ${thread.subject}`}
+                      title={`Delete $Ascend Support`}
+                      aria-label={`Delete $Ascend Support`}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -165,4 +169,3 @@ export default async function AdminMessagesPage() {
     </div>
   );
 }
-
