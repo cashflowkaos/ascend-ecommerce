@@ -4306,6 +4306,10 @@ img {
 
 .admin-message-row {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
 }
 
 .admin-message-row-link {
