@@ -496,8 +496,6 @@ model ContactInquiry {
 model MessageBroadcast {
   id String @id @default(cuid())
 
-  subject String
-
   recipientCount Int @default(0)
 
   sentById    String

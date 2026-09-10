@@ -5,7 +5,6 @@ import {
 
 type Broadcast = {
   id: string;
-  subject: string;
   recipientCount: number;
 
   sentByName: string;
@@ -50,7 +49,7 @@ return (
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <strong className="block text-sm text-neutral-950">
-                      {broadcast.subject}
+                      Member Broadcast
                     </strong>
 
                     <span className="mt-1 block text-xs text-neutral-400">

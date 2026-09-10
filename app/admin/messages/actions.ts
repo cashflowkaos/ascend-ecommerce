@@ -182,7 +182,6 @@ export async function sendMemberBroadcast(formData: FormData) {
   const broadcast =
     await prisma.messageBroadcast.create({
       data: {
-        subject,
         recipientCount: members.length,
         sentById: admin.id,
         sentByName: adminName || "Ascend Admin",
