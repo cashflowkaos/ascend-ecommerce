@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { replyAdminThread } from "../actions";
+import MessageSubmitButton from "@/components/MessageSubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -140,13 +141,9 @@ export default async function AdminMessageThreadPage({
             />
           </label>
 
-          <button
-            type="submit"
+          <MessageSubmitButton
             className="admin-primary-button"
-          >
-            <MessageSquare size={14} />
-            Send Reply
-          </button>
+          />
         </form>
       </section>
     </div>

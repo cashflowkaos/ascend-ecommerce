@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft,
-  MessageSquare,
   LogOut,
 } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
@@ -10,6 +9,7 @@ import { requireApprovedMember } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { replyMemberThread } from "../actions";
 import { memberSignOut } from "../../actions";
+import MessageSubmitButton from "@/components/MessageSubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -166,13 +166,9 @@ export default async function MemberMessageThreadPage({
               />
             </label>
 
-            <button
-              type="submit"
+            <MessageSubmitButton
               className="member-primary-button"
-            >
-              <MessageSquare size={14} />
-              Send Reply
-            </button>
+            />
           </form>
         </section>
       </div>
