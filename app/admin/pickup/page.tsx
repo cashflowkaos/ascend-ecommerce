@@ -8,6 +8,7 @@ import {
 
 import { prisma } from "@/lib/prisma";
 import { ensurePickupAvailability } from "@/lib/pickupAvailability";
+import PickupSlotControls from "@/components/admin/PickupSlotControls";
 import {
   togglePickupAvailability,
   togglePickupDay,
@@ -54,15 +55,23 @@ export default async function AdminPickupPage() {
   });
 
   const openCount = slots.filter(
-    (slot) => slot.isActive && !slot.bookedOrderId
+    (slot) =>
+      slot.isActive &&
+      !slot.bookedOrderId &&
+      !slot.manualReservationName
   ).length;
 
   const bookedCount = slots.filter(
-    (slot) => Boolean(slot.bookedOrderId)
+    (slot) =>
+      Boolean(slot.bookedOrderId) ||
+      Boolean(slot.manualReservationName)
   ).length;
 
   const disabledCount = slots.filter(
-    (slot) => !slot.isActive && !slot.bookedOrderId
+    (slot) =>
+      !slot.isActive &&
+      !slot.bookedOrderId &&
+      !slot.manualReservationName
   ).length;
 
   const pacificDateKey = new Intl.DateTimeFormat("en-CA", {
@@ -148,7 +157,7 @@ export default async function AdminPickupPage() {
               </h2>
 
               <p className="mt-1 text-sm text-neutral-500">
-                Mon-Fri 10:00 AM - 10:00 PM · Sat-Sun 12:00 PM - 6:00 PM · 30-minute appointments
+                Mon-Fri 10:00 AM - 10:00 PM | Sat-Sun 12:00 PM - 6:00 PM | 30-minute appointments
               </p>
             </div>
           </div>
@@ -162,19 +171,29 @@ export default async function AdminPickupPage() {
           <div className="divide-y divide-neutral-200">
             {pickupDays.map(([dateKey, daySlots]) => {
               const availableDayCount = daySlots.filter(
-                (slot) => slot.isActive && !slot.bookedOrderId
+                (slot) =>
+      slot.isActive &&
+      !slot.bookedOrderId &&
+      !slot.manualReservationName
               ).length;
 
               const bookedDayCount = daySlots.filter(
-                (slot) => Boolean(slot.bookedOrderId)
+                (slot) =>
+                  Boolean(slot.bookedOrderId) ||
+                  Boolean(slot.manualReservationName)
               ).length;
 
               const disabledDayCount = daySlots.filter(
-                (slot) => !slot.isActive && !slot.bookedOrderId
+                (slot) =>
+      !slot.isActive &&
+      !slot.bookedOrderId &&
+      !slot.manualReservationName
               ).length;
 
               const unbookedDayCount = daySlots.filter(
-                (slot) => !slot.bookedOrderId
+                (slot) =>
+                  !slot.bookedOrderId &&
+                  !slot.manualReservationName
               ).length;
 
               const wholeDayDisabled =
@@ -184,8 +203,50 @@ export default async function AdminPickupPage() {
               const firstSlot = daySlots[0];
               const lastSlot = daySlots[daySlots.length - 1];
 
-              const previewSlots = daySlots.slice(0, 5);
-              const remainingSlots = daySlots.slice(5);
+              const displaySlots = daySlots.filter((slot, index, allSlots) => {
+                if (!slot.manualReservationGroupId) {
+                  return true;
+                }
+
+                return (
+                  allSlots.findIndex(
+                    (candidate) =>
+                      candidate.manualReservationGroupId ===
+                      slot.manualReservationGroupId
+                  ) === index
+                );
+              });
+
+              const getDisplaySlotInfo = (slot: (typeof daySlots)[number]) => {
+                if (!slot.manualReservationGroupId) {
+                  return {
+                    appointmentEndsAt: slot.endsAt,
+                    blockedSlotCount: 1,
+                  };
+                }
+
+                const groupedAppointmentSlots = daySlots
+                  .filter(
+                    (candidate) =>
+                      candidate.manualReservationGroupId ===
+                      slot.manualReservationGroupId
+                  )
+                  .sort(
+                    (a, b) =>
+                      a.startsAt.getTime() - b.startsAt.getTime()
+                  );
+
+                return {
+                  appointmentEndsAt:
+                    groupedAppointmentSlots[
+                      groupedAppointmentSlots.length - 1
+                    ]?.endsAt ?? slot.endsAt,
+                  blockedSlotCount: groupedAppointmentSlots.length,
+                };
+              };
+
+              const previewSlots = displaySlots.slice(0, 5);
+              const remainingSlots = displaySlots.slice(5);
 
               return (
                 <details key={dateKey} className="group">
@@ -276,6 +337,7 @@ export default async function AdminPickupPage() {
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {previewSlots.map((slot) => {
                         const isBooked = Boolean(slot.bookedOrderId);
+                        const { appointmentEndsAt, blockedSlotCount } = getDisplaySlotInfo(slot);
 
                         return (
                           <div
@@ -285,44 +347,21 @@ export default async function AdminPickupPage() {
                             <div>
                               <div className="text-sm font-medium">
                                 {formatTime(slot.startsAt)} -{" "}
-                                {formatTime(slot.endsAt)}
+                                {formatTime(appointmentEndsAt)}
                               </div>
 
-                              <div className="mt-1">
-                                {isBooked ? (
-                                  <span className="text-xs font-medium text-blue-700">
-                                    Booked · {slot.bookedOrder?.orderNumber}
-                                  </span>
-                                ) : slot.isActive ? (
-                                  <span className="text-xs font-medium text-green-700">
-                                    Available
-                                  </span>
-                                ) : (
-                                  <span className="text-xs font-medium text-neutral-500">
-                                    Disabled
-                                  </span>
-                                )}
-                              </div>
                             </div>
 
-                            {!isBooked && (
-                              <form action={togglePickupAvailability}>
-                                <input
-                                  type="hidden"
-                                  name="slotId"
-                                  value={slot.id}
-                                />
-
-                                <button
-                                  type="submit"
-                                  className="rounded-md border border-neutral-300 px-2.5 py-1.5 text-xs font-medium hover:bg-neutral-50"
-                                >
-                                  {slot.isActive
-                                    ? "Disable"
-                                    : "Enable"}
-                                </button>
-                              </form>
-                            )}
+                            <PickupSlotControls
+                              slotId={slot.id}
+                              isActive={slot.isActive}
+                              bookedOrderNumber={slot.bookedOrder?.orderNumber ?? null}
+                              manualReservationName={slot.manualReservationName}
+                              manualReservationPhone={slot.manualReservationPhone}
+                              manualReservationNote={slot.manualReservationNote}
+                              manualReservationType={slot.manualReservationType}
+                              blockedSlotCount={blockedSlotCount}
+                            />
                           </div>
                         );
                       })}
@@ -338,6 +377,7 @@ export default async function AdminPickupPage() {
                           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {remainingSlots.map((slot) => {
                               const isBooked = Boolean(slot.bookedOrderId);
+                              const { appointmentEndsAt, blockedSlotCount } = getDisplaySlotInfo(slot);
 
                               return (
                                 <div
@@ -347,44 +387,21 @@ export default async function AdminPickupPage() {
                                   <div>
                                     <div className="text-sm font-medium">
                                       {formatTime(slot.startsAt)} -{" "}
-                                      {formatTime(slot.endsAt)}
+                                      {formatTime(appointmentEndsAt)}
                                     </div>
 
-                                    <div className="mt-1">
-                                      {isBooked ? (
-                                        <span className="text-xs font-medium text-blue-700">
-                                          Booked · {slot.bookedOrder?.orderNumber}
-                                        </span>
-                                      ) : slot.isActive ? (
-                                        <span className="text-xs font-medium text-green-700">
-                                          Available
-                                        </span>
-                                      ) : (
-                                        <span className="text-xs font-medium text-neutral-500">
-                                          Disabled
-                                        </span>
-                                      )}
-                                    </div>
                                   </div>
 
-                                  {!isBooked && (
-                                    <form action={togglePickupAvailability}>
-                                      <input
-                                        type="hidden"
-                                        name="slotId"
-                                        value={slot.id}
-                                      />
-
-                                      <button
-                                        type="submit"
-                                        className="rounded-md border border-neutral-300 px-2.5 py-1.5 text-xs font-medium hover:bg-neutral-50"
-                                      >
-                                        {slot.isActive
-                                          ? "Disable"
-                                          : "Enable"}
-                                      </button>
-                                    </form>
-                                  )}
+                                  <PickupSlotControls
+                                    slotId={slot.id}
+                                    isActive={slot.isActive}
+                                    bookedOrderNumber={slot.bookedOrder?.orderNumber ?? null}
+                                    manualReservationName={slot.manualReservationName}
+                                    manualReservationPhone={slot.manualReservationPhone}
+                                    manualReservationNote={slot.manualReservationNote}
+                                    manualReservationType={slot.manualReservationType}
+                                    blockedSlotCount={blockedSlotCount}
+                                  />
                                 </div>
                               );
                             })}
@@ -402,3 +419,4 @@ export default async function AdminPickupPage() {
     </div>
   );
 }
+

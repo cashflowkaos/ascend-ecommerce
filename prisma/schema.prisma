@@ -558,6 +558,12 @@ model PickupAvailability {
   bookedOrderId String? @unique
   bookedOrder   Order?  @relation(fields: [bookedOrderId], references: [id], onDelete: SetNull)
 
+  manualReservationName  String?
+  manualReservationPhone String?
+  manualReservationNote  String?
+  manualReservationType    String?
+  manualReservationGroupId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   users     User[]
@@ -565,3 +571,4 @@ model PickupAvailability {
   @@index([startsAt])
   @@index([isActive])
 }
+

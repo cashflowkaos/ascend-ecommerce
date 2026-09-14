@@ -77,7 +77,7 @@ export default async function AdminMessageThreadPage({
           <h1>Ascend Support</h1>
           <p>
             {thread.user.firstName} {thread.user.lastName}
-            {" · "}
+            {" \u00B7 "}
             {thread.user.email}
           </p>
         </div>

@@ -87,6 +87,7 @@ export async function scheduleOrderPickup(
           endsAt: true,
           isActive: true,
           bookedOrderId: true,
+          manualReservationName: true,
         },
       });
 
@@ -94,6 +95,7 @@ export async function scheduleOrderPickup(
       !slot ||
       !slot.isActive ||
       slot.bookedOrderId ||
+      slot.manualReservationName ||
       slot.startsAt <= new Date()
     ) {
       throw new Error(
@@ -107,6 +109,7 @@ export async function scheduleOrderPickup(
           id: slot.id,
           isActive: true,
           bookedOrderId: null,
+          manualReservationName: null,
         },
         data: {
           bookedOrderId: order.id,

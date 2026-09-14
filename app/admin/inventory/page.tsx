@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   PackagePlus,
   Pencil,
@@ -102,7 +102,7 @@ export default async function InventoryPage() {
     if (variantPrices.length === 0) {
       return product.memberPrice !== null
         ? money(Number(product.memberPrice))
-        : "—";
+        : "-";
     }
 
     const minimum = Math.min(
@@ -117,7 +117,7 @@ export default async function InventoryPage() {
       return money(minimum);
     }
 
-    return `${money(minimum)} – ${money(maximum)}`;
+    return `${money(minimum)} - ${money(maximum)}`;
   };
 
   const totalUnits = products.reduce(
@@ -246,8 +246,8 @@ export default async function InventoryPage() {
                                 product.variants.length === 1
                                   ? "variant"
                                   : "variants"
-                              } · ${product.category}`
-                            : `${product.strength} · ${product.category}`}
+                              } \u00B7 ${product.category}`
+                            : `${product.strength} \u00B7 ${product.category}`}
                         </span>
                       </div>
                     </td>

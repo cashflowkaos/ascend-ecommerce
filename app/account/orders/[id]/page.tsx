@@ -105,6 +105,7 @@ export default async function MemberOrderDetailPage({
           where: {
             isActive: true,
             bookedOrderId: null,
+            manualReservationName: null,
             startsAt: {
               gt: new Date(),
             },

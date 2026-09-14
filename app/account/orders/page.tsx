@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -120,7 +120,7 @@ export default async function MemberOrdersPage() {
                 year: "numeric",
               }
             )}
-            {" · "}
+            {" - "}
             {order._count.items}{" "}
             {order._count.items === 1
               ? "item"

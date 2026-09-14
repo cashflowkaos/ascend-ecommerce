@@ -285,7 +285,7 @@ export default async function AdminDashboard() {
                     <span>
                       {order.user.firstName}{" "}
                       {order.user.lastName}
-                      {" · "}
+                      {" \u00B7 "}
                       {formatDate(order.createdAt)}
                     </span>
                   </div>

@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import {
   Clock3,
   DollarSign,
@@ -158,6 +158,32 @@ export default async function OrdersPage() {
     },
   });
 
+  const manualPickups = await prisma.pickupAvailability.findMany({
+    where: {
+      startsAt: {
+        gte: pickupWindowStart,
+        lt: pickupWindowEnd,
+      },
+      manualReservationName: {
+        not: null,
+      },
+      bookedOrderId: null,
+    },
+    select: {
+      id: true,
+      startsAt: true,
+      endsAt: true,
+      manualReservationName: true,
+      manualReservationPhone: true,
+      manualReservationNote: true,
+      manualReservationType: true,
+      manualReservationGroupId: true,
+    },
+    orderBy: {
+      startsAt: "asc",
+    },
+  });
+
   const shippingQueue = await prisma.order.findMany({
     where: {
       fulfillmentMethod: "SHIPPING",
@@ -225,12 +251,67 @@ export default async function OrdersPage() {
       return pickupKey === dateKey;
     });
 
+    const manualDaySlots = manualPickups.filter((pickup) => {
+      const pickupKey = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Los_Angeles",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(pickup.startsAt);
+
+      return pickupKey === dateKey;
+    });
+
+    const manualGroups = new Map<
+      string,
+      typeof manualDaySlots
+    >();
+
+    for (const pickup of manualDaySlots) {
+      const groupKey =
+        pickup.manualReservationGroupId ??
+        `legacy-${pickup.id}`;
+
+      const existing = manualGroups.get(groupKey);
+
+      if (existing) {
+        existing.push(pickup);
+      } else {
+        manualGroups.set(groupKey, [pickup]);
+      }
+    }
+
+    const manualDayPickups = Array.from(
+      manualGroups.values()
+    ).map((group) => {
+      const sortedGroup = [...group].sort(
+        (a, b) =>
+          a.startsAt.getTime() - b.startsAt.getTime()
+      );
+
+      const firstSlot = sortedGroup[0];
+      const lastSlot = sortedGroup[sortedGroup.length - 1];
+
+      return {
+        ...firstSlot,
+        appointmentEndsAt: lastSlot.endsAt,
+        blockedSlotCount: sortedGroup.length,
+      };
+    });
+
     return {
       date,
       dateKey,
       pickups,
+      manualPickups: manualDayPickups,
     };
   });
+
+  const scheduledAppointmentCount = pickupDays.reduce(
+    (total, day) =>
+      total + day.pickups.length + day.manualPickups.length,
+    0
+  );
 
   const orders = await prisma.order.findMany({
     where: {
@@ -631,7 +712,7 @@ export default async function OrdersPage() {
           </div>
 
           <span className="admin-member-total">
-            {upcomingPickups.length} scheduled
+            {scheduledAppointmentCount} scheduled
           </span>
         </div>
 
@@ -661,22 +742,23 @@ export default async function OrdersPage() {
 
                   <span
                     className={`mt-2 inline-flex min-w-6 items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      day.pickups.length > 0
+                      day.pickups.length + day.manualPickups.length > 0
                         ? "bg-[#D4A11E] text-white"
                         : "bg-neutral-200 text-neutral-500"
                     }`}
                   >
-                    {day.pickups.length}
+                    {day.pickups.length + day.manualPickups.length}
                   </span>
                 </div>
 
                 <div className="divide-y divide-neutral-100">
-                  {day.pickups.length === 0 ? (
+                  {day.pickups.length === 0 && day.manualPickups.length === 0 ? (
                     <div className="px-3 py-8 text-center text-xs text-neutral-400">
                       No pickups
                     </div>
                   ) : (
-                    day.pickups.map((pickup) => (
+                    <>
+                    {day.pickups.map((pickup) => (
                       <details
                         key={pickup.id}
                         className="group px-3 py-3 open:bg-neutral-50"
@@ -783,7 +865,42 @@ export default async function OrdersPage() {
                           </Link>
                         </div>
                       </details>
-                    ))
+                    ))}
+
+                      {day.manualPickups.map((pickup) => (
+                        <div
+                          key={`manual-${pickup.id}`}
+                          className="px-3 py-3 bg-[#D4A11E]/5"
+                        >
+                          <span className="block text-sm font-semibold text-[#B1841A]">
+                            {pickupTime(pickup.startsAt)} -{" "}
+                            {pickupTime(pickup.appointmentEndsAt)}
+                          </span>
+
+                          <strong className="mt-1 block truncate text-xs text-neutral-900">
+                            {pickup.manualReservationName}
+                          </strong>
+
+                          <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                            {pickup.manualReservationType === "DROP_OFF"
+                              ? "Drop-off"
+                              : "Manual Pickup"}
+                          </span>
+
+                          {pickup.manualReservationPhone && (
+                            <span className="mt-2 block text-[10px] text-neutral-500">
+                              {pickup.manualReservationPhone}
+                            </span>
+                          )}
+
+                          {pickup.manualReservationNote && (
+                            <span className="mt-1 block text-[10px] text-neutral-500">
+                              {pickup.manualReservationNote}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </>
                   )}
                 </div>
               </div>

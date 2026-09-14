@@ -65,7 +65,7 @@ return (
                       ).format(
                         broadcast.createdAt
                       )}
-                      {" · "}
+                      {" \u00B7 "}
                       {broadcast.sentByName}
                     </span>
                   </div>
