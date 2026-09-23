@@ -11,7 +11,7 @@ function inputValue(value: unknown) {
 
 export default async function DistroPage() {
   const products = await prisma.distroProduct.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    orderBy: { name: "asc" },
     include: {
       batches: {
         orderBy: {
@@ -203,11 +203,23 @@ export default async function DistroPage() {
                       {product.batches.length > 0 ? (
                         product.batches.map((batch) => (
                           <div key={batch.id}>
-                            <small>{batch.batchNumber}</small>
+                            <input
+                              form={formId}
+                              name={`batch-${batch.id}`}
+                              type="text"
+                              defaultValue={batch.batchNumber}
+                              aria-label={`Batch number for ${product.name}`}
+                            />
                           </div>
                         ))
                       ) : (
-                        <small>-</small>
+                        <input
+                          form={formId}
+                          name="newBatchNumber"
+                          type="text"
+                          placeholder="Add batch"
+                          aria-label={`Batch number for ${product.name}`}
+                        />
                       )}
                     </td>
 

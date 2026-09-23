@@ -67,20 +67,65 @@ export async function updateDistroItem(formData: FormData) {
     throw new Error("Distro stock must be a whole number of zero or greater.");
   }
 
-  await prisma.distroProduct.update({
-    where: { id },
-    data: {
-      name,
-      sku,
-      description,
-      cost: cost === null ? null : cost.toFixed(2),
-      tier1Price: calculatedPrice(tier1Override, cost, 1.4),
-      tier2Price: calculatedPrice(tier2Override, cost, 1.35),
-      tier3Price: calculatedPrice(tier3Override, cost, 1.3),
-      inventoryQty,
-      enabled: formData.get("enabled") === "on",
-      available: formData.get("available") === "on",
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.distroProduct.update({
+      where: { id },
+      data: {
+        name,
+        sku,
+        description,
+        cost: cost === null ? null : cost.toFixed(2),
+        tier1Price: calculatedPrice(tier1Override, cost, 1.4),
+        tier2Price: calculatedPrice(tier2Override, cost, 1.35),
+        tier3Price: calculatedPrice(tier3Override, cost, 1.3),
+        inventoryQty,
+        enabled: formData.get("enabled") === "on",
+        available: formData.get("available") === "on",
+      },
+    });
+
+    const batches = await tx.distroBatch.findMany({
+      where: {
+        productId: id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const newBatchNumber = text(formData, "newBatchNumber");
+
+    if (batches.length === 0 && newBatchNumber) {
+      await tx.distroBatch.create({
+        data: {
+          productId: id,
+          batchNumber: newBatchNumber,
+        },
+      });
+    }
+
+    for (const batch of batches) {
+      const fieldName = `batch-${batch.id}`;
+
+      if (!formData.has(fieldName)) {
+        continue;
+      }
+
+      const batchNumber = text(formData, fieldName);
+
+      if (!batchNumber) {
+        throw new Error("Batch number cannot be empty.");
+      }
+
+      await tx.distroBatch.update({
+        where: {
+          id: batch.id,
+        },
+        data: {
+          batchNumber,
+        },
+      });
+    }
   });
 
   revalidatePath("/admin/distro");

@@ -1,10 +1,11 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import {
   PackagePlus,
   Pencil,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
+import InventoryTable from "@/components/admin/InventoryTable";
 
 export const dynamic = "force-dynamic";
 
@@ -191,155 +192,36 @@ export default async function InventoryPage() {
         </div>
       </section>
 
-      <section className="admin-panel admin-inventory-panel">
-        <div className="admin-inventory-table-wrap">
-          <table className="admin-inventory-table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Member Price</th>
-                <th>Inventory</th>
-                <th>Active</th>
-                <th>Purchasable</th>
-                <th>Featured</th>
-                <th>Edit</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {products.map((product) => {
-                const inventory =
-                  inventoryFor(product);
-
-                const isLow =
-                  isProductLow(product);
-
-                const hasVariants =
-                  product.variants.length > 0;
-
-                const active =
-                  product.active;
-
-                const canPurchase =
-                  active &&
-                  (
-                    hasVariants
-                      ? product.variants.some(
-                          (variant) =>
-                            variant.active &&
-                            variant.purchasable
-                        )
-                      : product.purchasable
-                  );
-
-                return (
-                  <tr key={product.id}>
-                    <td>
-                      <div className="admin-inventory-product">
-                        <strong>
-                          {product.name}
-                        </strong>
-
-                        <span>
-                          {hasVariants
-                            ? `${product.variants.length} ${
-                                product.variants.length === 1
-                                  ? "variant"
-                                  : "variants"
-                              } \u00B7 ${product.category}`
-                            : `${product.strength} \u00B7 ${product.category}`}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td>
-                      <strong className="text-sm font-medium text-neutral-900">
-                        {priceFor(product)}
-                      </strong>
-                    </td>
-
-                    <td>
-                      <div>
-                        <strong
-                          className={
-                            isLow
-                              ? "text-sm font-semibold text-red-600"
-                              : "text-sm font-semibold text-neutral-900"
-                          }
-                        >
-                          {inventory}
-                        </strong>
-
-                        <span className="ml-1 text-xs text-neutral-400">
-                          units
-                        </span>
-
-                        {isLow && (
-                          <span className="ml-2 inline-flex rounded-full bg-red-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-red-600">
-                            Low
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    <td>
-                      <span
-                        className={
-                          active
-                            ? "inline-flex rounded-full bg-green-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-green-700"
-                            : "inline-flex rounded-full bg-neutral-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-500"
-                        }
-                      >
-                        {active
-                          ? "Active"
-                          : "Inactive"}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span
-                        className={
-                          canPurchase
-                            ? "inline-flex rounded-full bg-green-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-green-700"
-                            : "inline-flex rounded-full bg-neutral-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-500"
-                        }
-                      >
-                        {canPurchase
-                          ? "Yes"
-                          : "No"}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span
-                        className={
-                          product.featured
-                            ? "inline-flex rounded-full bg-[#D4A11E]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a7312]"
-                            : "inline-flex rounded-full bg-neutral-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-500"
-                        }
-                      >
-                        {product.featured
-                          ? "Yes"
-                          : "No"}
-                      </span>
-                    </td>
-
-                    <td>
-                      <Link
-                        href={`/admin/inventory/${product.id}`}
-                        className="admin-edit-button"
-                        title={`Edit ${product.name}`}
-                      >
-                        <Pencil size={15} />
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <InventoryTable
+        products={products.map((product) => ({
+          id: product.id,
+          name: product.name,
+          strength: product.strength,
+          category: product.category,
+          memberPrice:
+            product.memberPrice !== null
+              ? Number(product.memberPrice)
+              : null,
+          inventoryQty: product.inventoryQty,
+          lowStockAt: product.lowStockAt,
+          active: product.active,
+          purchasable: product.purchasable,
+          featured: product.featured,
+          trackInventory: product.trackInventory,
+          variants: product.variants.map((variant) => ({
+            id: variant.id,
+            strength: variant.strength,
+            memberPrice:
+              variant.memberPrice !== null
+                ? Number(variant.memberPrice)
+                : null,
+            inventoryQty: variant.inventoryQty,
+            lowStockAt: variant.lowStockAt,
+            active: variant.active,
+            purchasable: variant.purchasable,
+          })),
+        }))}
+      />
     </div>
   );
 }

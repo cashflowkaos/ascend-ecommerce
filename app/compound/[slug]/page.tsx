@@ -147,7 +147,7 @@ export default async function CompoundPage({
                             </span>
 
                             <span className="text-xs text-neutral-500">
-                              {publication.journal} · {publication.year}
+                              {publication.journal} {"\u00B7"} {publication.year}
                             </span>
                           </div>
 
@@ -156,7 +156,7 @@ export default async function CompoundPage({
                           </h3>
 
                           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#D4A11E]">
-                            View on PubMed →
+                            View on PubMed {"\u2192"}
                           </p>
                         </a>
                       ))}
