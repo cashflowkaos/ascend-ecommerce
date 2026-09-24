@@ -70,6 +70,28 @@ enum InventoryMovementType {
   DAMAGED
 }
 
+enum BackOfficeBatchStatus {
+  ACTIVE
+  RETIRED
+}
+
+enum BackOfficeInventoryMovementType {
+  INITIAL
+  RECEIVED
+  SOLD
+  RETURNED
+  TRANSFER_OUT
+  TRANSFER_IN
+  ADJUSTMENT
+  DAMAGED
+}
+
+enum BackOfficeTransferStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
 enum MessageThreadStatus {
   OPEN
   CLOSED
@@ -558,9 +580,9 @@ model PickupAvailability {
   bookedOrderId String? @unique
   bookedOrder   Order?  @relation(fields: [bookedOrderId], references: [id], onDelete: SetNull)
 
-  manualReservationName  String?
-  manualReservationPhone String?
-  manualReservationNote  String?
+  manualReservationName    String?
+  manualReservationPhone   String?
+  manualReservationNote    String?
   manualReservationType    String?
   manualReservationGroupId String?
 
@@ -572,3 +594,160 @@ model PickupAvailability {
   @@index([isActive])
 }
 
+// ============================================================
+// BACK OFFICE
+// Independent operational inventory system
+// ============================================================
+
+model BackOfficeProduct {
+  id String @id @default(cuid())
+
+  sku         String @unique
+  name        String
+  description String
+
+  unitsPerKit Int @default(10)
+
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  batches BackOfficeBatch[]
+
+  @@index([name])
+  @@index([active, sortOrder])
+}
+
+model BackOfficeBatch {
+  id String @id @default(cuid())
+
+  productId String
+  product   BackOfficeProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  batchNumber String
+  status      BackOfficeBatchStatus @default(ACTIVE)
+
+  receivedAt DateTime  @default(now())
+  retiredAt  DateTime?
+
+  coaUrl        String?
+  coaUploadedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  balances  BackOfficeInventoryBalance[]
+  movements BackOfficeInventoryMovement[]
+  transfers BackOfficeInventoryTransfer[]
+
+  @@unique([productId, batchNumber])
+  @@index([productId, status])
+  @@index([batchNumber])
+  @@index([productId, receivedAt])
+}
+
+model BackOfficeLocation {
+  id String @id @default(cuid())
+
+  code String @unique
+  name String
+
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  balances      BackOfficeInventoryBalance[]
+  movements     BackOfficeInventoryMovement[]
+  transfersFrom BackOfficeInventoryTransfer[] @relation("BackOfficeTransferFrom")
+  transfersTo   BackOfficeInventoryTransfer[] @relation("BackOfficeTransferTo")
+
+  @@index([active, sortOrder])
+}
+
+model BackOfficeInventoryBalance {
+  id String @id @default(cuid())
+
+  batchId String
+  batch   BackOfficeBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  locationId String
+  location   BackOfficeLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  quantity Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([batchId, locationId])
+  @@index([locationId])
+  @@index([batchId])
+}
+
+model BackOfficeInventoryMovement {
+  id String @id @default(cuid())
+
+  batchId String
+  batch   BackOfficeBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  locationId String
+  location   BackOfficeLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  type BackOfficeInventoryMovementType
+
+  quantityDelta  Int
+  quantityBefore Int
+  quantityAfter  Int
+
+  referenceType String?
+  referenceId   String?
+  note          String?
+
+  createdById   String?
+  createdByName String?
+
+  createdAt DateTime @default(now())
+
+  @@index([batchId])
+  @@index([locationId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model BackOfficeInventoryTransfer {
+  id String @id @default(cuid())
+
+  batchId String
+  batch   BackOfficeBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  fromLocationId String
+  fromLocation   BackOfficeLocation @relation("BackOfficeTransferFrom", fields: [fromLocationId], references: [id], onDelete: Restrict)
+
+  toLocationId String
+  toLocation   BackOfficeLocation @relation("BackOfficeTransferTo", fields: [toLocationId], references: [id], onDelete: Restrict)
+
+  quantity Int
+
+  status BackOfficeTransferStatus @default(PENDING)
+
+  note String?
+
+  createdById   String?
+  createdByName String?
+
+  completedAt DateTime?
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([batchId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([status])
+  @@index([createdAt])
+}
