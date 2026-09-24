@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   PackageCheck,
-  Settings,
+  BriefcaseBusiness,
   ShoppingBag,
   Users,
 } from "lucide-react";
@@ -20,7 +20,7 @@ const links = [
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/pickup", label: "Pickup", icon: CalendarClock },
   { href: "/admin/messages", label: "Messages", icon: MessageSquare },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/backoffice", label: "Back Office", icon: BriefcaseBusiness },
 ];
 
 export default function AdminSidebar() {
@@ -56,5 +56,3 @@ export default function AdminSidebar() {
     </aside>
   );
 }
-
-

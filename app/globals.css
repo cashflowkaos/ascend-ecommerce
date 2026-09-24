@@ -6372,3 +6372,331 @@ img {
 .admin-shell[data-admin-theme="dark"] .text-neutral-600 { color: #b8b8b8; }
 .admin-shell[data-admin-theme="dark"] .text-neutral-500 { color: #a3a3a3; }
 .admin-shell[data-admin-theme="dark"] .border-neutral-200 { border-color: #383838; }
+
+/* ============================================================
+   ASCEND BACK OFFICE
+   ============================================================ */
+
+.backoffice-shell {
+  min-height: 100vh;
+  background: #f7f7f5;
+  color: #171717;
+}
+
+.backoffice-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 245px;
+  display: flex;
+  flex-direction: column;
+  background: #101010;
+  color: #fff;
+  z-index: 50;
+}
+
+.backoffice-brand {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.backoffice-brand-logo {
+  display: block;
+  width: 170px;
+  height: auto;
+  object-fit: contain;
+  object-position: left center;
+  margin-left: -8px;
+}
+
+.backoffice-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 22px 14px;
+}
+
+.backoffice-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 6px;
+  color: #c9c9c9;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.backoffice-nav-link:hover {
+  background: rgba(212,161,30,.12);
+  color: #d4a11e;
+}
+
+.backoffice-sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 20px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  color: #d4a11e;
+}
+
+.backoffice-sidebar-footer div {
+  display: flex;
+  flex-direction: column;
+}
+
+.backoffice-sidebar-footer strong {
+  color: #fff;
+  font-size: 11px;
+}
+
+.backoffice-sidebar-footer span {
+  margin-top: 3px;
+  color: #777;
+  font-size: 9px;
+}
+
+.backoffice-main {
+  min-height: 100vh;
+  margin-left: 245px;
+}
+
+.backoffice-topbar {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 34px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e5;
+}
+
+.backoffice-topbar-label {
+  color: #999;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .18em;
+}
+
+.backoffice-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.backoffice-text-link {
+  color: #9b7414;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.backoffice-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.backoffice-user-avatar {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #101010;
+  color: #d4a11e;
+  font-weight: 700;
+}
+
+.backoffice-user > div:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.backoffice-user strong {
+  font-size: 11px;
+}
+
+.backoffice-user span {
+  margin-top: 2px;
+  color: #999;
+  font-size: 9px;
+}
+
+.backoffice-signout-button {
+  border: 0;
+  background: transparent;
+  color: #9b7414;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.backoffice-content {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 38px;
+}
+
+.backoffice-page-heading {
+  margin-bottom: 28px;
+}
+
+.backoffice-eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: #b1841a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .2em;
+}
+
+.backoffice-page-heading h1 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 34px;
+  font-weight: 400;
+}
+
+.backoffice-page-heading p {
+  margin: 8px 0 0;
+  color: #777;
+  font-size: 13px;
+}
+
+.backoffice-panel {
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #e7e5df;
+  box-shadow: 0 3px 14px rgba(0,0,0,.025);
+}
+
+.backoffice-panel-heading {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eceae5;
+}
+
+.backoffice-panel-heading h2 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.backoffice-intro {
+  max-width: 760px;
+  margin: 20px 0 0;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+@media (max-width: 1100px) and (min-width: 761px) {
+  .backoffice-sidebar {
+    width: 180px;
+  }
+
+  .backoffice-main {
+    margin-left: 180px;
+  }
+
+  .backoffice-brand {
+    min-height: 72px;
+    padding: 0 16px;
+  }
+
+  .backoffice-brand-logo {
+    width: 135px;
+  }
+
+  .backoffice-nav {
+    gap: 3px;
+    padding: 16px 10px;
+  }
+
+  .backoffice-nav-link {
+    gap: 9px;
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .backoffice-sidebar-footer {
+    display: none;
+  }
+
+  .backoffice-content {
+    padding: 28px 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  .backoffice-sidebar {
+    position: static;
+    width: 100%;
+  }
+
+  .backoffice-brand {
+    min-height: 58px;
+    padding: 0 18px;
+  }
+
+  .backoffice-brand-logo {
+    width: 118px;
+  }
+
+  .backoffice-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 7px 6px 9px;
+  }
+
+  .backoffice-nav-link {
+    flex: 0 0 calc(33.333% - 2px);
+    min-width: 0;
+    min-height: 38px;
+    gap: 5px;
+    padding: 0 5px;
+    font-size: 9px;
+  }
+
+  .backoffice-sidebar-footer {
+    display: none;
+  }
+
+  .backoffice-main {
+    margin-left: 0;
+  }
+
+  .backoffice-topbar {
+    min-height: 58px;
+    height: auto;
+    padding: 10px 18px;
+  }
+
+  .backoffice-topbar-label {
+    display: none;
+  }
+
+  .backoffice-topbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .backoffice-user > div:last-child {
+    display: none;
+  }
+
+  .backoffice-content {
+    padding: 24px 18px;
+  }
+}
