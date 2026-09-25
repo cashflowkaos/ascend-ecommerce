@@ -7345,3 +7345,361 @@ button.backoffice-primary-button {
   border-color: #b1841a;
   background: #ffffff;
 }
+/* Back Office - Inventory adjustment controls */
+.backoffice-batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.backoffice-adjust-details {
+  position: relative;
+}
+
+.backoffice-adjust-details > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid #d8d8d3;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #171717;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.backoffice-adjust-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.backoffice-adjust-details > summary::after {
+  content: "›";
+  margin-left: 7px;
+  font-size: 15px;
+  line-height: 1;
+  transform: rotate(90deg);
+}
+
+.backoffice-adjust-details[open] > summary {
+  border-color: #b1841a;
+}
+
+.backoffice-adjust-details[open] > summary::after {
+  transform: rotate(-90deg);
+}
+
+.backoffice-adjust-details > summary:hover {
+  border-color: #b1841a;
+}
+
+.backoffice-adjust-panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 440px;
+  padding: 14px;
+  border: 1px solid #deded8;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.backoffice-adjust-form {
+  display: grid;
+  grid-template-columns: 110px 75px minmax(130px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.backoffice-adjust-form + .backoffice-adjust-form {
+  border-top: 1px solid #ecece8;
+}
+
+.backoffice-adjust-location {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.backoffice-adjust-location strong {
+  font-size: 12px;
+}
+
+.backoffice-adjust-location span {
+  color: #777;
+  font-size: 10px;
+}
+
+.backoffice-adjust-form input {
+  min-width: 0;
+  height: 32px;
+  padding: 6px 8px;
+  border: 1px solid #d8d8d3;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #171717;
+  font: inherit;
+  font-size: 12px;
+}
+
+.backoffice-adjust-form input:focus {
+  outline: none;
+  border-color: #b1841a;
+}
+/* Back Office - Batch row action cleanup */
+.backoffice-batch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.backoffice-adjust-trigger,
+.backoffice-batch-actions .backoffice-table-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.backoffice-adjust-trigger {
+  border: 1px solid #d8d8d3;
+  background: #ffffff;
+  color: #171717;
+}
+
+.backoffice-adjust-trigger:hover {
+  border-color: #b1841a;
+}
+
+.backoffice-batch-actions .backoffice-table-action-button {
+  border: 1px solid #d6b45c;
+  background: #fffaf0;
+  color: #8a6510;
+}
+
+.backoffice-batch-actions .backoffice-table-action-button:hover {
+  border-color: #b1841a;
+  background: #fff6df;
+}
+
+/* Keep batch actions compact instead of stretching the table */
+.backoffice-batch-actions form {
+  margin: 0;
+}
+
+.backoffice-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+}
+/* Back Office - Responsive Batch History */
+.backoffice-mobile-batches {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .backoffice-mobile-batches {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .backoffice-mobile-batches + * {
+    min-width: 0;
+  }
+
+  .backoffice-table-wrap {
+    display: none;
+  }
+
+  .backoffice-mobile-batch-card {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #deded8;
+    border-radius: 10px;
+    background: #ffffff;
+  }
+
+  .backoffice-mobile-batch-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .backoffice-mobile-batch-header > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .backoffice-mobile-batch-header > div > span,
+  .backoffice-mobile-batch-label {
+    color: #777;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .backoffice-mobile-batch-header strong {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    color: #171717;
+    font-size: 14px;
+  }
+
+  .backoffice-mobile-batch-status {
+    flex: 0 0 auto;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .backoffice-mobile-batch-status.is-active {
+    border: 1px solid #c9dfca;
+    background: #f1f8f1;
+    color: #39723d;
+  }
+
+  .backoffice-mobile-batch-status.is-retired {
+    border: 1px solid #deded8;
+    background: #f5f5f3;
+    color: #777;
+  }
+
+  .backoffice-mobile-batch-received {
+    margin-top: 7px;
+    color: #777;
+    font-size: 11px;
+  }
+
+  .backoffice-mobile-stock-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 14px;
+    border: 1px solid #e4e4df;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .backoffice-mobile-stock-grid > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 11px 6px;
+    text-align: center;
+  }
+
+  .backoffice-mobile-stock-grid > div + div {
+    border-left: 1px solid #e4e4df;
+  }
+
+  .backoffice-mobile-stock-grid span {
+    color: #777;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .backoffice-mobile-stock-grid strong {
+    font-size: 18px;
+  }
+
+  .backoffice-mobile-batch-section {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #ecece8;
+  }
+
+  .backoffice-mobile-batch-section .backoffice-coa-actions {
+    flex-wrap: wrap;
+  }
+
+  .backoffice-mobile-batch-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .backoffice-mobile-batch-actions form {
+    margin: 0;
+  }
+
+  .backoffice-mobile-batch-actions .backoffice-adjust-trigger,
+  .backoffice-mobile-batch-actions .backoffice-table-action-button {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  .backoffice-mobile-batch-empty {
+    padding: 20px;
+    border: 1px solid #deded8;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #777;
+    font-size: 13px;
+    text-align: center;
+  }
+}
+/* Mobile batch action button */
+@media (max-width: 768px) {
+  .backoffice-mobile-batch-actions .backoffice-table-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 38px;
+    padding: 7px 12px;
+    border: 1px solid #d6b45c;
+    border-radius: 6px;
+    background: #fffaf0;
+    color: #8a6510;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .backoffice-mobile-batch-actions .backoffice-table-action-button:hover {
+    border-color: #b1841a;
+    background: #fff6df;
+  }
+}
+/* Product detail page - keep product and batch panels aligned */
+.backoffice-product-batches-panel {
+  max-width: 1000px;
+}
+/* Product detail page - fully responsive width */
+.backoffice-product-form,
+.backoffice-product-batches-panel {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}

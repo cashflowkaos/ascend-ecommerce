@@ -139,6 +139,144 @@ export async function setInitialInventoryCount(
   revalidatePath("/backoffice/inventory");
 }
 
+export async function adjustBackOfficeInventory(
+  formData: FormData
+) {
+  const user = await requireAdmin();
+
+  const batchId = String(
+    formData.get("batchId") ?? ""
+  ).trim();
+
+  const locationId = String(
+    formData.get("locationId") ?? ""
+  ).trim();
+
+  const rawAdjustment = String(
+    formData.get("adjustment") ?? ""
+  ).trim();
+
+  const note = String(
+    formData.get("note") ?? ""
+  ).trim();
+
+  const adjustment = Number(rawAdjustment);
+
+  if (!batchId || !locationId) {
+    throw new Error(
+      "Batch and location are required."
+    );
+  }
+
+  if (
+    !Number.isInteger(adjustment) ||
+    adjustment === 0
+  ) {
+    throw new Error(
+      "Adjustment must be a non-zero whole number."
+    );
+  }
+
+  if (!note) {
+    throw new Error(
+      "A reason for the adjustment is required."
+    );
+  }
+
+  const createdByName =
+    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+    user.email;
+
+  await prisma.$transaction(async (tx) => {
+    const [batch, location] =
+      await Promise.all([
+        tx.backOfficeBatch.findUnique({
+          where: { id: batchId },
+          select: { id: true },
+        }),
+
+        tx.backOfficeLocation.findUnique({
+          where: { id: locationId },
+          select: {
+            id: true,
+            active: true,
+          },
+        }),
+      ]);
+
+    if (!batch) {
+      throw new Error("Batch not found.");
+    }
+
+    if (!location || !location.active) {
+      throw new Error(
+        "Inventory location not found or inactive."
+      );
+    }
+
+    const balance =
+      await tx.backOfficeInventoryBalance.findUnique({
+        where: {
+          batchId_locationId: {
+            batchId,
+            locationId,
+          },
+        },
+        select: {
+          id: true,
+          quantity: true,
+        },
+      });
+
+    const quantityBefore =
+      balance?.quantity ?? 0;
+
+    const quantityAfter =
+      quantityBefore + adjustment;
+
+    if (quantityAfter < 0) {
+      throw new Error(
+        "Adjustment cannot make inventory negative."
+      );
+    }
+
+    if (balance) {
+      await tx.backOfficeInventoryBalance.update({
+        where: {
+          id: balance.id,
+        },
+        data: {
+          quantity: quantityAfter,
+        },
+      });
+    } else {
+      await tx.backOfficeInventoryBalance.create({
+        data: {
+          batchId,
+          locationId,
+          quantity: quantityAfter,
+        },
+      });
+    }
+
+    await tx.backOfficeInventoryMovement.create({
+      data: {
+        batchId,
+        locationId,
+        type: "ADJUSTMENT",
+        quantityDelta: adjustment,
+        quantityBefore,
+        quantityAfter,
+        referenceType: "MANUAL_ADJUSTMENT",
+        note,
+        createdById: user.id,
+        createdByName,
+      },
+    });
+  });
+
+  revalidatePath("/backoffice/inventory");
+}
 export async function createBackOfficeProduct(
   formData: FormData
 ) {

@@ -5,6 +5,7 @@ import BatchCoaUpload from "@/components/backoffice/BatchCoaUpload";
 import { prisma } from "@/lib/prisma";
 import {
   addBackOfficeBatch,
+  adjustBackOfficeInventory,
   setBackOfficeBatchStatus,
   updateBackOfficeProduct,
 } from "../actions";
@@ -41,6 +42,17 @@ export default async function EditBackOfficeProductPage({
   if (!product) {
     notFound();
   }
+
+  const locations =
+    await prisma.backOfficeLocation.findMany({
+      where: {
+        active: true,
+      },
+      orderBy: [
+        { sortOrder: "asc" },
+        { name: "asc" },
+      ],
+    });
 
   return (
     <>
@@ -231,27 +243,26 @@ export default async function EditBackOfficeProductPage({
                   )?.quantity ?? 0;
 
                 return (
-                  <tr key={batch.id}>
-                    <td>
-                      <strong>{batch.batchNumber}</strong>
-                    </td>
+                                    <>
+                    <tr key={batch.id}>
+                      <td>
+                        <strong>{batch.batchNumber}</strong>
+                      </td>
 
-                    <td>{batch.status}</td>
+                      <td>{batch.status}</td>
 
-                    <td>
-                      {batch.receivedAt.toLocaleDateString()}
-                    </td>
+                      <td>
+                        {batch.receivedAt.toLocaleDateString()}
+                      </td>
 
-                    <td>{hub}</td>
-                    <td>{satellite}</td>
+                      <td>{hub}</td>
+                      <td>{satellite}</td>
 
-                    <td>
-                      <strong>
-                        {hub + satellite}
-                      </strong>
-                    </td>
+                      <td>
+                        <strong>{hub + satellite}</strong>
+                      </td>
 
-                    <td>
+                      <td>
                         <BatchCoaUpload
                           batchId={batch.id}
                           productId={product.id}
@@ -259,43 +270,53 @@ export default async function EditBackOfficeProductPage({
                         />
                       </td>
 
-                    <td>
-                      <form
-                        action={setBackOfficeBatchStatus}
-                      >
-                        <input
-                          type="hidden"
-                          name="batchId"
-                          value={batch.id}
-                        />
+                      <td>
+                        <div className="backoffice-batch-actions">
+                          <Link
+  href={`/backoffice/inventory/${product.id}/batch/${batch.id}/adjust`}
+  className="backoffice-adjust-trigger"
+>
+  Adjust
+</Link>
 
-                        <input
-                          type="hidden"
-                          name="productId"
-                          value={product.id}
-                        />
+                          <form
+                            action={setBackOfficeBatchStatus}
+                          >
+                            <input
+                              type="hidden"
+                              name="batchId"
+                              value={batch.id}
+                            />
 
-                        <input
-                          type="hidden"
-                          name="status"
-                          value={
-                            batch.status === "ACTIVE"
-                              ? "RETIRED"
-                              : "ACTIVE"
-                          }
-                        />
+                            <input
+                              type="hidden"
+                              name="productId"
+                              value={product.id}
+                            />
 
-                        <button
-                          type="submit"
-                          className="backoffice-table-action-button"
-                        >
-                          {batch.status === "ACTIVE"
-                            ? "Retire"
-                            : "Reactivate"}
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
+                            <input
+                              type="hidden"
+                              name="status"
+                              value={
+                                batch.status === "ACTIVE"
+                                  ? "RETIRED"
+                                  : "ACTIVE"
+                              }
+                            />
+
+                            <button
+                              type="submit"
+                              className="backoffice-table-action-button"
+                            >
+                              {batch.status === "ACTIVE"
+                                ? "Retire"
+                                : "Reactivate"}
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  </>
                 );
               })}
 
@@ -308,6 +329,132 @@ export default async function EditBackOfficeProductPage({
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="backoffice-mobile-batches">
+          {product.batches.map((batch) => {
+            const hub =
+              batch.balances.find(
+                (balance) =>
+                  balance.location.code === "HUB"
+              )?.quantity ?? 0;
+
+            const satellite =
+              batch.balances.find(
+                (balance) =>
+                  balance.location.code === "SATELLITE"
+              )?.quantity ?? 0;
+
+            return (
+              <article
+                key={batch.id}
+                className="backoffice-mobile-batch-card"
+              >
+                <div className="backoffice-mobile-batch-header">
+                  <div>
+                    <span>Batch</span>
+                    <strong>{batch.batchNumber}</strong>
+                  </div>
+
+                  <span
+                    className={`backoffice-mobile-batch-status ${
+                      batch.status === "ACTIVE"
+                        ? "is-active"
+                        : "is-retired"
+                    }`}
+                  >
+                    {batch.status === "ACTIVE"
+                      ? "Active"
+                      : "Retired"}
+                  </span>
+                </div>
+
+                <div className="backoffice-mobile-batch-received">
+                  Received{" "}
+                  {batch.receivedAt.toLocaleDateString()}
+                </div>
+
+                <div className="backoffice-mobile-stock-grid">
+                  <div>
+                    <span>Hub</span>
+                    <strong>{hub}</strong>
+                  </div>
+
+                  <div>
+                    <span>Satellite</span>
+                    <strong>{satellite}</strong>
+                  </div>
+
+                  <div>
+                    <span>Total</span>
+                    <strong>{hub + satellite}</strong>
+                  </div>
+                </div>
+
+                <div className="backoffice-mobile-batch-section">
+                  <span className="backoffice-mobile-batch-label">
+                    COA
+                  </span>
+
+                  <BatchCoaUpload
+                    batchId={batch.id}
+                    productId={product.id}
+                    coaUrl={batch.coaUrl}
+                  />
+                </div>
+
+                <div className="backoffice-mobile-batch-actions">
+                  <Link
+                    href={`/backoffice/inventory/${product.id}/batch/${batch.id}/adjust`}
+                    className="backoffice-adjust-trigger"
+                  >
+                    Adjust Inventory
+                  </Link>
+
+                  <form
+                    action={setBackOfficeBatchStatus}
+                  >
+                    <input
+                      type="hidden"
+                      name="batchId"
+                      value={batch.id}
+                    />
+
+                    <input
+                      type="hidden"
+                      name="productId"
+                      value={product.id}
+                    />
+
+                    <input
+                      type="hidden"
+                      name="status"
+                      value={
+                        batch.status === "ACTIVE"
+                          ? "RETIRED"
+                          : "ACTIVE"
+                      }
+                    />
+
+                    <button
+                      type="submit"
+                      className="backoffice-table-action-button"
+                    >
+                      {batch.status === "ACTIVE"
+                        ? "Retire Batch"
+                        : "Reactivate Batch"}
+                    </button>
+                  </form>
+                </div>
+              </article>
+            );
+          })}
+
+          {product.batches.length === 0 && (
+            <div className="backoffice-mobile-batch-empty">
+              No batches have been added yet.
+            </div>
+          )}
         </div>
       </div>
     </>
