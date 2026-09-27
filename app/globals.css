@@ -7955,3 +7955,81 @@ button.backoffice-primary-button {
     width: 100%;
   }
 }
+/* Back Office - Compact Mobile Inventory */
+.backoffice-inventory-compact {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .backoffice-inventory-compact {
+    display: block;
+    border-top: 1px solid #e5e3dd;
+  }
+
+  .backoffice-inventory-compact-row {
+    display: block;
+    padding: 14px 0;
+    border-bottom: 1px solid #e5e3dd;
+    color: #171717;
+    text-decoration: none;
+  }
+
+  .backoffice-inventory-compact-row:last-child {
+    border-bottom: 0;
+  }
+
+  .backoffice-inventory-compact-product {
+    min-width: 0;
+    margin-bottom: 10px;
+  }
+
+  .backoffice-inventory-compact-product strong {
+    display: block;
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
+  .backoffice-inventory-compact-product span {
+    display: block;
+    margin-top: 3px;
+    color: #77736a;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .backoffice-inventory-compact-stock {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .backoffice-inventory-compact-stock > div {
+    min-width: 0;
+    padding: 7px 9px;
+    background: #f7f7f5;
+  }
+
+  .backoffice-inventory-compact-stock span {
+    display: block;
+    overflow: hidden;
+    color: #77736a;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .backoffice-inventory-compact-stock strong {
+    display: block;
+    margin-top: 3px;
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .backoffice-inventory-compact-total {
+    border-left: 2px solid #d4a11e;
+    background: #fffaf0 !important;
+  }
+}

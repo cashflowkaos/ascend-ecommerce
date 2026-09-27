@@ -211,6 +211,67 @@ export default async function BackOfficeInventoryPage() {
             </tbody>
           </table>
         </div>
+
+        <div className="backoffice-inventory-compact">
+          {products.map((product) => {
+            const locationTotals = new Map(
+              locations.map((location) => [
+                location.id,
+                0,
+              ])
+            );
+
+            for (const batch of product.batches) {
+              for (const balance of batch.balances) {
+                locationTotals.set(
+                  balance.locationId,
+                  (locationTotals.get(
+                    balance.locationId
+                  ) ?? 0) + balance.quantity
+                );
+              }
+            }
+
+            const productTotal = Array.from(
+              locationTotals.values()
+            ).reduce(
+              (total, quantity) => total + quantity,
+              0
+            );
+
+            return (
+              <Link
+                key={product.id}
+                href={`/backoffice/inventory/${product.id}`}
+                className="backoffice-inventory-compact-row"
+              >
+                <div className="backoffice-inventory-compact-product">
+                  <strong>{product.name}</strong>
+                  <span>
+                    {product.sku} · {product.batches.length}{" "}
+                    {product.batches.length === 1 ? "batch" : "batches"}
+                  </span>
+                </div>
+
+                <div className="backoffice-inventory-compact-stock">
+                  {locations.map((location) => (
+                    <div key={location.id}>
+                      <span>{location.name}</span>
+                      <strong>
+                        {locationTotals.get(location.id) ?? 0}
+                      </strong>
+                    </div>
+                  ))}
+
+                  <div className="backoffice-inventory-compact-total">
+                    <span>Total</span>
+                    <strong>{productTotal}</strong>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
     </>
