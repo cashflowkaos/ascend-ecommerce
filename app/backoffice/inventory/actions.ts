@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 
-export async function setInitialInventoryCount(
+
+export async function recordPhysicalInventoryCount(
   formData: FormData
 ) {
   const user = await requireAdmin();
@@ -22,6 +23,10 @@ export async function setInitialInventoryCount(
     formData.get("quantity") ?? ""
   ).trim();
 
+  const note = String(
+    formData.get("note") ?? ""
+  ).trim();
+
   if (!batchId || !locationId) {
     throw new Error(
       "Batch and location are required."
@@ -35,7 +40,13 @@ export async function setInitialInventoryCount(
     quantity < 0
   ) {
     throw new Error(
-      "Inventory quantity must be a non-negative whole number."
+      "Physical count must be a non-negative whole number."
+    );
+  }
+
+  if (!note) {
+    throw new Error(
+      "A note is required for every physical inventory count."
     );
   }
 
@@ -47,23 +58,13 @@ export async function setInitialInventoryCount(
     const [batch, location] = await Promise.all([
       tx.backOfficeBatch.findUnique({
         where: { id: batchId },
-        select: {
-          id: true,
-          batchNumber: true,
-          product: {
-            select: {
-              sku: true,
-              name: true,
-            },
-          },
-        },
+        select: { id: true },
       }),
 
       tx.backOfficeLocation.findUnique({
         where: { id: locationId },
         select: {
           id: true,
-          name: true,
           active: true,
         },
       }),
@@ -96,9 +97,8 @@ export async function setInitialInventoryCount(
     const quantityBefore =
       existingBalance?.quantity ?? 0;
 
-    if (quantityBefore === quantity) {
-      return;
-    }
+    const quantityDelta =
+      quantity - quantityBefore;
 
     if (existingBalance) {
       await tx.backOfficeInventoryBalance.update({
@@ -123,13 +123,12 @@ export async function setInitialInventoryCount(
       data: {
         batchId,
         locationId,
-        type: "INITIAL",
-        quantityDelta:
-          quantity - quantityBefore,
+        type: "ADJUSTMENT",
+        quantityDelta,
         quantityBefore,
         quantityAfter: quantity,
-        referenceType: "PHYSICAL_COUNT",
-        note: `Initial physical count for ${batch.product.sku} / ${batch.batchNumber} at ${location.name}`,
+        referenceType: "INVENTORY_AUDIT",
+        note,
         createdById: user.id,
         createdByName,
       },
@@ -137,6 +136,7 @@ export async function setInitialInventoryCount(
   });
 
   revalidatePath("/backoffice/inventory");
+  revalidatePath("/backoffice/inventory/count");
 }
 
 export async function adjustBackOfficeInventory(

@@ -1,7 +1,7 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { setInitialInventoryCount } from "../actions";
+import PhysicalCountForm from "./PhysicalCountForm";
 
 export default async function BackOfficeInventoryCountPage() {
   const [products, locations] = await Promise.all([
@@ -123,40 +123,13 @@ export default async function BackOfficeInventoryCountPage() {
                             balance?.quantity ?? 0;
 
                           return (
-                            <form
-                              action={setInitialInventoryCount}
-                              className="backoffice-count-form"
+                            <PhysicalCountForm
                               key={location.id}
-                            >
-                              <input
-                                type="hidden"
-                                name="batchId"
-                                value={batch.id}
-                              />
-
-                              <input
-                                type="hidden"
-                                name="locationId"
-                                value={location.id}
-                              />
-
-                              <label>
-                                <span>{location.name}</span>
-
-                                <input
-                                  type="number"
-                                  name="quantity"
-                                  min="0"
-                                  step="1"
-                                  defaultValue={currentQuantity}
-                                  required
-                                />
-                              </label>
-
-                              <button type="submit">
-                                Save Count
-                              </button>
-                            </form>
+                              batchId={batch.id}
+                              locationId={location.id}
+                              locationName={location.name}
+                              currentQuantity={currentQuantity}
+                            />
                           );
                         })}
                       </div>

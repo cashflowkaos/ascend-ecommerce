@@ -7703,3 +7703,163 @@ button.backoffice-primary-button {
   max-width: none;
   box-sizing: border-box;
 }
+/* Physical Count Note */
+.backoffice-count-form input[type="text"] {
+  width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  background: #fff;
+  border: 1px solid #b8b3a8;
+  border-radius: 0;
+  color: #171717;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.backoffice-count-form input[type="text"]:focus {
+  border-color: #b1841a;
+  box-shadow: 0 0 0 1px #b1841a;
+}
+
+.backoffice-count-form button:disabled {
+  background: #d6d4cf;
+  border-color: #d6d4cf;
+  color: #8a8882;
+  cursor: not-allowed;
+}
+
+.backoffice-count-form button:disabled:hover {
+  background: #d6d4cf;
+  border-color: #d6d4cf;
+}
+
+/* Back Office - Inventory Ledger Mobile */
+.backoffice-ledger-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .backoffice-ledger-mobile {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .backoffice-ledger-mobile-card {
+    min-width: 0;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #deded8;
+    border-radius: 10px;
+  }
+
+  .backoffice-ledger-mobile-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eceae5;
+  }
+
+  .backoffice-ledger-mobile-header > strong {
+    color: #9b7417;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  .backoffice-ledger-mobile-header > span {
+    color: #77736a;
+    font-size: 11px;
+    text-align: right;
+  }
+
+  .backoffice-ledger-mobile-product {
+    display: grid;
+    gap: 4px;
+    padding: 14px 0;
+  }
+
+  .backoffice-ledger-mobile-product > strong {
+    font-size: 15px;
+    color: #171717;
+  }
+
+  .backoffice-ledger-mobile-product > span {
+    color: #77736a;
+    font-size: 12px;
+  }
+
+  .backoffice-ledger-mobile-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px 0;
+    border-top: 1px solid #eceae5;
+    border-bottom: 1px solid #eceae5;
+  }
+
+  .backoffice-ledger-mobile-meta > span,
+  .backoffice-ledger-mobile-footer > span {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .backoffice-ledger-mobile-meta small,
+  .backoffice-ledger-mobile-footer small {
+    color: #8a867e;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .08em;
+  }
+
+  .backoffice-ledger-mobile-meta strong {
+    font-size: 13px;
+    color: #171717;
+  }
+
+  .backoffice-ledger-mobile-footer {
+    display: grid;
+    gap: 10px;
+    padding-top: 12px;
+    color: #55524c;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Inventory Ledger - explicit responsive visibility */
+.backoffice-panel .backoffice-ledger-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .backoffice-panel .backoffice-ledger-mobile {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .backoffice-ledger-mobile-header strong,
+  .backoffice-ledger-mobile-header span,
+  .backoffice-ledger-mobile-product strong,
+  .backoffice-ledger-mobile-product span,
+  .backoffice-ledger-mobile-meta span,
+  .backoffice-ledger-mobile-footer span {
+    display: block;
+  }
+
+  .backoffice-ledger-mobile-meta > span {
+    display: grid;
+    gap: 5px;
+  }
+
+  .backoffice-ledger-mobile-footer > span {
+    display: grid;
+    gap: 5px;
+  }
+}

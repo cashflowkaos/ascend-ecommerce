@@ -67,6 +67,12 @@ export default async function BackOfficeInventoryPage() {
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <Link
+            href="/backoffice/inventory/ledger"
+            className="backoffice-secondary-button"
+          >
+            Inventory Ledger
+          </Link>
+          <Link
             href="/backoffice/inventory/count"
             className="backoffice-secondary-button"
           >
