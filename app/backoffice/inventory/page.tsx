@@ -73,6 +73,12 @@ export default async function BackOfficeInventoryPage() {
             Inventory Ledger
           </Link>
           <Link
+            href="/backoffice/inventory/transfers"
+            className="backoffice-secondary-button"
+          >
+            Transfers
+          </Link>
+          <Link
             href="/backoffice/inventory/count"
             className="backoffice-secondary-button"
           >

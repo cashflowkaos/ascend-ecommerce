@@ -699,3 +699,224 @@ export async function removeBackOfficeBatchCoa(
     `/backoffice/inventory/${productId}`
   );
 }
+
+export async function transferBackOfficeInventory(
+  formData: FormData
+) {
+  const user = await requireAdmin();
+
+  const batchId = String(
+    formData.get("batchId") ?? ""
+  ).trim();
+
+  const fromLocationId = String(
+    formData.get("fromLocationId") ?? ""
+  ).trim();
+
+  const toLocationId = String(
+    formData.get("toLocationId") ?? ""
+  ).trim();
+
+  const rawQuantity = String(
+    formData.get("quantity") ?? ""
+  ).trim();
+
+  const note = String(
+    formData.get("note") ?? ""
+  ).trim();
+
+  if (
+    !batchId ||
+    !fromLocationId ||
+    !toLocationId
+  ) {
+    throw new Error(
+      "Batch, source location, and destination location are required."
+    );
+  }
+
+  if (fromLocationId === toLocationId) {
+    throw new Error(
+      "Source and destination locations must be different."
+    );
+  }
+
+  const quantity = Number(rawQuantity);
+
+  if (
+    !Number.isInteger(quantity) ||
+    quantity <= 0
+  ) {
+    throw new Error(
+      "Transfer quantity must be a positive whole number."
+    );
+  }
+
+  const createdByName =
+    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+    user.email;
+
+  await prisma.$transaction(async (tx) => {
+    const [batch, fromLocation, toLocation] =
+      await Promise.all([
+        tx.backOfficeBatch.findUnique({
+          where: { id: batchId },
+          select: { id: true },
+        }),
+
+        tx.backOfficeLocation.findUnique({
+          where: { id: fromLocationId },
+          select: {
+            id: true,
+            active: true,
+          },
+        }),
+
+        tx.backOfficeLocation.findUnique({
+          where: { id: toLocationId },
+          select: {
+            id: true,
+            active: true,
+          },
+        }),
+      ]);
+
+    if (!batch) {
+      throw new Error("Batch not found.");
+    }
+
+    if (!fromLocation || !fromLocation.active) {
+      throw new Error(
+        "Source inventory location not found or inactive."
+      );
+    }
+
+    if (!toLocation || !toLocation.active) {
+      throw new Error(
+        "Destination inventory location not found or inactive."
+      );
+    }
+
+    const sourceBalance =
+      await tx.backOfficeInventoryBalance.findUnique({
+        where: {
+          batchId_locationId: {
+            batchId,
+            locationId: fromLocationId,
+          },
+        },
+        select: {
+          id: true,
+          quantity: true,
+        },
+      });
+
+    const sourceQuantity =
+      sourceBalance?.quantity ?? 0;
+
+    if (quantity > sourceQuantity) {
+      throw new Error(
+        "Transfer quantity exceeds available inventory."
+      );
+    }
+
+    const destinationBalance =
+      await tx.backOfficeInventoryBalance.findUnique({
+        where: {
+          batchId_locationId: {
+            batchId,
+            locationId: toLocationId,
+          },
+        },
+        select: {
+          id: true,
+          quantity: true,
+        },
+      });
+
+    const destinationQuantity =
+      destinationBalance?.quantity ?? 0;
+
+    const transfer =
+      await tx.backOfficeInventoryTransfer.create({
+        data: {
+          batchId,
+          fromLocationId,
+          toLocationId,
+          quantity,
+          status: "COMPLETED",
+          note: note || null,
+          createdById: user.id,
+          createdByName,
+          completedAt: new Date(),
+        },
+      });
+
+    await tx.backOfficeInventoryBalance.update({
+      where: {
+        id: sourceBalance!.id,
+      },
+      data: {
+        quantity: sourceQuantity - quantity,
+      },
+    });
+
+    if (destinationBalance) {
+      await tx.backOfficeInventoryBalance.update({
+        where: {
+          id: destinationBalance.id,
+        },
+        data: {
+          quantity:
+            destinationQuantity + quantity,
+        },
+      });
+    } else {
+      await tx.backOfficeInventoryBalance.create({
+        data: {
+          batchId,
+          locationId: toLocationId,
+          quantity,
+        },
+      });
+    }
+
+    await tx.backOfficeInventoryMovement.create({
+      data: {
+        batchId,
+        locationId: fromLocationId,
+        type: "TRANSFER_OUT",
+        quantityDelta: -quantity,
+        quantityBefore: sourceQuantity,
+        quantityAfter:
+          sourceQuantity - quantity,
+        referenceType: "INVENTORY_TRANSFER",
+        referenceId: transfer.id,
+        note: note || null,
+        createdById: user.id,
+        createdByName,
+      },
+    });
+
+    await tx.backOfficeInventoryMovement.create({
+      data: {
+        batchId,
+        locationId: toLocationId,
+        type: "TRANSFER_IN",
+        quantityDelta: quantity,
+        quantityBefore: destinationQuantity,
+        quantityAfter:
+          destinationQuantity + quantity,
+        referenceType: "INVENTORY_TRANSFER",
+        referenceId: transfer.id,
+        note: note || null,
+        createdById: user.id,
+        createdByName,
+      },
+    });
+  });
+
+  revalidatePath("/backoffice/inventory");
+  revalidatePath("/backoffice/inventory/transfers");
+  revalidatePath("/backoffice/inventory/ledger");
+}
