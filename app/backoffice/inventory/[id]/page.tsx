@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import BatchCoaUpload from "@/components/backoffice/BatchCoaUpload";
+import BackOfficeProductPricing from "@/components/backoffice/BackOfficeProductPricing";
 import { prisma } from "@/lib/prisma";
 import {
   addBackOfficeBatch,
@@ -132,6 +133,14 @@ export default async function EditBackOfficeProductPage({
               defaultValue={product.description}
             />
           </label>
+
+          <BackOfficeProductPricing
+            defaultCost={
+              product.cost == null
+                ? ""
+                : product.cost.toString()
+            }
+          />
 
           <label className="backoffice-form-field">
             <span>Vials Per Kit</span>

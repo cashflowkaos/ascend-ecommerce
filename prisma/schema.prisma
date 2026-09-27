@@ -606,6 +606,8 @@ model BackOfficeProduct {
   name        String
   description String
 
+  cost Decimal? @db.Decimal(10, 2)
+
   unitsPerKit Int @default(10)
 
   active    Boolean @default(true)

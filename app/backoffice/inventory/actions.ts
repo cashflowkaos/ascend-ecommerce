@@ -294,6 +294,13 @@ export async function createBackOfficeProduct(
     formData.get("description") ?? ""
   ).trim();
 
+  const costInput = String(
+    formData.get("cost") ?? ""
+  ).trim();
+
+  const cost =
+    costInput === "" ? null : Number(costInput);
+
   const batchNumber = String(
     formData.get("batchNumber") ?? ""
   ).trim();
@@ -308,6 +315,15 @@ export async function createBackOfficeProduct(
 
   if (!name) {
     throw new Error("Product name is required.");
+  }
+
+  if (
+    cost !== null &&
+    (!Number.isFinite(cost) || cost < 0)
+  ) {
+    throw new Error(
+      "Kit cost must be a valid number greater than or equal to zero."
+    );
   }
 
   if (
@@ -338,6 +354,7 @@ export async function createBackOfficeProduct(
           sku,
           name,
           description,
+          cost,
           unitsPerKit,
         },
       });
@@ -355,7 +372,6 @@ export async function createBackOfficeProduct(
   revalidatePath("/backoffice/inventory");
   redirect("/backoffice/inventory");
 }
-
 export async function updateBackOfficeProduct(
   formData: FormData
 ) {
@@ -377,6 +393,13 @@ export async function updateBackOfficeProduct(
     formData.get("description") ?? ""
   ).trim();
 
+  const costInput = String(
+    formData.get("cost") ?? ""
+  ).trim();
+
+  const cost =
+    costInput === "" ? null : Number(costInput);
+
   const unitsPerKit = Number(
     formData.get("unitsPerKit") ?? 10
   );
@@ -391,6 +414,15 @@ export async function updateBackOfficeProduct(
 
   if (!name) {
     throw new Error("Product name is required.");
+  }
+
+  if (
+    cost !== null &&
+    (!Number.isFinite(cost) || cost < 0)
+  ) {
+    throw new Error(
+      "Cost must be a valid number greater than or equal to zero."
+    );
   }
 
   if (
@@ -433,6 +465,7 @@ export async function updateBackOfficeProduct(
       sku,
       name,
       description,
+      cost,
       unitsPerKit,
     },
   });
@@ -442,7 +475,6 @@ export async function updateBackOfficeProduct(
 
   redirect("/backoffice/inventory");
 }
-
 export async function addBackOfficeBatch(
   formData: FormData
 ) {

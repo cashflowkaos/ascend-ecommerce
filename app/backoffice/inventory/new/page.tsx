@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import BackOfficeProductPricing from "@/components/backoffice/BackOfficeProductPricing";
 import { createBackOfficeProduct } from "../actions";
 
 export default function NewBackOfficeProductPage() {
@@ -75,6 +76,8 @@ export default function NewBackOfficeProductPage() {
               placeholder="Product description"
             />
           </label>
+
+          <BackOfficeProductPricing defaultCost="" />
 
           <label className="backoffice-form-field">
             <span>Vials Per Kit</span>
