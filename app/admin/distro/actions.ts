@@ -8,203 +8,143 @@ function text(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
-function optionalMoney(formData: FormData, name: string) {
-  const raw = text(formData, name);
-
-  if (!raw) return null;
-
-  const value = Number(raw);
-
-  if (!Number.isFinite(value) || value < 0) {
-    throw new Error(`${name} must be zero or greater.`);
-  }
-
-  return value;
-}
-
 function calculatedPrice(
-  override: number | null,
   cost: number | null,
   markup: number
 ) {
-  if (override !== null) {
-    return Math.ceil(override).toFixed(2);
-  }
-
   if (cost === null) return null;
-
   return Math.ceil(cost * markup).toFixed(2);
 }
 
-export async function updateDistroItem(formData: FormData) {
-  const id = text(formData, "id");
+export async function updateDistroSettings(
+  formData: FormData
+) {
+  await requireAdmin();
 
-  if (!id) {
-    throw new Error("Distro product ID is required.");
+  const backOfficeProductId = text(
+    formData,
+    "backOfficeProductId"
+  );
+
+  if (!backOfficeProductId) {
+    throw new Error(
+      "Back Office product ID is required."
+    );
   }
 
-  const name = text(formData, "name");
-  const sku = text(formData, "sku").toUpperCase();
-  const description = text(formData, "description");
+  const enabled =
+    formData.get("enabled") === "on";
 
-  if (!name) {
-    throw new Error("Compound name is required.");
-  }
+  const available =
+    formData.get("available") === "on";
 
-  if (!sku) {
-    throw new Error("SKU is required.");
-  }
-
-  const cost = optionalMoney(formData, "cost");
-  const tier1Override = optionalMoney(formData, "tier1");
-  const tier2Override = optionalMoney(formData, "tier2");
-  const tier3Override = optionalMoney(formData, "tier3");
-
-  const stockRaw = text(formData, "inventoryQty");
-  const inventoryQty = Number(stockRaw);
-
-  if (!Number.isInteger(inventoryQty) || inventoryQty < 0) {
-    throw new Error("Distro stock must be a whole number of zero or greater.");
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.distroProduct.update({
-      where: { id },
-      data: {
-        name,
-        sku,
-        description,
-        cost: cost === null ? null : cost.toFixed(2),
-        tier1Price: calculatedPrice(tier1Override, cost, 1.4),
-        tier2Price: calculatedPrice(tier2Override, cost, 1.35),
-        tier3Price: calculatedPrice(tier3Override, cost, 1.3),
-        inventoryQty,
-        enabled: formData.get("enabled") === "on",
-        available: formData.get("available") === "on",
-      },
-    });
-
-    const batches = await tx.distroBatch.findMany({
+  const product =
+    await prisma.backOfficeProduct.findUnique({
       where: {
-        productId: id,
+        id: backOfficeProductId,
       },
       select: {
         id: true,
+        sku: true,
+        name: true,
+        description: true,
+        cost: true,
+        distroProduct: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
 
-    const newBatchNumber = text(formData, "newBatchNumber");
+  if (!product) {
+    throw new Error(
+      "Back Office product not found."
+    );
+  }
 
-    if (batches.length === 0 && newBatchNumber) {
-      await tx.distroBatch.create({
-        data: {
-          productId: id,
-          batchNumber: newBatchNumber,
-        },
-      });
-    }
+  const cost =
+    product.cost === null
+      ? null
+      : Number(product.cost);
 
-    for (const batch of batches) {
-      const fieldName = `batch-${batch.id}`;
+  const legacyData = {
+    sku: product.sku,
+    name: product.name,
+    description: product.description,
+    cost:
+      cost === null
+        ? null
+        : cost.toFixed(2),
+    tier1Price: calculatedPrice(cost, 1.4),
+    tier2Price: calculatedPrice(cost, 1.35),
+    tier3Price: calculatedPrice(cost, 1.3),
+    enabled,
+    available,
+  };
 
-      if (!formData.has(fieldName)) {
-        continue;
-      }
-
-      const batchNumber = text(formData, fieldName);
-
-      if (!batchNumber) {
-        throw new Error("Batch number cannot be empty.");
-      }
-
-      await tx.distroBatch.update({
+  if (product.distroProduct) {
+    await prisma.distroProduct.update({
+      where: {
+        id: product.distroProduct.id,
+      },
+      data: legacyData,
+    });
+  } else {
+    const legacyBySku =
+      await prisma.distroProduct.findUnique({
         where: {
-          id: batch.id,
+          sku: product.sku,
+        },
+        select: {
+          id: true,
+          backOfficeProductId: true,
+        },
+      });
+
+    if (
+      legacyBySku?.backOfficeProductId &&
+      legacyBySku.backOfficeProductId !==
+        product.id
+    ) {
+      throw new Error(
+        "This Distro SKU is already linked to another Back Office product."
+      );
+    }
+
+    if (legacyBySku) {
+      await prisma.distroProduct.update({
+        where: {
+          id: legacyBySku.id,
         },
         data: {
-          batchNumber,
+          ...legacyData,
+          backOfficeProductId: product.id,
+        },
+      });
+    } else {
+      const lastProduct =
+        await prisma.distroProduct.findFirst({
+          orderBy: {
+            sortOrder: "desc",
+          },
+          select: {
+            sortOrder: true,
+          },
+        });
+
+      await prisma.distroProduct.create({
+        data: {
+          ...legacyData,
+          inventoryQty: 0,
+          sortOrder:
+            (lastProduct?.sortOrder ?? -1) + 1,
+          backOfficeProductId: product.id,
         },
       });
     }
-  });
+  }
 
   revalidatePath("/admin/distro");
-}
-
-
-export async function createDistroItem(formData: FormData) {
-  const name = text(formData, "name");
-  const sku = text(formData, "sku").toUpperCase();
-  const description = text(formData, "description");
-  const batchNumber = text(formData, "batchNumber");
-  const cost = optionalMoney(formData, "cost");
-
-  const stockRaw = text(formData, "inventoryQty");
-  const inventoryQty = stockRaw === "" ? 0 : Number(stockRaw);
-
-  if (!name) {
-    throw new Error("Compound name is required.");
-  }
-
-  if (!sku) {
-    throw new Error("SKU is required.");
-  }
-
-  if (!Number.isInteger(inventoryQty) || inventoryQty < 0) {
-    throw new Error("Distro stock must be a whole number of zero or greater.");
-  }
-
-  const existing = await prisma.distroProduct.findUnique({
-    where: { sku },
-    select: { id: true },
-  });
-
-  if (existing) {
-    throw new Error(`A Distro product with SKU ${sku} already exists.`);
-  }
-
-  const lastProduct = await prisma.distroProduct.findFirst({
-    orderBy: { sortOrder: "desc" },
-    select: { sortOrder: true },
-  });
-
-  await prisma.distroProduct.create({
-    data: {
-      name,
-      sku,
-      description,
-      cost: cost === null ? null : cost.toFixed(2),
-      tier1Price: calculatedPrice(null, cost, 1.4),
-      tier2Price: calculatedPrice(null, cost, 1.35),
-      tier3Price: calculatedPrice(null, cost, 1.3),
-      inventoryQty,
-      enabled: true,
-      available: true,
-      sortOrder: (lastProduct?.sortOrder ?? -1) + 1,
-
-      batches: batchNumber
-        ? {
-            create: {
-              batchNumber,
-            },
-          }
-        : undefined,
-    },
-  });
-
-  revalidatePath("/admin/distro");
-}
-
-export async function deleteDistroItem(formData: FormData) {
-  const id = text(formData, "id");
-
-  if (!id) {
-    throw new Error("Distro product ID is required.");
-  }
-
-  await prisma.distroProduct.delete({
-    where: { id },
-  });
-
-  revalidatePath("/admin/distro");
+  revalidatePath("/distro");
 }

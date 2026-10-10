@@ -550,6 +550,9 @@ model DistroProduct {
 
   batches DistroBatch[]
 
+  backOfficeProductId String?            @unique
+  backOfficeProduct   BackOfficeProduct? @relation(fields: [backOfficeProductId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -616,7 +619,8 @@ model BackOfficeProduct {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  batches BackOfficeBatch[]
+  batches       BackOfficeBatch[]
+  distroProduct DistroProduct?
 
   @@index([name])
   @@index([active, sortOrder])

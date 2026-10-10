@@ -1,52 +1,81 @@
-import { prisma } from "@/lib/prisma";
-import { createDistroItem, deleteDistroItem, updateDistroItem } from "./actions";
-import ConfirmDeleteButton from "./ConfirmDeleteButton";
+﻿import { prisma } from "@/lib/prisma";
+import { updateDistroSettings } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-function inputValue(value: unknown) {
-  if (value === null || value === undefined) return "";
-  return String(value);
+function money(value: number | null) {
+  if (value === null) return "—";
+  return `$${value.toFixed(2)}`;
 }
 
 export default async function DistroPage() {
-  const products = await prisma.distroProduct.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      batches: {
-        orderBy: {
-          createdAt: "asc",
+  const products =
+    await prisma.backOfficeProduct.findMany({
+      where: {
+        active: true,
+      },
+      orderBy: [
+        { sortOrder: "asc" },
+        { name: "asc" },
+      ],
+      include: {
+        distroProduct: {
+          select: {
+            id: true,
+            enabled: true,
+            available: true,
+          },
+        },
+        batches: {
+          where: {
+            status: "ACTIVE",
+          },
+          orderBy: {
+            receivedAt: "asc",
+          },
+          include: {
+            balances: {
+              select: {
+                quantity: true,
+              },
+            },
+          },
         },
       },
-    },
-  });
+    });
 
   const enabledCount = products.filter(
-    (product) => product.enabled
+    (product) =>
+      product.distroProduct?.enabled === true
   ).length;
 
   const availableCount = products.filter(
-    (product) => product.enabled && product.available
+    (product) =>
+      product.distroProduct?.enabled === true &&
+      product.distroProduct?.available === true
   ).length;
 
   return (
     <div className="admin-page admin-distro-page">
       <div className="admin-page-header">
         <div>
-          <p className="admin-eyebrow">ASCEND DISTRO</p>
-          <h1>Distro Inventory</h1>
+          <p className="admin-eyebrow">
+            ASCEND DISTRO
+          </p>
+
+          <h1>Distro Catalog</h1>
+
           <p className="admin-page-copy">
-            Manage wholesale catalog pricing, batches, availability, and
-            independent Distro stock.
+            Products, pricing, batches, and physical stock are
+            managed in Back Office. Control which products are
+            available to Distro members here.
           </p>
         </div>
-
-
       </div>
 
       <div className="admin-stat-grid admin-distro-stats">
         <div className="admin-stat-card">
-          <span>Total Distro Items</span>
+          <span>Total Products</span>
           <strong>{products.length}</strong>
         </div>
 
@@ -61,94 +90,17 @@ export default async function DistroPage() {
         </div>
       </div>
 
-      <details className="admin-distro-add-panel" id="add-distro-item">
-        <summary className="admin-distro-add-button">+ Add Inventory</summary>
-
-        <form action={createDistroItem} className="admin-distro-add-form">
-          <label>
-            <span>Compound</span>
-            <input
-              name="name"
-              type="text"
-              placeholder="e.g. Retatrutide"
-              required
-            />
-          </label>
-
-          <label>
-            <span>SKU</span>
-            <input
-              name="sku"
-              type="text"
-              placeholder="e.g. RT-40"
-              required
-            />
-          </label>
-
-          <label className="admin-distro-add-description">
-            <span>Description</span>
-            <input
-              name="description"
-              type="text"
-                  placeholder="e.g. 40 mg / 3 mL / vial"
-            />
-          </label>
-
-          <label>
-            <span>Batch</span>
-            <input
-              name="batchNumber"
-              type="text"
-              placeholder="Optional"
-            />
-          </label>
-
-          <label>
-            <span>Cost</span>
-            <input
-              name="cost"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-            />
-          </label>
-
-          <label>
-            <span>Distro Stock</span>
-            <input
-              name="inventoryQty"
-              type="number"
-              min="0"
-              step="1"
-              defaultValue="0"
-              required
-            />
-          </label>
-
-          <div className="admin-distro-add-pricing">
-            Tier pricing is generated automatically from cost.
-          </div>
-
-          <button type="submit" className="admin-distro-create-button">
-            Add Item
-          </button>
-        </form>
-      </details>
-
-
-
       <div className="admin-distro-table-wrap">
         <table className="admin-distro-table">
           <thead>
             <tr>
-              <th>Compound</th>
+              <th>Product</th>
               <th>Batch</th>
-              <th>Cost</th>
+              <th>Kit Cost</th>
               <th>Tier 1</th>
               <th>Tier 2</th>
               <th>Tier 3</th>
-              <th>Distro Stock</th>
+              <th>Physical Stock</th>
               <th>Enabled</th>
               <th>Available</th>
               <th></th>
@@ -159,137 +111,86 @@ export default async function DistroPage() {
             {products.length === 0 ? (
               <tr>
                 <td colSpan={10}>
-                  No Distro products have been loaded yet.
+                  No Back Office products have been loaded yet.
                 </td>
               </tr>
             ) : (
               products.map((product) => {
-                const formId = `distro-${product.id}`;
+                const cost =
+                  product.cost === null
+                    ? null
+                    : Number(product.cost);
+
+                const tier1 =
+                  cost === null
+                    ? null
+                    : Math.ceil(cost * 1.4);
+
+                const tier2 =
+                  cost === null
+                    ? null
+                    : Math.ceil(cost * 1.35);
+
+                const tier3 =
+                  cost === null
+                    ? null
+                    : Math.ceil(cost * 1.3);
+
+                const physicalStock =
+                  product.batches.reduce(
+                    (productTotal, batch) =>
+                      productTotal +
+                      batch.balances.reduce(
+                        (batchTotal, balance) =>
+                          batchTotal + balance.quantity,
+                        0
+                      ),
+                    0
+                  );
 
                 return (
                   <tr key={product.id}>
-                     <td>
-                      <div>
-                        <input
-                          form={formId}
-                          name="name"
-                          type="text"
-                          defaultValue={product.name}
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <input
-                          form={formId}
-                          name="sku"
-                          type="text"
-                          defaultValue={product.sku}
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <input
-                          form={formId}
-                          name="description"
-                          type="text"
-                          defaultValue={product.description}
-                        />
-                      </div>
+                    <td>
+                      <strong>{product.name}</strong>
+                      <small>{product.sku}</small>
+                      {product.description ? (
+                        <small>
+                          {product.description}
+                        </small>
+                      ) : null}
                     </td>
 
                     <td>
                       {product.batches.length > 0 ? (
                         product.batches.map((batch) => (
-                          <div key={batch.id}>
-                            <input
-                              form={formId}
-                              name={`batch-${batch.id}`}
-                              type="text"
-                              defaultValue={batch.batchNumber}
-                              aria-label={`Batch number for ${product.name}`}
-                            />
-                          </div>
+                          <small key={batch.id}>
+                            {batch.batchNumber}
+                          </small>
                         ))
                       ) : (
-                        <input
-                          form={formId}
-                          name="newBatchNumber"
-                          type="text"
-                          placeholder="Add batch"
-                          aria-label={`Batch number for ${product.name}`}
-                        />
+                        <small>—</small>
                       )}
                     </td>
 
-                    <td>
-                      <input
-                        form={formId}
-                        className="admin-money-input"
-                        name="cost"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={inputValue(product.cost)}
-                      />
-                    </td>
+                    <td>{money(cost)}</td>
+                    <td>{money(tier1)}</td>
+                    <td>{money(tier2)}</td>
+                    <td>{money(tier3)}</td>
 
                     <td>
-                      <input
-                        form={formId}
-                        className="admin-money-input"
-                        name="tier1"
-                        type="number"
-                        min="0"
-                        step="1"
-                        defaultValue={inputValue(product.tier1Price)}
-                      />
-                    </td>
-
-                    <td>
-                      <input
-                        form={formId}
-                        className="admin-money-input"
-                        name="tier2"
-                        type="number"
-                        min="0"
-                        step="1"
-                        defaultValue={inputValue(product.tier2Price)}
-                      />
-                    </td>
-
-                    <td>
-                      <input
-                        form={formId}
-                        className="admin-money-input"
-                        name="tier3"
-                        type="number"
-                        min="0"
-                        step="1"
-                        defaultValue={inputValue(product.tier3Price)}
-                      />
-                    </td>
-
-                    <td>
-                      <input
-                        form={formId}
-                        className="admin-number-input"
-                        name="inventoryQty"
-                        type="number"
-                        min="0"
-                        step="1"
-                        defaultValue={product.inventoryQty}
-                      />
+                      <strong>{physicalStock}</strong>
                     </td>
 
                     <td>
                       <label className="admin-switch">
                         <input
-                          form={formId}
+                          form={`distro-${product.id}`}
                           name="enabled"
                           type="checkbox"
-                          defaultChecked={product.enabled}
+                          defaultChecked={
+                            product.distroProduct?.enabled ??
+                            false
+                          }
                         />
                         <span />
                       </label>
@@ -298,37 +199,35 @@ export default async function DistroPage() {
                     <td>
                       <label className="admin-switch">
                         <input
-                          form={formId}
+                          form={`distro-${product.id}`}
                           name="available"
                           type="checkbox"
-                          defaultChecked={product.available}
+                          defaultChecked={
+                            product.distroProduct?.available ??
+                            false
+                          }
                         />
                         <span />
                       </label>
                     </td>
 
                     <td>
-                      <form id={formId} action={updateDistroItem}>
+                      <form
+                        id={`distro-${product.id}`}
+                        action={updateDistroSettings}
+                      >
                         <input
                           type="hidden"
-                          name="id"
+                          name="backOfficeProductId"
                           value={product.id}
                         />
+
                         <button
                           className="admin-save-button"
                           type="submit"
                         >
                           Save
                         </button>
-                      </form>
-
-                      <form action={deleteDistroItem}>
-                        <input
-                          type="hidden"
-                          name="id"
-                          value={product.id}
-                        />
-                        <ConfirmDeleteButton />
                       </form>
                     </td>
                   </tr>
