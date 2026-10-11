@@ -70,6 +70,14 @@ enum InventoryMovementType {
   DAMAGED
 }
 
+enum BackOfficeCustomerPricingType {
+  RETAIL
+  WHOLESALE
+  TIER_1
+  TIER_2
+  TIER_3
+}
+
 enum BackOfficeBatchStatus {
   ACTIVE
   RETIRED
@@ -132,6 +140,8 @@ model User {
   orderActivities      OrderActivity[]
   pickupAvailability   PickupAvailability? @relation(fields: [pickupAvailabilityId], references: [id])
   pickupAvailabilityId String?
+
+  backOfficeCustomer BackOfficeCustomer?
 
   @@index([status])
   @@index([role])
@@ -757,4 +767,34 @@ model BackOfficeInventoryTransfer {
   @@index([toLocationId])
   @@index([status])
   @@index([createdAt])
+}
+
+model BackOfficeCustomer {
+  id String @id @default(cuid())
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  legacyCustomerId Int? @unique
+
+  firstName String
+  lastName  String
+  company   String?
+
+  email String?
+  phone String?
+
+  pricingType BackOfficeCustomerPricingType @default(RETAIL)
+
+  notes  String? @db.Text
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lastName, firstName])
+  @@index([email])
+  @@index([phone])
+  @@index([pricingType])
+  @@index([active])
 }
