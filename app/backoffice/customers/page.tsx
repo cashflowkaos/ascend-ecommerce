@@ -1,30 +1,24 @@
 ﻿import Link from "next/link";
 import { Plus } from "lucide-react";
+import BackOfficeCustomerDirectory from "@/components/backoffice/BackOfficeCustomerDirectory";
 import { prisma } from "@/lib/prisma";
-
-const pricingLabels = {
-  RETAIL: "Retail",
-  WHOLESALE: "Wholesale",
-  TIER_1: "Tier 1",
-  TIER_2: "Tier 2",
-  TIER_3: "Tier 3",
-} as const;
 
 export default async function BackOfficeCustomersPage() {
   const customers = await prisma.backOfficeCustomer.findMany({
     orderBy: [
-      { active: "desc" },
       { lastName: "asc" },
       { firstName: "asc" },
     ],
-    include: {
-      user: {
-        select: {
-          email: true,
-          distroEnabled: true,
-          distroTier: true,
-        },
-      },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      company: true,
+      email: true,
+      phone: true,
+      pricingType: true,
+      active: true,
+      userId: true,
     },
   });
 
@@ -41,18 +35,24 @@ export default async function BackOfficeCustomersPage() {
   ).length;
 
   const tierCustomers = customers.filter((customer) =>
-    ["TIER_1", "TIER_2", "TIER_3"].includes(customer.pricingType)
+    ["TIER_1", "TIER_2", "TIER_3"].includes(
+      customer.pricingType
+    )
   ).length;
 
   return (
     <>
       <div className="backoffice-page-heading">
         <div>
-          <span className="backoffice-eyebrow">CUSTOMERS</span>
+          <span className="backoffice-eyebrow">
+            CUSTOMERS
+          </span>
+
           <h1>Customers</h1>
+
           <p>
-            Unified customer records for website members, walk-ins,
-            wholesale, and distro clients.
+            Unified customer records for website members,
+            walk-ins, wholesale, and distro clients.
           </p>
         </div>
 
@@ -83,84 +83,15 @@ export default async function BackOfficeCustomersPage() {
 
         <div className="backoffice-stat-card">
           <span>Wholesale / Tier</span>
-          <strong>{wholesaleCustomers + tierCustomers}</strong>
+          <strong>
+            {wholesaleCustomers + tierCustomers}
+          </strong>
         </div>
       </div>
 
-      <div className="backoffice-panel">
-        <div className="backoffice-panel-heading">
-          <div>
-            <span className="backoffice-eyebrow">
-              CUSTOMER DIRECTORY
-            </span>
-            <h2>All Customers</h2>
-          </div>
-        </div>
-
-        <div className="backoffice-table-wrap">
-          <table className="backoffice-table">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Contact</th>
-                <th>Pricing</th>
-                <th>Website</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {customers.map((customer) => (
-                <tr key={customer.id}>
-                  <td>
-                    <strong>
-                      {customer.firstName} {customer.lastName}
-                    </strong>
-                    {customer.company ? (
-                      <div>{customer.company}</div>
-                    ) : null}
-                  </td>
-
-                  <td>
-                    <div>{customer.email || "—"}</div>
-                    <div>{customer.phone || "—"}</div>
-                  </td>
-
-                  <td>
-                    {pricingLabels[customer.pricingType]}
-                  </td>
-
-                  <td>
-                    {customer.userId ? "Linked" : "Not linked"}
-                  </td>
-
-                  <td>
-                    {customer.active ? "Active" : "Inactive"}
-                  </td>
-
-                  <td>
-                    <Link
-                      href={`/backoffice/customers/${customer.id}`}
-                      className="backoffice-table-action"
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-
-              {customers.length === 0 ? (
-                <tr>
-                  <td colSpan={6}>
-                    No customers have been added yet.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <BackOfficeCustomerDirectory
+        customers={customers}
+      />
     </>
   );
 }
