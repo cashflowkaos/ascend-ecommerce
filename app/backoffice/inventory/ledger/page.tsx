@@ -114,7 +114,7 @@ export default async function InventoryLedgerPage({
                       </strong>
 
                       <span>
-                        {movement.batch.product.sku} Ãƒâ€šÃ‚Â· Batch{" "}
+                        {movement.batch.product.sku} - Batch{" "}
                         {movement.batch.batchNumber}
                       </span>
                     </div>
@@ -128,7 +128,7 @@ export default async function InventoryLedgerPage({
                       <span>
                         <small>INVENTORY</small>
                         <strong>
-                          {movement.quantityBefore} ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢{" "}
+                          {movement.quantityBefore} -&gt;{" "}
                           {movement.quantityAfter}
                         </strong>
                       </span>
@@ -151,7 +151,7 @@ export default async function InventoryLedgerPage({
 
                       <span>
                         <small>NOTE</small>
-                        {movement.note ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
+                        {movement.note ?? "-"}
                       </span>
                     </div>
                   </div>
@@ -218,7 +218,7 @@ export default async function InventoryLedgerPage({
                       {movement.createdByName ?? "System"}
                     </td>
 
-                    <td>{movement.note ?? "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}</td>
+                    <td>{movement.note ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>

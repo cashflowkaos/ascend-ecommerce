@@ -362,7 +362,6 @@ export async function POST(request: Request) {
       );
       continue;
     }
-
     const unitPrice = Number(
       variant.memberPrice
     );

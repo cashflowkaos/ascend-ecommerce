@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
-import { deleteAdminOrder } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -187,7 +186,6 @@ export default async function OrdersPage() {
   const shippingQueue = await prisma.order.findMany({
     where: {
       fulfillmentMethod: "SHIPPING",
-      paymentStatus: "PAID",
       shippedAt: null,
       status: {
         notIn: ["COMPLETED", "CANCELLED"],
@@ -198,6 +196,7 @@ export default async function OrdersPage() {
       orderNumber: true,
       total: true,
       paymentMethod: true,
+      paymentStatus: true,
       shippingFirstName: true,
       shippingLastName: true,
       shippingAddress1: true,
@@ -943,8 +942,16 @@ export default async function OrdersPage() {
                           {order.orderNumber}
                         </strong>
 
-                        <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-blue-700">
-                          Ready to Ship
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] ${
+                            order.paymentStatus === "PAID"
+                              ? "border-blue-200 bg-blue-50 text-blue-700"
+                              : "border-amber-200 bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {order.paymentStatus === "PAID"
+                            ? "Ready to Ship"
+                            : "Payment Verification Needed"}
                         </span>
                       </div>
 

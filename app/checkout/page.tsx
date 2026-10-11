@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CreditCard, MapPin, Truck } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import { requireApprovedMember } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import CheckoutOrderSummary from "@/components/checkout/CheckoutOrderSummary";
@@ -76,7 +76,7 @@ export default async function CheckoutPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">
-            Confirm your shipping information and review your order
+            Confirm your information, choose shipping or pickup, and review your order
             before submitting.
           </p>
         </div>
@@ -92,11 +92,11 @@ export default async function CheckoutPage() {
 
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#D4A11E]">
-                    Shipping
+                    Member Information
                   </p>
 
                   <h2 className="mt-1 text-xl font-medium">
-                    Shipping Address
+                    Member Information Address
                   </h2>
                 </div>
               </div>
@@ -152,11 +152,11 @@ export default async function CheckoutPage() {
             ) : (
               <div className="mt-7 rounded-[18px] border border-amber-200 bg-amber-50 p-5">
                 <strong className="text-sm font-semibold text-neutral-950">
-                  Shipping address required
+                  Address required
                 </strong>
 
                 <p className="mt-2 text-sm leading-6 text-neutral-600">
-                  Add a shipping address to your member profile before
+                  Add an address to your member profile before
                   submitting an order.
                 </p>
 
@@ -164,7 +164,7 @@ export default async function CheckoutPage() {
                   href="/account/profile"
                   className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-[#D4A11E] px-5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-[#b98b17]"
                 >
-                  Add Shipping Address
+                  Add Address
                 </Link>
               </div>
             )}
@@ -184,78 +184,7 @@ export default async function CheckoutPage() {
             </div>
           </section>
 
-          <section className="rounded-[24px] border border-neutral-200 bg-white p-6 sm:p-8">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#D4A11E]/10 text-[#D4A11E]">
-                <Truck size={19} strokeWidth={1.8} />
-              </div>
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#D4A11E]">
-                  Delivery
-                </p>
-
-                <h2 className="mt-1 text-xl font-medium">
-                  Shipping Method
-                </h2>
-              </div>
-            </div>
-
-            <div className="mt-7 flex items-center justify-between gap-5 rounded-[18px] border-2 border-[#D4A11E] bg-[#D4A11E]/5 p-5">
-              <div>
-                <strong className="text-sm font-semibold text-neutral-950">
-                  Standard Shipping
-                </strong>
-
-                <p className="mt-1 text-xs leading-5 text-neutral-500">
-                  Shipping arrangements and delivery details will be confirmed
-                  by an Ascend representative after your order request is received.
-                </p>
-              </div>
-
-              <strong className="shrink-0 text-right text-xs font-medium text-neutral-500">
-                Confirmed After Submission
-              </strong>
-            </div>
-          </section>
-
-          <section className="rounded-[24px] border border-neutral-200 bg-white p-6 sm:p-8">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#D4A11E]/10 text-[#D4A11E]">
-                <CreditCard size={19} strokeWidth={1.8} />
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#D4A11E]">
-                  Payment
-                </p>
-
-                <h2 className="mt-1 text-xl font-medium">
-                  Order Request Payment
-                </h2>
-              </div>
-            </div>
-
-            <div className="mt-7 rounded-[18px] border border-neutral-200 bg-neutral-50 p-5 sm:p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500">
-                  <CreditCard size={19} strokeWidth={1.7} />
-                </div>
-
-                <div>
-                  <strong className="text-sm font-semibold text-neutral-950">
-                    Payment Coordinated After Submission
-                  </strong>
-
-                  <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-500">
-                    No payment is collected online when you submit your order request.
-                    An Ascend representative will contact you to coordinate payment
-                    and fulfillment after your request is received.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
 
           </div>
 

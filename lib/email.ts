@@ -1420,3 +1420,427 @@ export async function sendOrderShippedEmail({
 }
 
 
+
+type NewOrderEmailDetails = {
+  orderNumber: string;
+  orderId: string;
+  customerEmail: string;
+  customerFirstName: string;
+  customerLastName: string;
+  shipping: OrderRequestShipping;
+  items: OrderRequestEmailItem[];
+  subtotal: number;
+  shippingAmount: number;
+  taxAmount: number;
+  total: number;
+  fulfillmentMethod: "SHIPPING" | "PICKUP";
+  paymentMethod: "CASH" | "ZELLE";
+  zelleConfirmation?: string | null;
+  pickupScheduledAt?: Date | null;
+};
+
+function newOrderFulfillmentHtml({
+  fulfillmentMethod,
+  paymentMethod,
+  zelleConfirmation,
+  pickupScheduledAt,
+  shipping,
+}: Pick<
+  NewOrderEmailDetails,
+  | "fulfillmentMethod"
+  | "paymentMethod"
+  | "zelleConfirmation"
+  | "pickupScheduledAt"
+  | "shipping"
+>) {
+  const payment =
+    paymentMethod === "ZELLE"
+      ? `Zelle${
+          zelleConfirmation
+            ? ` &middot; Confirmation ${escapeHtml(zelleConfirmation)}`
+            : ""
+        }`
+      : "Cash at Pickup";
+
+  let fulfillment = "Shipping";
+
+  if (
+    fulfillmentMethod === "PICKUP" &&
+    pickupScheduledAt
+  ) {
+    const pickupDate =
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Los_Angeles",
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }).format(pickupScheduledAt);
+
+    const pickupTime =
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      }).format(pickupScheduledAt);
+
+    fulfillment =
+      `Pickup &middot; ${escapeHtml(pickupDate)} at ${escapeHtml(pickupTime)}`;
+  }
+
+  const shippingSection =
+    fulfillmentMethod === "SHIPPING"
+      ? `
+        <div style="
+          margin-top:16px;
+          padding-top:16px;
+          border-top:1px solid #e8e4dc;
+        ">
+          <strong style="color:#171717;">
+            Shipping Address
+          </strong><br />
+          ${shippingHtml(shipping)}
+        </div>
+      `
+      : "";
+
+  return `
+    <div style="
+      margin:0 0 24px;
+      padding:18px;
+      background:#faf8f3;
+      border:1px solid #e8e4dc;
+      font-family:Arial,sans-serif;
+      font-size:13px;
+      line-height:1.8;
+      color:#55514b;
+    ">
+      <strong>Fulfillment:</strong> ${fulfillment}<br />
+      <strong>Payment:</strong> ${payment}
+      ${shippingSection}
+    </div>
+  `;
+}
+
+export async function sendNewOrderAdminEmail(
+  details: NewOrderEmailDetails
+) {
+  const resend = getResend();
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://ascendpepco.com";
+
+  const adminOrderUrl =
+    `${baseUrl}/admin/orders/${details.orderId}`;
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: [
+      REPLY_TO_EMAIL,
+      "epprintsolutions@gmail.com",
+    ],
+    replyTo: details.customerEmail,
+    subject:
+      `New Ascend Order - ${details.orderNumber} - ${money(details.total)}`,
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        New Order
+      </h1>
+
+      <p style="
+        margin:0 0 22px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        <strong>Order:</strong>
+        ${escapeHtml(details.orderNumber)}<br />
+        <strong>Customer:</strong>
+        ${escapeHtml(details.customerFirstName)}
+        ${escapeHtml(details.customerLastName)}<br />
+        <strong>Email:</strong>
+        ${escapeHtml(details.customerEmail)}
+      </p>
+
+      ${newOrderFulfillmentHtml(details)}
+
+      <table
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        style="border-collapse:collapse;"
+      >
+        <thead>
+          <tr>
+            <th style="padding:10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">
+              PRODUCT
+            </th>
+            <th style="padding:10px 8px;text-align:center;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">
+              QTY
+            </th>
+            <th style="padding:10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">
+              PRICE
+            </th>
+            <th style="padding:10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">
+              TOTAL
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orderItemsHtml(details.items)}
+        </tbody>
+      </table>
+
+      <div style="
+        margin-top:22px;
+        padding-top:18px;
+        border-top:1px solid #e8e4dc;
+        font-family:Arial,sans-serif;
+        font-size:13px;
+        line-height:1.8;
+        color:#55514b;
+      ">
+        Subtotal:
+        <strong>${money(details.subtotal)}</strong><br />
+        Shipping:
+        <strong>${money(details.shippingAmount)}</strong><br />
+        Tax:
+        <strong>${money(details.taxAmount)}</strong><br />
+        <span style="font-size:16px;color:#171717;">
+          Total:
+          <strong>${money(details.total)}</strong>
+        </span>
+      </div>
+
+      <a
+        href="${adminOrderUrl}"
+        style="
+          display:inline-block;
+          margin-top:24px;
+          padding:13px 20px;
+          background:#b78300;
+          color:#ffffff;
+          text-decoration:none;
+          font-family:Arial,sans-serif;
+          font-size:13px;
+          font-weight:700;
+        "
+      >
+        View Order
+      </a>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `New order admin email failed: ${error.message}`
+    );
+  }
+
+  return data;
+}
+
+export async function sendNewOrderCustomerEmail({
+  email,
+  firstName,
+  orderNumber,
+  orderId,
+  shipping,
+  items,
+  subtotal,
+  shippingAmount,
+  taxAmount,
+  total,
+  fulfillmentMethod,
+  paymentMethod,
+  zelleConfirmation,
+  pickupScheduledAt,
+}: {
+  email: string;
+  firstName: string;
+  orderNumber: string;
+  orderId: string;
+  shipping: OrderRequestShipping;
+  items: OrderRequestEmailItem[];
+  subtotal: number;
+  shippingAmount: number;
+  taxAmount: number;
+  total: number;
+  fulfillmentMethod: "SHIPPING" | "PICKUP";
+  paymentMethod: "CASH" | "ZELLE";
+  zelleConfirmation?: string | null;
+  pickupScheduledAt?: Date | null;
+}) {
+  const resend = getResend();
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://ascendpepco.com";
+
+  const orderUrl =
+    `${baseUrl}/account/orders/${orderId}`;
+
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    replyTo: REPLY_TO_EMAIL,
+    subject: `Ascend Order Confirmation - ${orderNumber}`,
+    html: emailShell(`
+      <h1 style="
+        margin:0 0 18px;
+        font-family:Georgia,serif;
+        font-size:28px;
+        font-weight:500;
+        line-height:1.25;
+        color:#171717;
+      ">
+        Order Confirmed
+      </h1>
+
+      <p style="
+        margin:0 0 16px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        Hello ${escapeHtml(firstName)},
+      </p>
+
+      <p style="
+        margin:0 0 22px;
+        font-family:Arial,sans-serif;
+        font-size:14px;
+        line-height:1.75;
+        color:#55514b;
+      ">
+        We received your Ascend order
+        <strong>${escapeHtml(orderNumber)}</strong>.
+        Your order details are below.
+      </p>
+
+      ${newOrderFulfillmentHtml({
+        fulfillmentMethod,
+        paymentMethod,
+        zelleConfirmation,
+        pickupScheduledAt,
+        shipping,
+      })}
+
+      <table
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        style="border-collapse:collapse;"
+      >
+        <thead>
+          <tr>
+            <th style="padding:10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">
+              PRODUCT
+            </th>
+            <th style="padding:10px 8px;text-align:center;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">
+              QTY
+            </th>
+            <th style="padding:10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">
+              PRICE
+            </th>
+            <th style="padding:10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#77736b;">
+              TOTAL
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orderItemsHtml(items)}
+        </tbody>
+      </table>
+
+      <div style="
+        margin-top:22px;
+        padding-top:18px;
+        border-top:1px solid #e8e4dc;
+        font-family:Arial,sans-serif;
+        font-size:13px;
+        line-height:1.8;
+        color:#55514b;
+      ">
+        Subtotal:
+        <strong>${money(subtotal)}</strong><br />
+        Shipping:
+        <strong>${money(shippingAmount)}</strong><br />
+        Tax:
+        <strong>${money(taxAmount)}</strong><br />
+        <span style="font-size:16px;color:#171717;">
+          Order Total:
+          <strong>${money(total)}</strong>
+        </span>
+      </div>
+
+      ${
+        paymentMethod === "ZELLE"
+          ? `
+            <p style="
+              margin:24px 0 0;
+              padding:14px;
+              background:#faf8f3;
+              font-family:Arial,sans-serif;
+              font-size:12px;
+              line-height:1.7;
+              color:#55514b;
+            ">
+              Your Zelle payment confirmation has been
+              submitted and is pending verification by
+              Ascend.
+            </p>
+          `
+          : `
+            <p style="
+              margin:24px 0 0;
+              padding:14px;
+              background:#faf8f3;
+              font-family:Arial,sans-serif;
+              font-size:12px;
+              line-height:1.7;
+              color:#55514b;
+            ">
+              Payment will be collected in cash at pickup.
+            </p>
+          `
+      }
+
+      <a
+        href="${orderUrl}"
+        style="
+          display:inline-block;
+          margin-top:24px;
+          padding:13px 20px;
+          background:#b78300;
+          color:#ffffff;
+          text-decoration:none;
+          font-family:Arial,sans-serif;
+          font-size:13px;
+          font-weight:700;
+        "
+      >
+        View Order
+      </a>
+    `),
+  });
+
+  if (error) {
+    throw new Error(
+      `New order customer email failed: ${error.message}`
+    );
+  }
+
+  return data;
+}

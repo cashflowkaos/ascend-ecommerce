@@ -1,16 +1,43 @@
 import Link from "next/link";
 import {
+  Banknote,
   Check,
-  ClipboardCheck,
+  Clock3,
+  CreditCard,
+  MapPin,
   PackageCheck,
-  UserRound,
+  Truck,
 } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrderRequestSuccessPage({
+function money(value: unknown) {
+  const amount = Number(value);
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(Number.isFinite(amount) ? amount : 0);
+}
+
+function formatPickupTime(value: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(value);
+}
+
+export default async function OrderSuccessPage({
   searchParams,
 }: {
   searchParams: Promise<{
@@ -24,27 +51,80 @@ export default async function OrderRequestSuccessPage({
     user.status === "APPROVED" &&
     !user.mustChangePassword;
 
-  const { order } = await searchParams;
+  if (!user || !memberMode) {
+    redirect("/login");
+  }
+
+  const { order: orderParam } = await searchParams;
 
   const orderNumber =
-    typeof order === "string" &&
-    order.trim().length > 0
-      ? order.trim()
-      : null;
+    typeof orderParam === "string"
+      ? orderParam.trim()
+      : "";
+
+  if (!orderNumber) {
+    redirect("/account");
+  }
+
+  const order = await prisma.order.findFirst({
+    where: {
+      orderNumber,
+      userId: user.id,
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      total: true,
+      fulfillmentMethod: true,
+      paymentMethod: true,
+      paymentStatus: true,
+      pickupScheduledAt: true,
+      createdAt: true,
+    },
+  });
+
+  if (!order) {
+    redirect("/account");
+  }
+
+  const isPickup =
+    order.fulfillmentMethod === "PICKUP";
+
+  const isZelle =
+    order.paymentMethod === "ZELLE";
+
+  const isPaid =
+    order.paymentStatus === "PAID";
+
+  let statusTitle = "Order Confirmed";
+  let statusText =
+    "Your order has been received by Ascend and is now in our system.";
+
+  if (isPickup && order.paymentMethod === "CASH") {
+    statusText =
+      "Your pickup is scheduled. Payment will be collected when you pick up your order.";
+  } else if (isPickup && isZelle && !isPaid) {
+    statusText =
+      "Your pickup is scheduled and your Zelle confirmation was submitted. Payment verification is pending.";
+  } else if (!isPickup && isZelle && !isPaid) {
+    statusText =
+      "Your order has been received and your Zelle confirmation was submitted. Shipping will proceed after payment verification.";
+  } else if (!isPickup && isPaid) {
+    statusText =
+      "Your payment is verified and your order is being prepared for shipping.";
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-neutral-950">
       <div className="mx-auto max-w-[900px] px-5 py-12 sm:px-8 sm:py-16 lg:px-10 lg:py-20">
-
         <section className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-sm sm:rounded-[34px]">
-
           <div className="px-6 py-10 text-center sm:px-10 sm:py-14 lg:px-14">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#D4A11E]/10 text-[#D4A11E]">
               <Check size={30} strokeWidth={2} />
             </div>
 
             <p className="mt-7 text-xs font-semibold uppercase tracking-[0.28em] text-[#D4A11E]">
-              Order Request Received
+              Order Confirmed
             </p>
 
             <h1 className="mt-3 text-4xl font-light tracking-tight sm:text-5xl">
@@ -52,109 +132,162 @@ export default async function OrderRequestSuccessPage({
             </h1>
 
             <p className="mx-auto mt-5 max-w-[620px] text-sm leading-7 text-neutral-500 sm:text-base">
-              Your order request has been successfully received by Ascend.
-              An Ascend representative will contact you to coordinate
-              payment and confirm fulfillment details.
+              {statusText}
             </p>
 
-            {orderNumber && (
-              <div className="mx-auto mt-7 max-w-[420px] rounded-[18px] border border-neutral-200 bg-neutral-50 px-5 py-4">
+            <div className="mx-auto mt-7 grid max-w-[560px] gap-3 sm:grid-cols-2">
+              <div className="rounded-[18px] border border-neutral-200 bg-neutral-50 px-5 py-4">
                 <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
-                  Order Request Number
+                  Order Number
                 </span>
 
-                <strong className="mt-1 block text-lg font-semibold tracking-[0.04em] text-neutral-950">
-                  {orderNumber}
+                <strong className="mt-1 block text-base font-semibold tracking-[0.03em] text-neutral-950">
+                  {order.orderNumber}
                 </strong>
               </div>
-            )}
+
+              <div className="rounded-[18px] border border-neutral-200 bg-neutral-50 px-5 py-4">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
+                  Order Total
+                </span>
+
+                <strong className="mt-1 block text-lg font-semibold text-neutral-950">
+                  {money(order.total)}
+                </strong>
+              </div>
+            </div>
           </div>
 
           <div className="border-t border-neutral-200 bg-neutral-50/60 px-6 py-8 sm:px-10 sm:py-10 lg:px-14">
-
             <h2 className="text-center text-lg font-medium">
-              What Happens Next
+              Order Details
             </h2>
 
-            <div className="mt-7 grid gap-4 sm:grid-cols-3">
-
+            <div className="mx-auto mt-7 grid max-w-[700px] gap-4 sm:grid-cols-2">
               <div className="rounded-[20px] border border-neutral-200 bg-white p-5">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D4A11E]/10 text-[#D4A11E]">
-                  <ClipboardCheck
-                    size={19}
-                    strokeWidth={1.8}
-                  />
+                  {isPickup ? (
+                    <MapPin size={19} strokeWidth={1.8} />
+                  ) : (
+                    <Truck size={19} strokeWidth={1.8} />
+                  )}
                 </div>
 
                 <span className="mt-5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#D4A11E]">
-                  Step 01
+                  Fulfillment
                 </span>
 
                 <strong className="mt-1 block text-sm font-semibold">
-                  Request Received
+                  {isPickup ? "Pickup" : "Shipping"}
                 </strong>
 
                 <p className="mt-2 text-xs leading-5 text-neutral-500">
-                  Your order details have been submitted to Ascend
-                  for review.
+                  {isPickup && order.pickupScheduledAt
+                    ? formatPickupTime(
+                        order.pickupScheduledAt
+                      )
+                    : isPickup
+                      ? "Pickup scheduling confirmed with your order."
+                      : "Your order will be shipped after payment verification."}
                 </p>
               </div>
 
               <div className="rounded-[20px] border border-neutral-200 bg-white p-5">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D4A11E]/10 text-[#D4A11E]">
-                  <UserRound
-                    size={19}
-                    strokeWidth={1.8}
-                  />
+                  {order.paymentMethod === "CASH" ? (
+                    <Banknote
+                      size={19}
+                      strokeWidth={1.8}
+                    />
+                  ) : (
+                    <CreditCard
+                      size={19}
+                      strokeWidth={1.8}
+                    />
+                  )}
                 </div>
 
                 <span className="mt-5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#D4A11E]">
-                  Step 02
+                  Payment
                 </span>
 
                 <strong className="mt-1 block text-sm font-semibold">
-                  Ascend Will Contact You
+                  {order.paymentMethod === "CASH"
+                    ? "Cash at Pickup"
+                    : "Zelle"}
                 </strong>
 
                 <p className="mt-2 text-xs leading-5 text-neutral-500">
-                  A representative will coordinate payment and
-                  confirm fulfillment details with you.
+                  {order.paymentMethod === "CASH"
+                    ? "Payment will be collected when you pick up your order."
+                    : isPaid
+                      ? "Your Zelle payment has been verified."
+                      : "Your Zelle confirmation was submitted and is pending verification."}
                 </p>
               </div>
+            </div>
 
-              <div className="rounded-[20px] border border-neutral-200 bg-white p-5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D4A11E]/10 text-[#D4A11E]">
-                  <PackageCheck
-                    size={19}
-                    strokeWidth={1.8}
-                  />
+            {isPickup && order.pickupScheduledAt && (
+              <div className="mx-auto mt-4 flex max-w-[700px] items-start gap-3 rounded-[18px] border border-[#D4A11E]/25 bg-[#D4A11E]/5 px-5 py-4">
+                <Clock3
+                  size={18}
+                  className="mt-0.5 shrink-0 text-[#D4A11E]"
+                />
+
+                <div>
+                  <strong className="block text-sm font-semibold">
+                    Your Pickup Time
+                  </strong>
+
+                  <p className="mt-1 text-xs leading-5 text-neutral-600">
+                    {formatPickupTime(
+                      order.pickupScheduledAt
+                    )}
+                  </p>
+
+                  <div className="mt-4 border-t border-[#D4A11E]/20 pt-4">
+                    <strong className="block text-sm font-semibold">
+                      Pickup Location
+                    </strong>
+
+                    <p className="mt-1 text-xs leading-5 text-neutral-600">
+                      Your pickup location will be confirmed by Ascend
+                      and sent to your email. It will also be available
+                      in My Account → Orders once confirmed.
+                    </p>
+                  </div>
                 </div>
+              </div>
+            )}
 
-                <span className="mt-5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#D4A11E]">
-                  Step 03
-                </span>
+            <div className="mx-auto mt-4 flex max-w-[700px] items-start gap-3 rounded-[18px] border border-neutral-200 bg-white px-5 py-4">
+              <PackageCheck
+                size={18}
+                className="mt-0.5 shrink-0 text-[#D4A11E]"
+              />
 
-                <strong className="mt-1 block text-sm font-semibold">
-                  Order Processing
+              <div>
+                <strong className="block text-sm font-semibold">
+                  Confirmation Sent
                 </strong>
 
-                <p className="mt-2 text-xs leading-5 text-neutral-500">
-                  Once payment and fulfillment are confirmed,
-                  your order will move into processing.
+                <p className="mt-1 text-xs leading-5 text-neutral-500">
+                  We sent your order confirmation to{" "}
+                  <span className="font-medium text-neutral-700">
+                    {user.email}
+                  </span>
+                  .
                 </p>
               </div>
-
             </div>
 
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              {memberMode && (
-                <Link
-                  href="/account"
-                  className="flex min-h-12 items-center justify-center rounded-full bg-[#D4A11E] px-7 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#b98b17]"
-                >
-                  My Account
-                </Link>
-              )}
+              <Link
+                href="/account"
+                className="flex min-h-12 items-center justify-center rounded-full bg-[#D4A11E] px-7 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#b98b17]"
+              >
+                My Account
+              </Link>
 
               <Link
                 href="/compounds"
@@ -165,13 +298,10 @@ export default async function OrderRequestSuccessPage({
             </div>
 
             <p className="mt-6 text-center text-[11px] leading-5 text-neutral-400">
-              Submission of an order request does not constitute payment
-              or final fulfillment confirmation.
+              Keep your order number for your records.
             </p>
-
           </div>
         </section>
-
       </div>
     </main>
   );

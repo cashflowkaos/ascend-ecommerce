@@ -14,10 +14,7 @@ import {
 
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ensurePickupAvailability } from "@/lib/pickupAvailability";
 import { memberSignOut } from "../../actions";
-import { scheduleOrderPickup } from "../pickup-actions";
-import PickupTimeSelector from "../PickupTimeSelector";
 
 export const dynamic = "force-dynamic";
 
@@ -95,46 +92,7 @@ export default async function MemberOrderDetailPage({
   if (!order) {
     notFound();
   }
-  await ensurePickupAvailability();
 
-  const pickupSlots =
-    order.paymentStatus === "PAID" &&
-    order.fulfillmentMethod === "PICKUP" &&
-    !order.pickupScheduledAt
-      ? await prisma.pickupAvailability.findMany({
-          where: {
-            isActive: true,
-            bookedOrderId: null,
-            manualReservationName: null,
-            startsAt: {
-              gt: new Date(),
-            },
-          },
-          orderBy: {
-            startsAt: "asc",
-          },
-        })
-      : [];
-
-  const pickupDays = pickupSlots.reduce<
-    Record<string, typeof pickupSlots>
-  >((groups, slot) => {
-    const key = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Los_Angeles",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(slot.startsAt);
-
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-
-    groups[key].push(slot);
-    return groups;
-  }, {});
-
-  const pickupDayEntries = Object.entries(pickupDays);
 
 
   return (
@@ -264,58 +222,60 @@ export default async function MemberOrderDetailPage({
               </div>
             </article>
 
-            <article className="member-account-card">
-              <div className="member-account-card-heading">
-                <div>
-                  <span className="admin-eyebrow">
-                    SHIPPING
-                  </span>
+            {order.fulfillmentMethod === "SHIPPING" && (
+              <article className="member-account-card">
+                <div className="member-account-card-heading">
+                  <div>
+                    <span className="admin-eyebrow">
+                      SHIPPING
+                    </span>
 
-                  <h2>Delivery Information</h2>
+                    <h2>Delivery Information</h2>
+                  </div>
+
+                  <MapPin size={19} />
                 </div>
 
-                <MapPin size={19} />
-              </div>
+                <div className="member-address-preview">
+                  <strong>
+                    {order.shippingFirstName}{" "}
+                    {order.shippingLastName}
+                  </strong>
 
-              <div className="member-address-preview">
-                <strong>
-                  {order.shippingFirstName}{" "}
-                  {order.shippingLastName}
-                </strong>
+                  {order.shippingCompany && (
+                    <span>
+                      {order.shippingCompany}
+                    </span>
+                  )}
 
-                {order.shippingCompany && (
                   <span>
-                    {order.shippingCompany}
+                    {order.shippingAddress1}
                   </span>
-                )}
 
-                <span>
-                  {order.shippingAddress1}
-                </span>
+                  {order.shippingAddress2 && (
+                    <span>
+                      {order.shippingAddress2}
+                    </span>
+                  )}
 
-                {order.shippingAddress2 && (
                   <span>
-                    {order.shippingAddress2}
+                    {order.shippingCity},{" "}
+                    {order.shippingState}{" "}
+                    {order.shippingPostalCode}
                   </span>
-                )}
 
-                <span>
-                  {order.shippingCity},{" "}
-                  {order.shippingState}{" "}
-                  {order.shippingPostalCode}
-                </span>
-
-                <span>
-                  {order.shippingCountry}
-                </span>
-
-                {order.shippingPhone && (
                   <span>
-                    {order.shippingPhone}
+                    {order.shippingCountry}
                   </span>
-                )}
-              </div>
-            </article>
+
+                  {order.shippingPhone && (
+                    <span>
+                      {order.shippingPhone}
+                    </span>
+                  )}
+                </div>
+              </article>
+            )}
 
             {order.trackingNumber && (
               <article className="member-account-card">
@@ -339,102 +299,93 @@ export default async function MemberOrderDetailPage({
           </section>
 
           <aside className="space-y-6">
-            {order.fulfillmentMethod === "PICKUP" &&
-              order.paymentStatus === "PAID" && (
-                <article className="member-account-card">
-                  <div className="member-account-card-heading">
-                    <div>
-                      <span className="admin-eyebrow">
-                        PICKUP
-                      </span>
+            {order.fulfillmentMethod === "PICKUP" && (
+              <article className="member-account-card">
+                <div className="member-account-card-heading">
+                  <div>
+                    <span className="admin-eyebrow">
+                      PICKUP
+                    </span>
 
-                      <h2>
-                        {!order.pickupScheduledAt
-                          ? "Choose Your Pickup Time"
-                          : order.pickupConfirmedAt
-                            ? "Pickup Confirmed"
-                            : "Pickup Time Selected"}
-                      </h2>
-                    </div>
-
-                    <CalendarClock size={19} />
+                    <h2>
+                      {order.pickupConfirmedAt
+                        ? "Pickup Confirmed"
+                        : "Pickup Details"}
+                    </h2>
                   </div>
 
-                  {order.pickupScheduledAt ? (
-                    <div className="mt-5 rounded-xl border border-[#D4A11E]/30 bg-[#D4A11E]/5 p-4">
-                      <strong className="block text-sm text-neutral-950">
-                        {formatPickupDate(
-                          order.pickupScheduledAt
-                        )}
-                      </strong>
+                  <CalendarClock size={19} />
+                </div>
 
-                      <span className="mt-1 block text-sm text-neutral-600">
-                        {formatPickupTime(
-                          order.pickupScheduledAt
-                        )}
+                {order.pickupScheduledAt ? (
+                  <div className="mt-5 rounded-xl border border-[#D4A11E]/30 bg-[#D4A11E]/5 p-4">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.1em] text-neutral-500">
+                      Your Pickup Time
+                    </span>
+
+                    <strong className="mt-2 block text-sm text-neutral-950">
+                      {formatPickupDate(
+                        order.pickupScheduledAt
+                      )}
+                    </strong>
+
+                    <span className="mt-1 block text-sm text-neutral-600">
+                      {formatPickupTime(
+                        order.pickupScheduledAt
+                      )}
+                    </span>
+
+                    <div className="mt-4 border-t border-[#D4A11E]/20 pt-4">
+                      <span className="block text-xs font-semibold uppercase tracking-[0.1em] text-neutral-500">
+                        Pickup Location
                       </span>
 
-                      {order.pickupConfirmedAt ? (
-                        <div className="mt-4 border-t border-[#D4A11E]/20 pt-4">
-                          <span className="block text-xs font-semibold uppercase tracking-[0.1em] text-neutral-500">
-                            Pickup Location
-                          </span>
-
+                      {order.pickupConfirmedAt &&
+                      order.pickupAddress1 &&
+                      order.pickupCity &&
+                      order.pickupState &&
+                      order.pickupPostalCode ? (
+                        <>
                           <div className="mt-2 text-sm leading-6 text-neutral-800">
-                            <div>{order.pickupAddress1}</div>
+                            <div>
+                              {order.pickupAddress1}
+                            </div>
 
                             {order.pickupAddress2 && (
-                              <div>{order.pickupAddress2}</div>
+                              <div>
+                                {order.pickupAddress2}
+                              </div>
                             )}
 
                             <div>
-                              {order.pickupCity}, {order.pickupState}{" "}
+                              {order.pickupCity},{" "}
+                              {order.pickupState}{" "}
                               {order.pickupPostalCode}
                             </div>
                           </div>
 
                           <p className="mt-3 text-xs leading-5 text-neutral-500">
-                            Your pickup appointment has been confirmed.
+                            Your pickup location has been confirmed.
+                            A confirmation was also sent to your email.
                           </p>
-                        </div>
+                        </>
                       ) : (
-                        <p className="mt-3 text-xs leading-5 text-neutral-500">
-                          Your pickup time has been selected. Ascend will
-                          confirm your pickup location shortly.
+                        <p className="mt-2 text-xs leading-5 text-neutral-500">
+                          Your pickup location is pending confirmation
+                          from Ascend. Once confirmed, the location will
+                          appear here and will also be sent to your email.
                         </p>
                       )}
                     </div>
-                  ) : pickupSlots.length === 0 ? (
-                    <p className="mt-5 text-sm leading-6 text-neutral-500">
-                      There are currently no pickup appointments
-                      available. Please check back soon.
-                    </p>
-                  ) : (
-                    <PickupTimeSelector
-                      orderId={order.id}
-                      days={pickupDayEntries.map(
-                        ([dateKey, daySlots]) => {
-                          const firstSlot = daySlots[0];
-                          const lastSlot =
-                            daySlots[daySlots.length - 1];
-
-                          return {
-                            dateKey,
-                            label: formatPickupDate(
-                              firstSlot.startsAt
-                            ),
-                            windowLabel: `${formatPickupTime(
-                              firstSlot.startsAt
-                            )} - ${formatPickupTime(
-                              lastSlot.endsAt
-                            )}`,
-                            slots: daySlots,
-                          };
-                        }
-                      )}
-                    />                  )}
-                </article>
-              )}
+                  </div>
+                ) : (
+                  <p className="mt-5 text-sm leading-6 text-neutral-500">
+                    No pickup time is associated with this order.
+                    Please contact Ascend for assistance.
+                  </p>
+                )}
+              </article>
+            )}
 
             <article className="member-account-card">
               <div className="member-account-card-heading">
