@@ -7,6 +7,22 @@ type RequestedCartItem = {
   quantity?: unknown;
 };
 
+function distroPrice(
+  cost: number,
+  tier: string
+) {
+  switch (tier) {
+    case "TIER_1":
+      return Math.ceil(cost * 1.4);
+    case "TIER_2":
+      return Math.ceil(cost * 1.35);
+    case "TIER_3":
+      return Math.ceil(cost * 1.3);
+    default:
+      return null;
+  }
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
 
@@ -185,17 +201,16 @@ export async function POST(request: Request) {
           },
           select: {
             id: true,
-            name: true,
-            sku: true,
-            description: true,
             enabled: true,
             available: true,
-
-            ...(distroMember.distroTier === "TIER_1"
-              ? { tier1Price: true }
-              : distroMember.distroTier === "TIER_2"
-                ? { tier2Price: true }
-                : { tier3Price: true }),
+            backOfficeProduct: {
+              select: {
+                sku: true,
+                name: true,
+                cost: true,
+                active: true,
+              },
+            },
           },
         })
       : [];
@@ -238,55 +253,48 @@ export async function POST(request: Request) {
         continue;
       }
 
-      if (!product.enabled) {
+      const backOfficeProduct =
+        product.backOfficeProduct;
+
+      if (!backOfficeProduct) {
         errors.push(
-          `${product.name} is no longer active.`
+          "A Distro product in your cart is no longer linked to the catalog."
+        );
+        continue;
+      }
+
+      if (!product.enabled || !backOfficeProduct.active) {
+        errors.push(
+          `${backOfficeProduct.name} is no longer active.`
         );
         continue;
       }
 
       if (!product.available) {
         errors.push(
-          `${product.name} is currently out of stock.`
+          `${backOfficeProduct.name} is currently unavailable.`
         );
         continue;
       }
 
-      let distroPrice: unknown = null;
-
-      if (
-        distroMember.distroTier === "TIER_1" &&
-        "tier1Price" in product
-      ) {
-        distroPrice = product.tier1Price;
-      }
-
-      if (
-        distroMember.distroTier === "TIER_2" &&
-        "tier2Price" in product
-      ) {
-        distroPrice = product.tier2Price;
-      }
-
-      if (
-        distroMember.distroTier === "TIER_3" &&
-        "tier3Price" in product
-      ) {
-        distroPrice = product.tier3Price;
-      }
-
-      if (distroPrice === null) {
+      if (backOfficeProduct.cost === null) {
         errors.push(
-          `${product.name} does not currently have Distro pricing.`
+          `${backOfficeProduct.name} does not currently have Distro pricing.`
         );
         continue;
       }
 
-      const unitPrice = Number(distroPrice);
+      const unitPrice = distroPrice(
+        Number(backOfficeProduct.cost),
+        distroMember.distroTier
+      );
 
-      if (!Number.isFinite(unitPrice)) {
+      if (
+        unitPrice === null ||
+        !Number.isFinite(unitPrice)
+      ) {
         errors.push(
-          `${product.name} has invalid Distro pricing.`
+          `${backOfficeProduct.name} has invalid Distro pricing.`
         );
         continue;
       }
@@ -295,15 +303,16 @@ export async function POST(request: Request) {
         productId: product.id,
         variantId: cartId,
         slug: "distro",
-        productName: product.name,
+        productName: backOfficeProduct.name,
         image: null,
         strength: "Distro",
-        sku: product.sku,
+        sku: backOfficeProduct.sku,
         quantity,
         unitPrice,
         lineTotal: unitPrice * quantity,
 
-        // Distro inventory quantity is informational only.
+        // Physical inventory is managed in Back Office.
+        // Distro availability remains a business control.
         inventoryQty: null,
         trackInventory: false,
       });

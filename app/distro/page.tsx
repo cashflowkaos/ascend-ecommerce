@@ -18,102 +18,110 @@ function tierLabel(tier: string | null) {
   }
 }
 
+function distroPrice(
+  cost: number | null,
+  tier: string | null
+) {
+  if (cost === null) return null;
+
+  switch (tier) {
+    case "TIER_1":
+      return Math.ceil(cost * 1.4);
+    case "TIER_2":
+      return Math.ceil(cost * 1.35);
+    case "TIER_3":
+      return Math.ceil(cost * 1.3);
+    default:
+      return null;
+  }
+}
+
 export default async function DistroPage() {
   const member = await requireDistroMember();
 
   const products = await prisma.distroProduct.findMany({
-    where: { enabled: true },
-    orderBy: [
-      { sortOrder: "asc" },
-      { name: "asc" },
-    ],
+    where: {
+      enabled: true,
+      backOfficeProduct: {
+        is: {
+          active: true,
+        },
+      },
+    },
+    orderBy: {
+      backOfficeProduct: {
+        name: "asc",
+      },
+    },
     select: {
       id: true,
-      sku: true,
-      name: true,
-      description: true,
       available: true,
-
-      ...(member.distroTier === "TIER_1"
-        ? { tier1Price: true }
-        : member.distroTier === "TIER_2"
-          ? { tier2Price: true }
-          : { tier3Price: true }),
+      backOfficeProduct: {
+        select: {
+          sku: true,
+          name: true,
+          description: true,
+          cost: true,
+        },
+      },
     },
   });
 
-  const catalog = products.map((product) => {
-    let price: number | null = null;
+  const catalog = products
+    .filter(
+      (product) => product.backOfficeProduct !== null
+    )
+    .map((product) => {
+      const backOfficeProduct =
+        product.backOfficeProduct!;
 
-    if (
-      member.distroTier === "TIER_1" &&
-      "tier1Price" in product
-    ) {
-      price =
-        product.tier1Price === null
+      const cost =
+        backOfficeProduct.cost === null
           ? null
-          : Number(product.tier1Price);
-    }
+          : Number(backOfficeProduct.cost);
 
-    if (
-      member.distroTier === "TIER_2" &&
-      "tier2Price" in product
-    ) {
-      price =
-        product.tier2Price === null
-          ? null
-          : Number(product.tier2Price);
-    }
-
-    if (
-      member.distroTier === "TIER_3" &&
-      "tier3Price" in product
-    ) {
-      price =
-        product.tier3Price === null
-          ? null
-          : Number(product.tier3Price);
-    }
-
-    return {
-      id: product.id,
-      sku: product.sku,
-      name: product.name,
-      description: product.description,
-      available: product.available,
-      price,
-    };
-  });
+      return {
+        id: product.id,
+        sku: backOfficeProduct.sku,
+        name: backOfficeProduct.name,
+        description: backOfficeProduct.description,
+        available: product.available,
+        price: distroPrice(
+          cost,
+          member.distroTier
+        ),
+      };
+    });
 
   return (
     <>
       <Header memberMode />
 
       <main className="distro-page">
-      <div className="distro-shell">
-        <header className="distro-header">
-          <div>
-            <span className="distro-eyebrow">
-              ASCEND DISTRO
-            </span>
+        <div className="distro-shell">
+          <header className="distro-header">
+            <div>
+              <span className="distro-eyebrow">
+                ASCEND DISTRO
+              </span>
 
-            <h1>Distribution Catalog</h1>
+              <h1>Distribution Catalog</h1>
 
-            <p>
-              Private wholesale inventory for approved Ascend
-              distribution members.
-            </p>
-          </div>
+              <p>
+                Private wholesale inventory for approved Ascend
+                distribution members.
+              </p>
+            </div>
 
-          <div className="distro-header-actions">
-            <span className="distro-tier-badge">
-              {tierLabel(member.distroTier)}
-            </span>
-          </div>
-        </header>
+            <div className="distro-header-actions">
+              <span className="distro-tier-badge">
+                {tierLabel(member.distroTier)}
+              </span>
+            </div>
+          </header>
 
-        <DistroCatalog products={catalog} />
-      </div>
+          <DistroCatalog products={catalog} />
+        </div>
       </main>
     </>
   );

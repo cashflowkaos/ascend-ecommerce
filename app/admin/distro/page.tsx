@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { updateDistroSettings } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +14,9 @@ export default async function DistroPage() {
       where: {
         active: true,
       },
-      orderBy: [
-        { sortOrder: "asc" },
-        { name: "asc" },
-      ],
+      orderBy: {
+        name: "asc",
+      },
       include: {
         distroProduct: {
           select: {
