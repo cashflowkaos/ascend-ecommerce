@@ -77,10 +77,10 @@ export default function NewBackOfficeProductPage() {
             />
           </label>
 
-          <BackOfficeProductPricing defaultCost="" />
+          <BackOfficeProductPricing defaultCost="" defaultRetailPrice="" />
 
           <label className="backoffice-form-field">
-            <span>Vials Per Kit</span>
+            <span>Units Per Kit</span>
 
             <input
               type="number"
@@ -92,10 +92,25 @@ export default function NewBackOfficeProductPage() {
             />
 
             <small>
-              Physical inventory is always tracked in individual
-              vials. This controls kit conversion.
+              Physical inventory is tracked in individual units. This controls kit conversion.
             </small>
           </label>
+
+          <div className="backoffice-form-field">
+            <span>Display Distro</span>
+
+            <label className="admin-switch">
+              <input
+                type="checkbox"
+                name="displayDistro"
+              />
+              <span />
+            </label>
+
+            <small>
+              Show this product in the Distro storefront.
+            </small>
+          </div>
 
           <label className="backoffice-form-field">
             <span>Initial Batch Number</span>

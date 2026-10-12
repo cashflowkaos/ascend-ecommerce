@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import BatchCoaUpload from "@/components/backoffice/BatchCoaUpload";
 import BackOfficeProductPricing from "@/components/backoffice/BackOfficeProductPricing";
+import BackOfficeSaveButton from "@/components/backoffice/BackOfficeSaveButton";
 import { prisma } from "@/lib/prisma";
 import {
   addBackOfficeBatch,
@@ -140,10 +141,15 @@ export default async function EditBackOfficeProductPage({
                 ? ""
                 : product.cost.toString()
             }
+            defaultRetailPrice={
+              product.retailPrice == null
+                ? ""
+                : product.retailPrice.toString()
+            }
           />
 
           <label className="backoffice-form-field">
-            <span>Vials Per Kit</span>
+            <span>Units Per Kit</span>
 
             <input
               type="number"
@@ -155,10 +161,26 @@ export default async function EditBackOfficeProductPage({
             />
 
             <small>
-              Physical inventory remains tracked in individual
-              vials. This controls vial-to-kit conversion.
+              Physical inventory is tracked in individual units. This controls unit-to-kit conversion.
             </small>
           </label>
+
+          <div className="backoffice-form-field">
+            <span>Display Distro</span>
+
+            <label className="admin-switch">
+              <input
+                type="checkbox"
+                name="displayDistro"
+                defaultChecked={product.displayDistro}
+              />
+              <span />
+            </label>
+
+            <small>
+              Show this product in the Distro storefront.
+            </small>
+          </div>
         </div>
 
         <div className="backoffice-form-actions">
@@ -169,12 +191,7 @@ export default async function EditBackOfficeProductPage({
             Cancel
           </Link>
 
-          <button
-            type="submit"
-            className="backoffice-primary-button"
-          >
-            Save Product
-          </button>
+          <BackOfficeSaveButton idleLabel="Save Product" />
         </div>
       </form>
 

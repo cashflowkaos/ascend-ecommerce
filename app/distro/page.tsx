@@ -45,6 +45,7 @@ export default async function DistroPage() {
       backOfficeProduct: {
         is: {
           active: true,
+          displayDistro: true,
         },
       },
     },

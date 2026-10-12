@@ -301,6 +301,17 @@ export async function createBackOfficeProduct(
   const cost =
     costInput === "" ? null : Number(costInput);
 
+  const retailPriceInput = String(
+    formData.get("retailPrice") ?? ""
+  ).trim();
+
+  const retailPrice =
+    retailPriceInput === ""
+      ? null
+      : Number(retailPriceInput);
+  const displayDistro =
+    formData.has("displayDistro");
+
   const batchNumber = String(
     formData.get("batchNumber") ?? ""
   ).trim();
@@ -327,11 +338,21 @@ export async function createBackOfficeProduct(
   }
 
   if (
+    retailPrice !== null &&
+    (!Number.isFinite(retailPrice) ||
+      retailPrice < 0)
+  ) {
+    throw new Error(
+      "Retail price must be a valid number greater than or equal to zero."
+    );
+  }
+
+  if (
     !Number.isInteger(unitsPerKit) ||
     unitsPerKit < 1
   ) {
     throw new Error(
-      "Vials per kit must be a whole number greater than zero."
+      "Units per kit must be a whole number greater than zero."
     );
   }
 
@@ -355,6 +376,8 @@ export async function createBackOfficeProduct(
           name,
           description,
           cost,
+          retailPrice,
+          displayDistro,
           unitsPerKit,
         },
       });
@@ -400,6 +423,17 @@ export async function updateBackOfficeProduct(
   const cost =
     costInput === "" ? null : Number(costInput);
 
+  const retailPriceInput = String(
+    formData.get("retailPrice") ?? ""
+  ).trim();
+
+  const retailPrice =
+    retailPriceInput === ""
+      ? null
+      : Number(retailPriceInput);
+  const displayDistro =
+    formData.has("displayDistro");
+
   const unitsPerKit = Number(
     formData.get("unitsPerKit") ?? 10
   );
@@ -426,11 +460,21 @@ export async function updateBackOfficeProduct(
   }
 
   if (
+    retailPrice !== null &&
+    (!Number.isFinite(retailPrice) ||
+      retailPrice < 0)
+  ) {
+    throw new Error(
+      "Retail price must be a valid number greater than or equal to zero."
+    );
+  }
+
+  if (
     !Number.isInteger(unitsPerKit) ||
     unitsPerKit < 1
   ) {
     throw new Error(
-      "Vials per kit must be a whole number greater than zero."
+      "Units per kit must be a whole number greater than zero."
     );
   }
 
@@ -466,6 +510,8 @@ export async function updateBackOfficeProduct(
       name,
       description,
       cost,
+      retailPrice,
+      displayDistro,
       unitsPerKit,
     },
   });

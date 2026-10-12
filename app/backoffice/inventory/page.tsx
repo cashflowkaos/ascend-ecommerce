@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import BackOfficeInventoryRow from "@/components/backoffice/BackOfficeInventoryRow";
 
 export default async function BackOfficeInventoryPage() {
   const [products, locations] = await Promise.all([
@@ -143,7 +144,6 @@ export default async function BackOfficeInventoryPage() {
                 ))}
 
                 <th>Total</th>
-                <th></th>
               </tr>
             </thead>
 
@@ -176,7 +176,7 @@ export default async function BackOfficeInventoryPage() {
                 );
 
                 return (
-                  <tr key={product.id}>
+                  <BackOfficeInventoryRow productId={product.id}>
                     <td>
                       <strong>{product.sku}</strong>
                     </td>
@@ -197,15 +197,7 @@ export default async function BackOfficeInventoryPage() {
                       <strong>{productTotal}</strong>
                     </td>
 
-                    <td>
-                      <Link
-                        href={`/backoffice/inventory/${product.id}`}
-                        className="backoffice-table-action"
-                      >
-                        Edit
-                      </Link>
-                    </td>
-                  </tr>
+                  </BackOfficeInventoryRow>
                 );
               })}
             </tbody>
@@ -248,7 +240,7 @@ export default async function BackOfficeInventoryPage() {
                 <div className="backoffice-inventory-compact-product">
                   <strong>{product.name}</strong>
                   <span>
-                    {product.sku} · {product.batches.length}{" "}
+                    {product.sku} Ã‚· {product.batches.length}{" "}
                     {product.batches.length === 1 ? "batch" : "batches"}
                   </span>
                 </div>

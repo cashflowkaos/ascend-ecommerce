@@ -4,7 +4,7 @@ import { updateDistroSettings } from "./actions";
 export const dynamic = "force-dynamic";
 
 function money(value: number | null) {
-  if (value === null) return "—";
+  if (value === null) return "Ã¢â‚¬â€";
   return `$${value.toFixed(2)}`;
 }
 
@@ -13,6 +13,7 @@ export default async function DistroPage() {
     await prisma.backOfficeProduct.findMany({
       where: {
         active: true,
+        displayDistro: true,
       },
       orderBy: {
         name: "asc",
@@ -167,7 +168,7 @@ export default async function DistroPage() {
                           </small>
                         ))
                       ) : (
-                        <small>—</small>
+                        <small>Ã¢â‚¬â€</small>
                       )}
                     </td>
 
