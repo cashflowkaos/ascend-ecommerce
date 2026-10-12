@@ -21,6 +21,33 @@ enum UserRole {
   ADMIN
 }
 
+enum BackOfficeInvoiceStatus {
+  OPEN
+  COMPLETED
+  VOID
+}
+
+enum BackOfficeInvoiceSource {
+  POS
+  WEBSITE
+  LEGACY_IMPORT
+}
+
+enum BackOfficeSellUnit {
+  UNIT
+  KIT
+}
+
+enum BackOfficePaymentMethod {
+  CASH
+  ZELLE
+}
+
+enum BackOfficePaymentType {
+  PAYMENT
+  REFUND
+}
+
 enum MemberStatus {
   PENDING
   APPROVED
@@ -354,12 +381,12 @@ model Order {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  status        OrderStatus         @default(PENDING)
+  status            OrderStatus         @default(PENDING)
   paymentStatus     PaymentStatus       @default(UNPAID)
   paymentMethod     OrderPaymentMethod?
   zelleConfirmation String?
   paidAt            DateTime?
-  channel       OrderChannel        @default(RETAIL)
+  channel           OrderChannel        @default(RETAIL)
 
   subtotal       Decimal @db.Decimal(10, 2)
   shippingAmount Decimal @default(0) @db.Decimal(10, 2)
@@ -401,6 +428,8 @@ model Order {
   items              OrderItem[]
   orderActivities    OrderActivity[]
   pickupAvailability PickupAvailability?
+
+  backOfficeInvoice BackOfficeInvoice?
 
   @@index([userId])
   @@index([status])
@@ -624,6 +653,10 @@ model BackOfficeProduct {
   retailPrice Decimal? @db.Decimal(10, 2)
 
   unitsPerKit Int @default(10)
+
+  // Legacy production column retained for backward-compatible schema changes.
+  // Retail storefront does not use this field.
+  displayRetail Boolean @default(false)
   displayDistro Boolean @default(false)
 
   active    Boolean @default(true)
@@ -634,6 +667,7 @@ model BackOfficeProduct {
 
   batches       BackOfficeBatch[]
   distroProduct DistroProduct?
+  invoiceItems  BackOfficeInvoiceItem[]
 
   @@index([name])
   @@index([active, sortOrder])
@@ -657,9 +691,10 @@ model BackOfficeBatch {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  balances  BackOfficeInventoryBalance[]
-  movements BackOfficeInventoryMovement[]
-  transfers BackOfficeInventoryTransfer[]
+  balances           BackOfficeInventoryBalance[]
+  movements          BackOfficeInventoryMovement[]
+  transfers          BackOfficeInventoryTransfer[]
+  invoiceAllocations BackOfficeInvoiceItemAllocation[]
 
   @@unique([productId, batchNumber])
   @@index([productId, status])
@@ -679,10 +714,12 @@ model BackOfficeLocation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  balances      BackOfficeInventoryBalance[]
-  movements     BackOfficeInventoryMovement[]
-  transfersFrom BackOfficeInventoryTransfer[] @relation("BackOfficeTransferFrom")
-  transfersTo   BackOfficeInventoryTransfer[] @relation("BackOfficeTransferTo")
+  balances           BackOfficeInventoryBalance[]
+  movements          BackOfficeInventoryMovement[]
+  transfersFrom      BackOfficeInventoryTransfer[]     @relation("BackOfficeTransferFrom")
+  transfersTo        BackOfficeInventoryTransfer[]     @relation("BackOfficeTransferTo")
+  invoices           BackOfficeInvoice[]
+  invoiceAllocations BackOfficeInvoiceItemAllocation[]
 
   @@index([active, sortOrder])
 }
@@ -791,6 +828,8 @@ model BackOfficeCustomer {
   notes  String? @db.Text
   active Boolean @default(true)
 
+  invoices BackOfficeInvoice[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -799,4 +838,153 @@ model BackOfficeCustomer {
   @@index([phone])
   @@index([pricingType])
   @@index([active])
+}
+
+model BackOfficeInvoice {
+  id            String @id @default(cuid())
+  invoiceNumber String @unique
+
+  source BackOfficeInvoiceSource @default(POS)
+  status BackOfficeInvoiceStatus @default(OPEN)
+
+  customerId String
+  customer   BackOfficeCustomer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  customerFirstName String
+  customerLastName  String
+  customerCompany   String?
+  customerEmail     String?
+  customerPhone     String?
+  pricingType       BackOfficeCustomerPricingType
+
+  locationId String
+  location   BackOfficeLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  locationCode String
+  locationName String
+
+  websiteOrderId String? @unique
+  websiteOrder   Order?  @relation(fields: [websiteOrderId], references: [id], onDelete: SetNull)
+
+  legacySaleId Int? @unique
+
+  subtotal Decimal @default(0) @db.Decimal(10, 2)
+
+  discountPercent Decimal? @db.Decimal(5, 2)
+  discountAmount  Decimal  @default(0) @db.Decimal(10, 2)
+
+  taxAmount Decimal @default(0) @db.Decimal(10, 2)
+  total     Decimal @default(0) @db.Decimal(10, 2)
+
+  amountPaid Decimal @default(0) @db.Decimal(10, 2)
+  balanceDue Decimal @default(0) @db.Decimal(10, 2)
+
+  customerNote String? @db.Text
+  internalNote String? @db.Text
+
+  createdById   String?
+  createdByName String?
+
+  completedAt DateTime?
+
+  voidedAt     DateTime?
+  voidedById   String?
+  voidedByName String?
+  voidReason   String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items    BackOfficeInvoiceItem[]
+  payments BackOfficeInvoicePayment[]
+
+  @@index([customerId])
+  @@index([locationId])
+  @@index([status])
+  @@index([source])
+  @@index([createdAt])
+  @@index([customerLastName, customerFirstName])
+  @@index([customerEmail])
+  @@index([customerPhone])
+}
+
+model BackOfficeInvoiceItem {
+  id String @id @default(cuid())
+
+  invoiceId String
+  invoice   BackOfficeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  productId String?
+  product   BackOfficeProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  sku         String?
+  productName String
+
+  sellUnit BackOfficeSellUnit
+  quantity Int
+
+  unitsPerSellUnit Int
+  baseUnitsTotal   Int
+
+  standardUnitPrice Decimal @db.Decimal(10, 2)
+  unitPrice         Decimal @db.Decimal(10, 2)
+  lineTotal         Decimal @db.Decimal(10, 2)
+
+  priceAdjusted Boolean @default(false)
+
+  priceAdjustmentReason String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  allocations BackOfficeInvoiceItemAllocation[]
+
+  @@index([invoiceId])
+  @@index([productId])
+  @@index([sku])
+}
+
+model BackOfficeInvoicePayment {
+  id String @id @default(cuid())
+
+  invoiceId String
+  invoice   BackOfficeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  type   BackOfficePaymentType   @default(PAYMENT)
+  method BackOfficePaymentMethod
+  amount Decimal                 @db.Decimal(10, 2)
+
+  zelleReference String?
+  note           String? @db.Text
+
+  receivedById   String?
+  receivedByName String?
+  receivedAt     DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+  @@index([method])
+  @@index([receivedAt])
+}
+
+model BackOfficeInvoiceItemAllocation {
+  id String @id @default(cuid())
+
+  invoiceItemId String
+  invoiceItem   BackOfficeInvoiceItem @relation(fields: [invoiceItemId], references: [id], onDelete: Restrict)
+
+  batchId String
+  batch   BackOfficeBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  locationId String
+  location   BackOfficeLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  quantity Int
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceItemId])
+  @@index([batchId])
+  @@index([locationId])
 }
