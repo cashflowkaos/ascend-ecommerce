@@ -1,6 +1,10 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useState,
+} from "react";
 import { recordPhysicalInventoryCount } from "../actions";
 
 type PhysicalCountFormProps = {
@@ -10,6 +14,14 @@ type PhysicalCountFormProps = {
   currentQuantity: number;
 };
 
+type SaveState = {
+  saved: boolean;
+};
+
+const initialState: SaveState = {
+  saved: false,
+};
+
 export default function PhysicalCountForm({
   batchId,
   locationId,
@@ -17,10 +29,42 @@ export default function PhysicalCountForm({
   currentQuantity,
 }: PhysicalCountFormProps) {
   const [note, setNote] = useState("");
+  const [showSaved, setShowSaved] = useState(false);
+
+  async function saveCount(
+    _previousState: SaveState,
+    formData: FormData
+  ): Promise<SaveState> {
+    await recordPhysicalInventoryCount(formData);
+
+    return {
+      saved: true,
+    };
+  }
+
+  const [state, formAction, pending] = useActionState(
+    saveCount,
+    initialState
+  );
+
+  useEffect(() => {
+    if (!state.saved) {
+      return;
+    }
+
+    setShowSaved(true);
+    setNote("");
+
+    const timer = window.setTimeout(() => {
+      setShowSaved(false);
+    }, 2200);
+
+    return () => window.clearTimeout(timer);
+  }, [state]);
 
   return (
     <form
-      action={recordPhysicalInventoryCount}
+      action={formAction}
       className="backoffice-count-form"
     >
       <input
@@ -45,6 +89,7 @@ export default function PhysicalCountForm({
           step="1"
           defaultValue={currentQuantity}
           required
+          disabled={pending}
         />
       </label>
 
@@ -60,14 +105,19 @@ export default function PhysicalCountForm({
           }
           placeholder="Reason for count..."
           required
+          disabled={pending}
         />
       </label>
 
       <button
         type="submit"
-        disabled={!note.trim()}
+        disabled={pending || !note.trim()}
       >
-        Save Count
+        {pending
+          ? "Saving..."
+          : showSaved
+            ? "✓ Saved"
+            : "Save Count"}
       </button>
     </form>
   );

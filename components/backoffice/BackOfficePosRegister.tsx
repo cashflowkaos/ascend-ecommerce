@@ -42,6 +42,8 @@ type CartLine = {
   productId: string;
   sellUnit: SellUnit;
   quantity: number;
+  manualUnitPrice: number | null;
+  priceAdjustmentReason: string;
 };
 
 type Props = {
@@ -51,11 +53,7 @@ type Props = {
 };
 
 function getWholesalePrice(retailPrice: number | null) {
-  if (retailPrice === null) {
-    return null;
-  }
-
-  return retailPrice * 0.8;
+  return retailPrice === null ? null : retailPrice * 0.8;
 }
 
 function getTierKitPrice(
@@ -90,11 +88,9 @@ function getStandardPrice(
   const wholesalePrice = getWholesalePrice(retailPrice);
 
   if (sellUnit === "UNIT") {
-    if (pricingType === "RETAIL") {
-      return retailPrice;
-    }
-
-    return wholesalePrice;
+    return pricingType === "RETAIL"
+      ? retailPrice
+      : wholesalePrice;
   }
 
   if (
@@ -137,12 +133,29 @@ export function BackOfficePosRegister({
   locations,
   products,
 }: Props) {
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [productSearch, setProductSearch] = useState("");
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerSearchOpen, setCustomerSearchOpen] =
+    useState(false);
+
+  const [productSearch, setProductSearch] = useState("");
+  const [productSearchOpen, setProductSearchOpen] =
+    useState(false);
+
   const [cart, setCart] = useState<CartLine[]>([]);
-  const [cartError, setCartError] = useState<string | null>(null);
+  const [cartError, setCartError] = useState<string | null>(
+    null
+  );
+  const [discountPercent, setDiscountPercent] = useState("");
+  const [discountAmount, setDiscountAmount] = useState("");
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<
+    "CASH" | "ZELLE"
+  >("CASH");
+  const [amountReceived, setAmountReceived] = useState("");
+  const [zelleReference, setZelleReference] = useState("");
 
   const selectedCustomer = useMemo(
     () =>
@@ -163,11 +176,11 @@ export function BackOfficePosRegister({
   const pricingType =
     selectedCustomer?.pricingType ?? "RETAIL";
 
-  const filteredCustomers = useMemo(() => {
+  const customerResults = useMemo(() => {
     const query = customerSearch.trim().toLowerCase();
 
     if (!query) {
-      return customers.slice(0, 12);
+      return [];
     }
 
     return customers
@@ -185,14 +198,14 @@ export function BackOfficePosRegister({
 
         return searchable.includes(query);
       })
-      .slice(0, 12);
+      .slice(0, 8);
   }, [customers, customerSearch]);
 
-  const filteredProducts = useMemo(() => {
+  const productResults = useMemo(() => {
     const query = productSearch.trim().toLowerCase();
 
     if (!query) {
-      return products.slice(0, 20);
+      return [];
     }
 
     return products
@@ -201,7 +214,7 @@ export function BackOfficePosRegister({
           .toLowerCase()
           .includes(query)
       )
-      .slice(0, 20);
+      .slice(0, 12);
   }, [products, productSearch]);
 
   function getBaseUnits(
@@ -209,15 +222,15 @@ export function BackOfficePosRegister({
     sellUnit: SellUnit,
     quantity: number
   ) {
-    return (
-      quantity *
-      (sellUnit === "KIT" ? product.unitsPerKit : 1)
-    );
+    const multiplier =
+      sellUnit === "KIT" ? product.unitsPerKit : 1;
+
+    return quantity * multiplier;
   }
 
   function getProductCartUnits(
     productId: string,
-    nextCart = cart
+    nextCart: CartLine[]
   ) {
     const product = products.find(
       (item) => item.id === productId
@@ -241,7 +254,7 @@ export function BackOfficePosRegister({
       );
   }
 
-  function canUseCart(
+  function validateInventory(
     product: PosProduct,
     nextCart: CartLine[]
   ) {
@@ -266,6 +279,36 @@ export function BackOfficePosRegister({
     }
 
     return true;
+  }
+
+  function selectCustomer(customer: PosCustomer) {
+    setSelectedCustomerId(customer.id);
+    setCustomerSearch("");
+    setCustomerSearchOpen(false);
+    setCartError(null);
+  }
+
+  function clearCustomer() {
+    setSelectedCustomerId("");
+    setCustomerSearch("");
+    setCustomerSearchOpen(false);
+    setCartError(null);
+  }
+
+  function handleLocationChange(locationId: string) {
+    if (cart.length > 0 && locationId !== selectedLocationId) {
+      const confirmed = window.confirm(
+        "Changing inventory location will clear the current cart. Continue?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setSelectedLocationId(locationId);
+    setCart([]);
+    setCartError(null);
   }
 
   function addToCart(
@@ -298,7 +341,10 @@ export function BackOfficePosRegister({
     const nextCart = existing
       ? cart.map((line) =>
           line.key === key
-            ? { ...line, quantity: line.quantity + 1 }
+            ? {
+                ...line,
+                quantity: line.quantity + 1,
+              }
             : line
         )
       : [
@@ -308,14 +354,18 @@ export function BackOfficePosRegister({
             productId: product.id,
             sellUnit,
             quantity: 1,
+            manualUnitPrice: null,
+            priceAdjustmentReason: "",
           },
         ];
 
-    if (!canUseCart(product, nextCart)) {
+    if (!validateInventory(product, nextCart)) {
       return;
     }
 
     setCart(nextCart);
+    setProductSearch("");
+    setProductSearchOpen(false);
   }
 
   function changeQuantity(key: string, delta: number) {
@@ -346,11 +396,14 @@ export function BackOfficePosRegister({
 
     const nextCart = cart.map((item) =>
       item.key === key
-        ? { ...item, quantity: nextQuantity }
+        ? {
+            ...item,
+            quantity: nextQuantity,
+          }
         : item
     );
 
-    if (!canUseCart(product, nextCart)) {
+    if (!validateInventory(product, nextCart)) {
       return;
     }
 
@@ -362,10 +415,72 @@ export function BackOfficePosRegister({
     setCart(cart.filter((line) => line.key !== key));
   }
 
-  function handleLocationChange(locationId: string) {
-    setSelectedLocationId(locationId);
-    setCart([]);
-    setCartError(null);
+  function setManualPrice(
+    key: string,
+    value: string
+  ) {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      setCart((current) =>
+        current.map((line) =>
+          line.key === key
+            ? {
+                ...line,
+                manualUnitPrice: null,
+              }
+            : line
+        )
+      );
+      return;
+    }
+
+    const price = Number(trimmed);
+
+    if (!Number.isFinite(price) || price < 0) {
+      return;
+    }
+
+    setCart((current) =>
+      current.map((line) =>
+        line.key === key
+          ? {
+              ...line,
+              manualUnitPrice: price,
+            }
+          : line
+      )
+    );
+  }
+
+  function setPriceAdjustmentReason(
+    key: string,
+    reason: string
+  ) {
+    setCart((current) =>
+      current.map((line) =>
+        line.key === key
+          ? {
+              ...line,
+              priceAdjustmentReason: reason,
+            }
+          : line
+      )
+    );
+  }
+
+  function resetManualPrice(key: string) {
+    setCart((current) =>
+      current.map((line) =>
+        line.key === key
+          ? {
+              ...line,
+              manualUnitPrice: null,
+              priceAdjustmentReason: "",
+            }
+          : line
+      )
+    );
   }
 
   const cartDetails = useMemo(
@@ -395,13 +510,18 @@ export function BackOfficePosRegister({
           line.quantity
         );
 
+        const unitPrice =
+          line.manualUnitPrice ?? standardPrice;
+
         return [
           {
             ...line,
             product,
             standardPrice,
+            unitPrice,
+            priceAdjusted: line.manualUnitPrice !== null,
             baseUnits,
-            lineTotal: standardPrice * line.quantity,
+            lineTotal: unitPrice * line.quantity,
           },
         ];
       }),
@@ -417,21 +537,173 @@ export function BackOfficePosRegister({
     [cartDetails]
   );
 
-  return (
-    <div className="backoffice-pos-register">
-      <div className="backoffice-panel">
-        <div className="backoffice-panel-heading">
-          <div>
-            <span className="backoffice-eyebrow">
-              TRANSACTION SETUP
-            </span>
-            <h2>Customer & Location</h2>
-          </div>
-        </div>
+  const calculatedDiscount = useMemo(() => {
+    const percent = Number(discountPercent);
+    const amount = Number(discountAmount);
 
-        <div className="backoffice-form-grid">
-          <label className="backoffice-form-field">
+    if (
+      discountPercent.trim() &&
+      Number.isFinite(percent) &&
+      percent > 0
+    ) {
+      return Math.min(
+        subtotal,
+        subtotal * (Math.min(percent, 100) / 100)
+      );
+    }
+
+    if (
+      discountAmount.trim() &&
+      Number.isFinite(amount) &&
+      amount > 0
+    ) {
+      return Math.min(subtotal, amount);
+    }
+
+    return 0;
+  }, [discountPercent, discountAmount, subtotal]);
+
+  const total = Math.max(
+    0,
+    subtotal - calculatedDiscount
+  );
+
+  const receivedAmount = (() => {
+    const amount = Number(amountReceived);
+
+    if (
+      !amountReceived.trim() ||
+      !Number.isFinite(amount) ||
+      amount < 0
+    ) {
+      return 0;
+    }
+
+    return amount;
+  })();
+
+  const balanceDue = Math.max(
+    0,
+    total - receivedAmount
+  );
+
+  function handleDiscountPercent(value: string) {
+    setDiscountPercent(value);
+
+    if (value.trim()) {
+      setDiscountAmount("");
+    }
+  }
+
+  function handleDiscountAmount(value: string) {
+    setDiscountAmount(value);
+
+    if (value.trim()) {
+      setDiscountPercent("");
+    }
+  }
+
+  return (
+    <div className="pos-register">
+      <section className="pos-setup-card">
+        <div className="pos-setup-grid">
+
+          <div className="pos-field pos-search-wrap">
+            <span>Customer</span>
+
+            {selectedCustomer ? (
+              <div className="pos-selected-customer">
+                <div>
+                  <strong>
+                    {selectedCustomer.firstName}{" "}
+                    {selectedCustomer.lastName}
+                  </strong>
+
+                  <small>
+                    {selectedCustomer.company
+                      ? `${selectedCustomer.company} - `
+                      : ""}
+                    {selectedCustomer.pricingType.replaceAll(
+                      "_",
+                      " "
+                    )}
+                  </small>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={clearCustomer}
+                  aria-label="Change customer"
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="search"
+                  value={customerSearch}
+                  onFocus={() => setCustomerSearchOpen(true)}
+                  onChange={(event) => {
+                    setCustomerSearch(event.target.value);
+                    setCustomerSearchOpen(true);
+                  }}
+                  placeholder="Search name, phone, email..."
+                  autoComplete="off"
+                />
+
+                {customerSearchOpen &&
+                customerSearch.trim() ? (
+                  <div className="pos-search-results">
+                    {customerResults.length > 0 ? (
+                      customerResults.map((customer) => (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          className="pos-search-result"
+                          onClick={() =>
+                            selectCustomer(customer)
+                          }
+                        >
+                          <span>
+                            <strong>
+                              {customer.firstName}{" "}
+                              {customer.lastName}
+                            </strong>
+
+                            <small>
+                              {[
+                                customer.company,
+                                customer.phone,
+                                customer.email,
+                              ]
+                                .filter(Boolean)
+                                .join(" - ") || "No contact info"}
+                            </small>
+                          </span>
+
+                          <em>
+                            {customer.pricingType.replaceAll(
+                              "_",
+                              " "
+                            )}
+                          </em>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="pos-search-empty">
+                        No customers found.
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
+        
+          <label className="pos-field">
             <span>Inventory Location</span>
+
             <select
               value={selectedLocationId}
               onChange={(event) =>
@@ -439,322 +711,454 @@ export function BackOfficePosRegister({
               }
             >
               <option value="">Select location...</option>
+
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
                   {location.code} - {location.name}
                 </option>
               ))}
             </select>
-            <small>
-              Changing location clears the current cart.
-            </small>
           </label>
 
-          <label className="backoffice-form-field">
-            <span>Customer Search</span>
-            <input
-              type="search"
-              value={customerSearch}
-              onChange={(event) =>
-                setCustomerSearch(event.target.value)
-              }
-              placeholder="Name, company, email, or phone"
-            />
-          </label>
-        </div>
-
-        <div className="backoffice-table-wrap">
-          <table className="backoffice-table">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Contact</th>
-                <th>Pricing</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCustomers.map((customer) => (
-                <tr key={customer.id}>
-                  <td>
-                    <strong>
-                      {customer.firstName} {customer.lastName}
-                    </strong>
-                    {customer.company ? (
-                      <div>{customer.company}</div>
-                    ) : null}
-                  </td>
-                  <td>
-                    <div>{customer.phone || "-"}</div>
-                    <div>{customer.email || "-"}</div>
-                  </td>
-                  <td>
-                    {customer.pricingType.replaceAll("_", " ")}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="backoffice-secondary-button"
-                      onClick={() => {
-                        setSelectedCustomerId(customer.id);
-                        setCartError(null);
-                      }}
-                    >
-                      {selectedCustomerId === customer.id
-                        ? "Selected"
-                        : "Select"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="backoffice-panel">
-        <div className="backoffice-panel-heading">
-          <div>
-            <span className="backoffice-eyebrow">
-              PRODUCT SEARCH
-            </span>
-            <h2>Add Products</h2>
-            <p>
-              Pricing: {pricingType.replaceAll("_", " ")}
-            </p>
+            <section className="pos-product-panel">
+          <div className="pos-section-heading">
+            <div>
+              <span>ADD ITEMS</span>
+              <h2>Inventory Search</h2>
+            </div>
           </div>
-        </div>
 
-        <div className="backoffice-form-grid">
-          <label className="backoffice-form-field backoffice-form-field-wide">
-            <span>Search Inventory</span>
+          <div className="pos-product-search pos-search-wrap">
             <input
               type="search"
               value={productSearch}
-              onChange={(event) =>
-                setProductSearch(event.target.value)
-              }
-              placeholder="Product name or SKU"
-            />
-          </label>
-        </div>
-
-        <div className="backoffice-table-wrap">
-          <table className="backoffice-table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Available</th>
-                <th>Unit</th>
-                <th>Kit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.map((product) => {
-                const available = selectedLocationId
-                  ? product.quantities[selectedLocationId] ?? 0
-                  : null;
-
-                const unitPrice = getStandardPrice(
-                  product,
-                  pricingType,
-                  "UNIT"
-                );
-
-                const kitPrice = getStandardPrice(
-                  product,
-                  pricingType,
-                  "KIT"
-                );
-
-                return (
-                  <tr key={product.id}>
-                    <td>
-                      <strong>{product.name}</strong>
-                      <div>{product.sku}</div>
-                    </td>
-
-                    <td>
-                      {available === null
-                        ? "Select location"
-                        : available}
-                    </td>
-
-                    <td>
-                      <button
-                        type="button"
-                        className="backoffice-secondary-button"
-                        disabled={
-                          !selectedLocationId ||
-                          unitPrice === null ||
-                          available === 0
-                        }
-                        onClick={() =>
-                          addToCart(product, "UNIT")
-                        }
-                      >
-                        Add Unit {formatMoney(unitPrice)}
-                      </button>
-                    </td>
-
-                    <td>
-                      <button
-                        type="button"
-                        className="backoffice-secondary-button"
-                        disabled={
-                          !selectedLocationId ||
-                          kitPrice === null ||
-                          available === null ||
-                          available < product.unitsPerKit
-                        }
-                        onClick={() =>
-                          addToCart(product, "KIT")
-                        }
-                      >
-                        Add Kit {formatMoney(kitPrice)}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="backoffice-panel">
-        <div className="backoffice-panel-heading">
-          <div>
-            <span className="backoffice-eyebrow">
-              CURRENT SALE
-            </span>
-            <h2>Cart</h2>
-            <p>
-              {selectedCustomer
-                ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
-                : "No customer selected"}
-              {" - "}
-              {selectedLocation
-                ? selectedLocation.name
-                : "No location selected"}
-            </p>
-          </div>
-
-          {cart.length > 0 ? (
-            <button
-              type="button"
-              className="backoffice-secondary-button"
-              onClick={() => {
-                setCart([]);
-                setCartError(null);
+              onFocus={() => setProductSearchOpen(true)}
+              onChange={(event) => {
+                setProductSearch(event.target.value);
+                setProductSearchOpen(true);
               }}
-            >
-              Clear Cart
-            </button>
-          ) : null}
-        </div>
+              placeholder="Search product name or SKU..."
+              autoComplete="off"
+            />
 
-        {cartError ? (
-          <p className="backoffice-pos-error">
-            {cartError}
-          </p>
-        ) : null}
+            {productSearchOpen && productSearch.trim() ? (
+              <div className="pos-search-results pos-product-results">
+                {productResults.length > 0 ? (
+                  productResults.map((product) => {
+                    const available = selectedLocationId
+                      ? product.quantities[
+                          selectedLocationId
+                        ] ?? 0
+                      : null;
 
-        {cartDetails.length === 0 ? (
-          <p>No products have been added yet.</p>
-        ) : (
-          <div className="backoffice-table-wrap">
-            <table className="backoffice-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Sell Unit</th>
-                  <th>Qty</th>
-                  <th>Physical Units</th>
-                  <th>Price</th>
-                  <th>Total</th>
-                  <th></th>
-                </tr>
-              </thead>
+                    const unitPrice = getStandardPrice(
+                      product,
+                      pricingType,
+                      "UNIT"
+                    );
 
-              <tbody>
-                {cartDetails.map((line) => (
-                  <tr key={line.key}>
-                    <td>
-                      <strong>{line.product.name}</strong>
-                      <div>{line.product.sku}</div>
-                    </td>
+                    const kitPrice = getStandardPrice(
+                      product,
+                      pricingType,
+                      "KIT"
+                    );
 
-                    <td>
-                      {line.sellUnit === "KIT"
-                        ? `Kit (${line.product.unitsPerKit})`
-                        : "Unit"}
-                    </td>
+                    return (
+                      <div
+                        key={product.id}
+                        className="pos-product-result"
+                      >
+                        <div className="pos-product-info">
+                          <strong>{product.name}</strong>
 
-                    <td>
-                      <div className="backoffice-pos-quantity">
-                        <button
-                          type="button"
-                          className="backoffice-secondary-button"
-                          onClick={() =>
-                            changeQuantity(line.key, -1)
-                          }
-                        >
-                          -
-                        </button>
+                          <small>
+                            {product.sku}
+                            {" - "}
+                            {available === null
+                              ? "Select location"
+                              : `${available} available`}
+                          </small>
+                        </div>
 
-                        <strong>{line.quantity}</strong>
+                        <div className="pos-product-actions">
+                          <button
+                            type="button"
+                            disabled={
+                              !selectedLocationId ||
+                              unitPrice === null ||
+                              available === 0
+                            }
+                            onClick={() =>
+                              addToCart(product, "UNIT")
+                            }
+                          >
+                            <span>UNIT</span>
+                            <strong>
+                              {formatMoney(unitPrice)}
+                            </strong>
+                          </button>
 
-                        <button
-                          type="button"
-                          className="backoffice-secondary-button"
-                          onClick={() =>
-                            changeQuantity(line.key, 1)
-                          }
-                        >
-                          +
-                        </button>
+                          <button
+                            type="button"
+                            disabled={
+                              !selectedLocationId ||
+                              kitPrice === null ||
+                              available === null ||
+                              available <
+                                product.unitsPerKit
+                            }
+                            onClick={() =>
+                              addToCart(product, "KIT")
+                            }
+                          >
+                            <span>
+                              KIT x{product.unitsPerKit}
+                            </span>
+                            <strong>
+                              {formatMoney(kitPrice)}
+                            </strong>
+                          </button>
+                        </div>
                       </div>
-                    </td>
+                    );
+                  })
+                ) : (
+                  <div className="pos-search-empty">
+                    No inventory matches your search.
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </section>
+</div>
+      </section>
+        <div className="pos-workspace">
+          <section className="pos-cart-panel">
+          <div className="pos-section-heading">
+            <div>
+              <span>CURRENT SALE</span>
+              <h2>Cart</h2>
+            </div>
 
-                    <td>{line.baseUnits}</td>
-                    <td>{formatMoney(line.standardPrice)}</td>
-                    <td>{formatMoney(line.lineTotal)}</td>
+            {cart.length > 0 ? (
+              <button
+                type="button"
+                className="pos-clear-button"
+                onClick={() => {
+                  setCart([]);
+                  setCartError(null);
+                }}
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
 
-                    <td>
+          {cartError ? (
+            <div className="pos-error">{cartError}</div>
+          ) : null}
+
+          {cartDetails.length === 0 ? (
+            <div className="pos-empty-cart">
+              <strong>Cart is empty</strong>
+              <span>
+                Search inventory and add a unit or kit.
+              </span>
+            </div>
+          ) : (
+            <div className="pos-cart-lines">
+              {cartDetails.map((line) => (
+                <div
+                  key={line.key}
+                  className="pos-cart-line"
+                >
+                  <div className="pos-cart-product">
+                    <strong>{line.product.name}</strong>
+                      <span className="pos-cart-sku">
+                        SKU: {line.product.sku}
+                      </span>
+
+                    <span>
+                      {line.sellUnit === "KIT"
+                        ? `Kit x${line.product.unitsPerKit}`
+                        : "Single Unit"}
+                      {" - "}
+                      {formatMoney(line.standardPrice)}
+                    </span>
+                  </div>
+
+                  <div className="pos-price-adjustment">
+                    <label>
+                      <span>Sale Price</span>
+                      <div className="pos-price-input-wrap">
+                        <span>$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={
+                            line.manualUnitPrice ??
+                            line.standardPrice
+                          }
+                          onChange={(event) =>
+                            setManualPrice(
+                              line.key,
+                              event.target.value
+                            )
+                          }
+                        />
+                      </div>
+                    </label>
+
+                    {line.priceAdjusted ? (
+                      <>
+                        <label>
+                          <span>Reason</span>
+                          <input
+                            type="text"
+                            value={line.priceAdjustmentReason}
+                            onChange={(event) =>
+                              setPriceAdjustmentReason(
+                                line.key,
+                                event.target.value
+                              )
+                            }
+                            placeholder="Price adjustment reason"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          className="pos-price-reset"
+                          onClick={() =>
+                            resetManualPrice(line.key)
+                          }
+                        >
+                          Reset
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+
+                  <div className="pos-cart-quantity">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        changeQuantity(line.key, -1)
+                      }
+                    >
+                      -
+                    </button>
+
+                    <strong>{line.quantity}</strong>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        changeQuantity(line.key, 1)
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="pos-cart-line-total">
+                    <strong>
+                      {formatMoney(line.lineTotal)}
+                    </strong>
+
+                    <small>
+                      {line.baseUnits} physical{" "}
+                      {line.baseUnits === 1
+                        ? "unit"
+                        : "units"}
+                    </small>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="pos-remove-line"
+                    onClick={() => removeLine(line.key)}
+                    aria-label={`Remove ${line.product.name}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="pos-cart-summary">
+            <div>
+              <span>Subtotal</span>
+              <strong>{formatMoney(subtotal)}</strong>
+            </div>
+
+            <div className="pos-discount-controls">
+              <label>
+                <span>Discount %</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={discountPercent}
+                  onChange={(event) =>
+                    handleDiscountPercent(event.target.value)
+                  }
+                  placeholder="0"
+                />
+              </label>
+
+              <label>
+                <span>Discount $</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={discountAmount}
+                  onChange={(event) =>
+                    handleDiscountAmount(event.target.value)
+                  }
+                  placeholder="0.00"
+                />
+              </label>
+            </div>
+
+            {calculatedDiscount > 0 ? (
+              <div>
+                <span>Discount</span>
+                <strong>
+                  -{formatMoney(calculatedDiscount)}
+                </strong>
+              </div>
+            ) : null}
+
+            <div className="pos-cart-total">
+              <span>Total</span>
+              <strong>{formatMoney(total)}</strong>
+            </div>
+
+            {!paymentOpen ? (
+              <button
+                type="button"
+                className="pos-checkout-button"
+                disabled={
+                  !selectedCustomerId ||
+                  !selectedLocationId ||
+                  cartDetails.length === 0
+                }
+                onClick={() => setPaymentOpen(true)}
+              >
+                Continue to Payment
+              </button>
+            ) : (
+              <div className="pos-payment-panel">
+                  <div className="pos-payment-row">
+                    <div className="pos-payment-control">
+                      <span>Cash</span>
                       <button
                         type="button"
-                        className="backoffice-secondary-button"
-                        onClick={() => removeLine(line.key)}
+                        className={`pos-payment-choice ${
+                          paymentMethod === "CASH" ? "active" : ""
+                        }`}
+                        onClick={() => {
+                          setPaymentMethod("CASH");
+                          setZelleReference("");
+                        }}
                       >
-                        Remove
+                        Cash
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    </div>
 
-        <div className="backoffice-form-actions">
-          <div>
-            <span>Subtotal</span>
-            <strong>{formatMoney(subtotal)}</strong>
-          </div>
+                    <div className="pos-payment-control">
+                      <span>Zelle</span>
+                      <button
+                        type="button"
+                        className={`pos-payment-choice ${
+                          paymentMethod === "ZELLE" ? "active" : ""
+                        }`}
+                        onClick={() => setPaymentMethod("ZELLE")}
+                      >
+                        Zelle
+                      </button>
+                    </div>
 
-          <button
-            type="button"
-            className="backoffice-primary-button"
-            disabled={
-              !selectedCustomerId ||
-              !selectedLocationId ||
-              cartDetails.length === 0
-            }
-          >
-            Continue to Payment
-          </button>
-        </div>
+                    <label className="pos-payment-control">
+                      <span>Amount Received</span>
+                      <div className="pos-payment-amount">
+                        <span>$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={amountReceived}
+                          onChange={(event) =>
+                            setAmountReceived(event.target.value)
+                          }
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </label>
+
+                    <label
+                      className={`pos-payment-control ${
+                        paymentMethod !== "ZELLE"
+                          ? "pos-payment-control-muted"
+                          : ""
+                      }`}
+                    >
+                      <span>Zelle Reference</span>
+                      <input
+                        type="text"
+                        value={zelleReference}
+                        onChange={(event) =>
+                          setZelleReference(event.target.value)
+                        }
+                        placeholder={
+                          paymentMethod === "ZELLE"
+                            ? "Reference"
+                            : "N/A"
+                        }
+                        disabled={paymentMethod !== "ZELLE"}
+                      />
+                    </label>
+
+                    <div className="pos-payment-control">
+                      <span>Received</span>
+                      <div className="pos-payment-value">
+                        {formatMoney(receivedAmount)}
+                      </div>
+                    </div>
+
+                    <div className="pos-payment-control">
+                      <span>Balance Due</span>
+                      <div className="pos-payment-value">
+                        {formatMoney(balanceDue)}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="pos-checkout-button"
+                    disabled
+                  >
+                    Complete Sale
+                  </button>
+
+                </div>
+            )}
+
+            {!selectedCustomerId ? (
+              <small>Select a customer to continue.</small>
+            ) : !selectedLocationId ? (
+              <small>
+                Select an inventory location to continue.
+              </small>
+            ) : null}
+          </div>
+        </section>
       </div>
     </div>
   );

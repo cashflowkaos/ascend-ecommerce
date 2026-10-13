@@ -72,11 +72,11 @@ export default async function EditBackOfficeProductPage({
         </div>
 
         <Link
-          href="/backoffice/inventory"
+          href="/backoffice/inventory/count"
           className="backoffice-secondary-button"
         >
           <ArrowLeft size={15} strokeWidth={2} />
-          Back to Inventory
+          Back to Physical Count
         </Link>
       </div>
 
@@ -185,7 +185,7 @@ export default async function EditBackOfficeProductPage({
 
         <div className="backoffice-form-actions">
           <Link
-            href="/backoffice/inventory"
+            href="/backoffice/inventory/count"
             className="backoffice-secondary-button"
           >
             Cancel
