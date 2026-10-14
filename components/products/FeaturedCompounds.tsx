@@ -1,4 +1,4 @@
-﻿import CompoundSearch from "./CompoundSearch";
+import CompoundSearch from "./CompoundSearch";
 import { getProducts } from "@/lib/repositories/products";
 
 export default async function FeaturedCompounds() {

@@ -1,4 +1,4 @@
-﻿
+
 app\about\page.tsx:1:import Header from "@/components/layout/Header";
 app\about\page.tsx:2:import { hasStorefrontMemberAccess } from "@/lib/auth";
 app\about\page.tsx:3:import Footer from "@/components/layout/Footer";

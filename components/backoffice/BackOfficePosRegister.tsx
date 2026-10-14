@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { completePosSale } from "@/app/backoffice/pos/actions";
 
 type PricingType =
   | "RETAIL"
@@ -156,6 +157,10 @@ export function BackOfficePosRegister({
   >("CASH");
   const [amountReceived, setAmountReceived] = useState("");
   const [zelleReference, setZelleReference] = useState("");
+  const [saleSubmitting, setSaleSubmitting] = useState(false);
+  const [saleError, setSaleError] = useState<string | null>(null);
+  const [completedInvoiceNumber, setCompletedInvoiceNumber] =
+    useState<string | null>(null);
 
   const selectedCustomer = useMemo(
     () =>
@@ -600,6 +605,97 @@ export function BackOfficePosRegister({
 
     if (value.trim()) {
       setDiscountPercent("");
+    }
+  }
+
+  async function handleCompleteSale() {
+    if (
+      saleSubmitting ||
+      !selectedCustomerId ||
+      !selectedLocationId ||
+      cartDetails.length === 0
+    ) {
+      return;
+    }
+
+    const invalidAdjustment = cartDetails.find(
+      (line) =>
+        line.priceAdjusted &&
+        !line.priceAdjustmentReason.trim()
+    );
+
+    if (invalidAdjustment) {
+      setSaleError(
+        `Enter a price adjustment reason for ${invalidAdjustment.product.name}.`
+      );
+      return;
+    }
+
+    if (receivedAmount > total) {
+      setSaleError(
+        "Amount received cannot exceed the sale total."
+      );
+      return;
+    }
+
+    setSaleSubmitting(true);
+    setSaleError(null);
+    setCompletedInvoiceNumber(null);
+
+    try {
+      const result = await completePosSale({
+        customerId: selectedCustomerId,
+        locationId: selectedLocationId,
+        items: cartDetails.map((line) => ({
+          productId: line.productId,
+          sellUnit: line.sellUnit,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          priceAdjustmentReason:
+            line.priceAdjusted
+              ? line.priceAdjustmentReason.trim()
+              : null,
+        })),
+        discountPercent:
+          discountPercent.trim()
+            ? Number(discountPercent)
+            : null,
+        discountAmount:
+          discountAmount.trim()
+            ? Number(discountAmount)
+            : null,
+        payment:
+          receivedAmount > 0
+            ? {
+                method: paymentMethod,
+                amount: receivedAmount,
+                zelleReference:
+                  paymentMethod === "ZELLE"
+                    ? zelleReference.trim() || null
+                    : null,
+              }
+            : null,
+      });
+
+      if (!result.success) {
+        setSaleError(result.error);
+        return;
+      }
+
+      setCompletedInvoiceNumber(result.invoiceNumber);
+      setCart([]);
+      setDiscountPercent("");
+      setDiscountAmount("");
+      setAmountReceived("");
+      setZelleReference("");
+      setPaymentMethod("CASH");
+      setPaymentOpen(false);
+    } catch {
+      setSaleError(
+        "Unable to complete the sale. Please try again."
+      );
+    } finally {
+      setSaleSubmitting(false);
     }
   }
 
@@ -1142,10 +1238,30 @@ export function BackOfficePosRegister({
                   <button
                     type="button"
                     className="pos-checkout-button"
-                    disabled
+                    onClick={handleCompleteSale}
+                    disabled={
+                      saleSubmitting ||
+                      !selectedCustomerId ||
+                      !selectedLocationId ||
+                      cartDetails.length === 0
+                    }
                   >
-                    Complete Sale
+                    {saleSubmitting
+                      ? "Completing Sale..."
+                      : "Complete Sale"}
                   </button>
+
+                  {saleError ? (
+                    <small className="pos-error">
+                      {saleError}
+                    </small>
+                  ) : null}
+
+                  {completedInvoiceNumber ? (
+                    <small>
+                      Sale completed: {completedInvoiceNumber}
+                    </small>
+                  ) : null}
 
                 </div>
             )}

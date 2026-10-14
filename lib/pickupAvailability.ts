@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function ensurePickupAvailability() {
   const PACIFIC_TIME_ZONE = "America/Los_Angeles";

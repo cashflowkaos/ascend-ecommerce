@@ -240,7 +240,7 @@ export default async function BackOfficeInventoryPage() {
                 <div className="backoffice-inventory-compact-product">
                   <strong>{product.name}</strong>
                   <span>
-                    {product.sku} Ã‚· {product.batches.length}{" "}
+                    {product.sku} · {product.batches.length}{" "}
                     {product.batches.length === 1 ? "batch" : "batches"}
                   </span>
                 </div>

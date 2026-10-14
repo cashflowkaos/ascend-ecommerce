@@ -4,7 +4,7 @@ import { updateDistroSettings } from "./actions";
 export const dynamic = "force-dynamic";
 
 function money(value: number | null) {
-  if (value === null) return "Ã¢â‚¬â€";
+  if (value === null) return "—";
   return `$${value.toFixed(2)}`;
 }
 
@@ -168,7 +168,7 @@ export default async function DistroPage() {
                           </small>
                         ))
                       ) : (
-                        <small>Ã¢â‚¬â€</small>
+                        <small>—</small>
                       )}
                     </td>
 

@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import BackOfficeCustomerDirectory from "@/components/backoffice/BackOfficeCustomerDirectory";
 import { prisma } from "@/lib/prisma";

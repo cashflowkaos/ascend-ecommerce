@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 function normalizeComposition(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
