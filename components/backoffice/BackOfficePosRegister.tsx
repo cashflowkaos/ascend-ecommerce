@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { completePosSale } from "@/app/backoffice/pos/actions";
 
 type PricingType =
@@ -134,6 +135,7 @@ export function BackOfficePosRegister({
   locations,
   products,
 }: Props) {
+  const router = useRouter();
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
 
@@ -683,6 +685,7 @@ export function BackOfficePosRegister({
       }
 
       setCompletedInvoiceNumber(result.invoiceNumber);
+      router.refresh();
       setCart([]);
       setDiscountPercent("");
       setDiscountAmount("");
@@ -1078,7 +1081,7 @@ export function BackOfficePosRegister({
                     onClick={() => removeLine(line.key)}
                     aria-label={`Remove ${line.product.name}`}
                   >
-                    ×
+                    Ãƒâ€”
                   </button>
                 </div>
               ))}
@@ -1257,14 +1260,15 @@ export function BackOfficePosRegister({
                     </small>
                   ) : null}
 
-                  {completedInvoiceNumber ? (
-                    <small>
-                      Sale completed: {completedInvoiceNumber}
-                    </small>
-                  ) : null}
 
                 </div>
             )}
+            {completedInvoiceNumber ? (
+              <small>
+                Sale completed: {completedInvoiceNumber}
+              </small>
+            ) : null}
+
 
             {!selectedCustomerId ? (
               <small>Select a customer to continue.</small>
