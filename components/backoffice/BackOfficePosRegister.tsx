@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { completePosSale } from "@/app/backoffice/pos/actions";
 
@@ -750,6 +751,13 @@ export function BackOfficePosRegister({
                   placeholder="Search name, phone, email..."
                   autoComplete="off"
                 />
+
+                <Link
+                  href="/backoffice/customers/new"
+                  className="pos-add-customer-link"
+                >
+                  + Add New Customer
+                </Link>
 
                 {customerSearchOpen &&
                 customerSearch.trim() ? (
