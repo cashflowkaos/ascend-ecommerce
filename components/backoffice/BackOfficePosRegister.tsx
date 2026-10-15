@@ -1081,7 +1081,7 @@ export function BackOfficePosRegister({
                     onClick={() => removeLine(line.key)}
                     aria-label={`Remove ${line.product.name}`}
                   >
-                    Ãƒâ€”
+                    X
                   </button>
                 </div>
               ))}
