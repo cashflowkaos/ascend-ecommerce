@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import BackOfficeInvoicePaymentForm from "@/components/backoffice/BackOfficeInvoicePaymentForm";
+import BackOfficeVoidInvoiceForm from "@/components/backoffice/BackOfficeVoidInvoiceForm";
 
 export const dynamic = "force-dynamic";
 
@@ -402,6 +403,17 @@ export default async function BackOfficeInvoicePage({
             </table>
           </div>
         </div>
+      ) : null}
+
+      {invoice.status !== "VOID" ? (
+        <BackOfficeVoidInvoiceForm
+          invoiceId={invoice.id}
+          invoiceNumber={invoice.invoiceNumber}
+          restoresInventory={
+            invoice.source === "POS" &&
+            invoice.status === "COMPLETED"
+          }
+        />
       ) : null}
 
       {invoice.status === "VOID" ? (

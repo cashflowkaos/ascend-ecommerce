@@ -179,3 +179,212 @@ export async function addInvoicePayment(
     };
   }
 }
+
+export type VoidInvoiceInput = {
+  invoiceId: string;
+  reason: string;
+};
+
+export type VoidInvoiceResult =
+  | {
+      success: true;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
+export async function voidInvoice(
+  input: VoidInvoiceInput
+): Promise<VoidInvoiceResult> {
+  const user = await requireAdmin();
+
+  const invoiceId = input.invoiceId?.trim();
+  const reason = input.reason?.trim();
+
+  if (!invoiceId) {
+    return {
+      success: false,
+      error: "Invoice ID is required.",
+    };
+  }
+
+  if (!reason) {
+    return {
+      success: false,
+      error: "A void reason is required.",
+    };
+  }
+
+  const voidedByName =
+    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+    user.email;
+
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const invoice =
+          await tx.backOfficeInvoice.findUnique({
+            where: {
+              id: invoiceId,
+            },
+            select: {
+              id: true,
+              invoiceNumber: true,
+              source: true,
+              status: true,
+              items: {
+                select: {
+                  productName: true,
+                  allocations: {
+                    select: {
+                      id: true,
+                      batchId: true,
+                      locationId: true,
+                      quantity: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+        if (!invoice) {
+          throw new Error("Invoice not found.");
+        }
+
+        if (invoice.status === "VOID") {
+          throw new Error(
+            "This invoice has already been voided."
+          );
+        }
+
+        const allocations = invoice.items.flatMap((item) =>
+          item.allocations.map((allocation) => ({
+            ...allocation,
+            productName: item.productName,
+          }))
+        );
+
+        if (
+          invoice.source === "POS" &&
+          invoice.status === "COMPLETED"
+        ) {
+          if (allocations.length === 0) {
+            throw new Error(
+              "This completed POS invoice has no inventory allocations and cannot be safely voided."
+            );
+          }
+
+          for (const allocation of allocations) {
+            const balance =
+              await tx.backOfficeInventoryBalance.findUnique({
+                where: {
+                  batchId_locationId: {
+                    batchId: allocation.batchId,
+                    locationId: allocation.locationId,
+                  },
+                },
+                select: {
+                  id: true,
+                  quantity: true,
+                },
+              });
+
+            const quantityBefore =
+              balance?.quantity ?? 0;
+
+            const quantityAfter =
+              quantityBefore + allocation.quantity;
+
+            if (balance) {
+              const updated =
+                await tx.backOfficeInventoryBalance.updateMany({
+                  where: {
+                    id: balance.id,
+                    quantity: quantityBefore,
+                  },
+                  data: {
+                    quantity: quantityAfter,
+                  },
+                });
+
+              if (updated.count !== 1) {
+                throw new Error(
+                  "Inventory changed while voiding this invoice. Please try again."
+                );
+              }
+            } else {
+              await tx.backOfficeInventoryBalance.create({
+                data: {
+                  batchId: allocation.batchId,
+                  locationId: allocation.locationId,
+                  quantity: quantityAfter,
+                },
+              });
+            }
+
+            await tx.backOfficeInventoryMovement.create({
+              data: {
+                batchId: allocation.batchId,
+                locationId: allocation.locationId,
+                type: "RETURNED",
+                quantityDelta: allocation.quantity,
+                quantityBefore,
+                quantityAfter,
+                referenceType: "BACKOFFICE_INVOICE_VOID",
+                referenceId: invoice.id,
+                note: `Void ${invoice.invoiceNumber} - ${allocation.productName}`,
+                createdById: user.id,
+                createdByName: voidedByName,
+              },
+            });
+          }
+        }
+
+        const updatedInvoice =
+          await tx.backOfficeInvoice.updateMany({
+            where: {
+              id: invoice.id,
+              status: invoice.status,
+            },
+            data: {
+              status: "VOID",
+              voidedAt: new Date(),
+              voidedById: user.id,
+              voidedByName,
+              voidReason: reason,
+            },
+          });
+
+        if (updatedInvoice.count !== 1) {
+          throw new Error(
+            "Invoice status changed while voiding. Please try again."
+          );
+        }
+      },
+      {
+        isolationLevel: "Serializable",
+      }
+    );
+
+    revalidatePath("/backoffice/sales");
+    revalidatePath(`/backoffice/sales/${invoiceId}`);
+    revalidatePath("/backoffice/pos");
+    revalidatePath("/backoffice/inventory");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Invoice void failed:", error);
+
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unable to void invoice.",
+    };
+  }
+}
