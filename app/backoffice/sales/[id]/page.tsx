@@ -1,7 +1,8 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import BackOfficeInvoicePaymentForm from "@/components/backoffice/BackOfficeInvoicePaymentForm";
 
 export const dynamic = "force-dynamic";
 
@@ -350,6 +351,14 @@ export default async function BackOfficeInvoicePage({
           </table>
         </div>
       </div>
+
+      {invoice.status !== "VOID" &&
+      Number(invoice.balanceDue) > 0 ? (
+        <BackOfficeInvoicePaymentForm
+          invoiceId={invoice.id}
+          balanceDue={Number(invoice.balanceDue)}
+        />
+      ) : null}
 
       {invoice.items.some(
         (item) => item.allocations.length > 0
