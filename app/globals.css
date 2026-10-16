@@ -9754,3 +9754,242 @@ button.backoffice-primary-button {
   outline: 0;
   box-shadow: 0 0 0 2px rgba(177, 132, 26, .08);
 }
+/* Back Office printable invoice */
+.invoice-print-page {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.invoice-print-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.invoice-print-document {
+  background: #fff;
+  border: 1px solid #e5e1d8;
+  padding: 48px;
+  color: #171717;
+}
+
+.invoice-print-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  padding-bottom: 28px;
+  border-bottom: 2px solid #171717;
+}
+
+.invoice-print-header h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  letter-spacing: .08em;
+}
+
+.invoice-print-header p,
+.invoice-print-info-grid p {
+  margin: 3px 0;
+}
+
+.invoice-print-title {
+  text-align: right;
+}
+
+.invoice-print-title > span,
+.invoice-print-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #8a6a16;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.invoice-print-title > strong {
+  display: block;
+  font-size: 20px;
+}
+
+.invoice-print-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  padding: 28px 0;
+}
+
+.invoice-print-info-grid > div > strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.invoice-print-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.invoice-print-table th {
+  padding: 11px 10px;
+  border-bottom: 1px solid #171717;
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.invoice-print-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e5e1d8;
+  vertical-align: top;
+}
+
+.invoice-print-table td small {
+  display: block;
+  margin-top: 3px;
+}
+
+.invoice-print-table th:nth-last-child(-n+3),
+.invoice-print-table td:nth-last-child(-n+3) {
+  text-align: right;
+}
+
+.invoice-print-summary {
+  width: min(100%, 390px);
+  margin: 28px 0 0 auto;
+}
+
+.invoice-print-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 7px 0;
+}
+
+.invoice-print-total {
+  margin-top: 6px;
+  padding-top: 12px !important;
+  border-top: 2px solid #171717;
+  font-size: 18px;
+}
+
+.invoice-print-balance {
+  font-size: 16px;
+}
+
+.invoice-print-payments {
+  margin-top: 38px;
+}
+
+.invoice-print-payments h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.invoice-print-void-banner {
+  margin-top: 20px;
+  padding: 10px;
+  border: 2px solid #171717;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: .2em;
+  text-align: center;
+}
+
+.invoice-print-void-details {
+  margin-top: 30px;
+  padding: 16px;
+  border: 1px solid #171717;
+}
+
+.invoice-print-void-details p {
+  margin: 6px 0 0;
+}
+
+.invoice-print-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 48px;
+  padding-top: 18px;
+  border-top: 1px solid #d8d3c9;
+  font-size: 12px;
+}
+
+@media (max-width: 700px) {
+  .invoice-print-document {
+    padding: 24px;
+  }
+
+  .invoice-print-header,
+  .invoice-print-info-grid {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .invoice-print-title {
+    text-align: left;
+  }
+
+  .invoice-print-table {
+    font-size: 12px;
+  }
+}
+
+@media print {
+  @page {
+    size: auto;
+    margin: 0.5in;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .backoffice-sidebar,
+  .backoffice-topbar,
+  .invoice-print-toolbar {
+    display: none !important;
+  }
+
+  .backoffice-shell,
+  .backoffice-main,
+  .backoffice-content,
+  .invoice-print-page {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .invoice-print-document {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .invoice-print-table {
+    page-break-inside: auto;
+  }
+
+  .invoice-print-table tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  .invoice-print-header,
+  .invoice-print-info-grid,
+  .invoice-print-summary,
+  .invoice-print-footer {
+    break-inside: avoid;
+  }
+
+  .invoice-print-payments {
+    break-before: auto;
+  }
+}

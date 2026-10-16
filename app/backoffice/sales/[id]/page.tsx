@@ -112,13 +112,28 @@ export default async function BackOfficeInvoicePage({
           </p>
         </div>
 
-        <Link
-          href="/backoffice/sales"
-          className="backoffice-secondary-button"
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
         >
-          <ArrowLeft size={15} strokeWidth={2} />
-          Back to Invoices
-        </Link>
+          <Link
+            href={`/backoffice/sales/${invoice.id}/print`}
+            className="backoffice-secondary-button"
+          >
+            Print / Save PDF
+          </Link>
+
+          <Link
+            href="/backoffice/sales"
+            className="backoffice-secondary-button"
+          >
+            <ArrowLeft size={15} strokeWidth={2} />
+            Back to Invoices
+          </Link>
+        </div>
       </div>
 
       <div className="backoffice-stat-grid">
