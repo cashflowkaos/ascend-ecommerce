@@ -18,7 +18,7 @@ import {
 const links = [
   { href: "/backoffice", label: "Overview", icon: LayoutDashboard },
   { href: "/backoffice/pos", label: "POS", icon: Store },
-  { href: "/backoffice/sales", label: "Sales / Invoices", icon: FileText },
+  { href: "/backoffice/sales", label: "Invoices", icon: FileText },
   { href: "/backoffice/inventory", label: "Inventory", icon: Boxes },
   { href: "/backoffice/purchasing", label: "Purchasing", icon: PackagePlus },
   { href: "/backoffice/expenses", label: "Expenses", icon: ReceiptText },
