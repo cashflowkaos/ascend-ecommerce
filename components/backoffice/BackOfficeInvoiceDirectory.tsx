@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type InvoiceRow = {
@@ -45,20 +45,99 @@ function formatDate(value: string) {
   });
 }
 
+function formatMonth(value: string) {
+  const [year, month] = value.split("-").map(Number);
+
+  return new Date(year, month - 1, 1).toLocaleDateString(
+    "en-US",
+    {
+      month: "long",
+      year: "numeric",
+    }
+  );
+}
+
 export default function BackOfficeInvoiceDirectory({
   invoices,
+  selectedMonth,
+  monthOptions,
 }: {
   invoices: InvoiceRow[];
+  selectedMonth: string;
+  monthOptions: string[];
 }) {
   const router = useRouter();
+
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
   const [source, setSource] = useState("ALL");
+  const [searchResults, setSearchResults] = useState<
+    InvoiceRow[]
+  >([]);
+  const [searching, setSearching] = useState(false);
+
+  const query = search.trim();
+  const globalSearchActive = query.length >= 2;
+
+  useEffect(() => {
+    if (!globalSearchActive) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const timer = window.setTimeout(async () => {
+      setSearching(true);
+
+      try {
+        const response = await fetch(
+          `/api/backoffice/invoices/search?q=${encodeURIComponent(
+            query
+          )}`,
+          {
+            signal: controller.signal,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Search failed.");
+        }
+
+        const data = (await response.json()) as {
+          invoices: InvoiceRow[];
+        };
+
+        setSearchResults(data.invoices);
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          error.name === "AbortError"
+        ) {
+          return;
+        }
+
+        setSearchResults([]);
+      } finally {
+        if (!controller.signal.aborted) {
+          setSearching(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [globalSearchActive, query]);
+
+  const visibleInvoices = globalSearchActive
+    ? searchResults
+    : invoices;
 
   const filteredInvoices = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return invoices.filter((invoice) => {
+    return visibleInvoices.filter((invoice) => {
       if (status !== "ALL" && invoice.status !== status) {
         return false;
       }
@@ -67,29 +146,20 @@ export default function BackOfficeInvoiceDirectory({
         return false;
       }
 
-      if (!query) {
-        return true;
-      }
-
-      const searchable = [
-        invoice.invoiceNumber,
-        invoice.customerFirstName,
-        invoice.customerLastName,
-        `${invoice.customerFirstName} ${invoice.customerLastName}`,
-        invoice.customerCompany ?? "",
-        invoice.locationCode,
-        sourceLabels[invoice.source],
-        statusLabels[invoice.status],
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return searchable.includes(query);
+      return true;
     });
-  }, [invoices, search, status, source]);
+  }, [visibleInvoices, status, source]);
 
   function openInvoice(id: string) {
     router.push(`/backoffice/sales/${id}`);
+  }
+
+  function changeMonth(value: string) {
+    setSearch("");
+    setSearchResults([]);
+    setStatus("ALL");
+    setSource("ALL");
+    router.push(`/backoffice/sales?month=${value}`);
   }
 
   return (
@@ -99,7 +169,12 @@ export default function BackOfficeInvoiceDirectory({
           <span className="backoffice-eyebrow">
             INVOICE DIRECTORY
           </span>
-          <h2>All Invoices</h2>
+
+          <h2>
+            {globalSearchActive
+              ? "Search Results"
+              : formatMonth(selectedMonth)}
+          </h2>
         </div>
       </div>
 
@@ -112,11 +187,31 @@ export default function BackOfficeInvoiceDirectory({
           flexWrap: "wrap",
         }}
       >
+        <select
+          value={selectedMonth}
+          onChange={(event) =>
+            changeMonth(event.target.value)
+          }
+          style={{
+            minHeight: "42px",
+            padding: "0 10px",
+          }}
+          aria-label="Invoice month"
+        >
+          {monthOptions.map((month) => (
+            <option key={month} value={month}>
+              {formatMonth(month)}
+            </option>
+          ))}
+        </select>
+
         <input
           type="search"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search invoice, customer, or location..."
+          onChange={(event) =>
+            setSearch(event.target.value)
+          }
+          placeholder="Search all invoice history..."
           autoComplete="off"
           style={{
             width: "100%",
@@ -128,8 +223,13 @@ export default function BackOfficeInvoiceDirectory({
 
         <select
           value={status}
-          onChange={(event) => setStatus(event.target.value)}
-          style={{ minHeight: "42px", padding: "0 10px" }}
+          onChange={(event) =>
+            setStatus(event.target.value)
+          }
+          style={{
+            minHeight: "42px",
+            padding: "0 10px",
+          }}
         >
           <option value="ALL">All Statuses</option>
           <option value="OPEN">Open</option>
@@ -139,20 +239,30 @@ export default function BackOfficeInvoiceDirectory({
 
         <select
           value={source}
-          onChange={(event) => setSource(event.target.value)}
-          style={{ minHeight: "42px", padding: "0 10px" }}
+          onChange={(event) =>
+            setSource(event.target.value)
+          }
+          style={{
+            minHeight: "42px",
+            padding: "0 10px",
+          }}
         >
           <option value="ALL">All Sources</option>
           <option value="POS">POS</option>
           <option value="WEBSITE">Website</option>
-          <option value="LEGACY_IMPORT">Legacy</option>
+          <option value="LEGACY_IMPORT">
+            Legacy
+          </option>
         </select>
 
         <span style={{ whiteSpace: "nowrap" }}>
-          {filteredInvoices.length}{" "}
-          {filteredInvoices.length === 1
-            ? "invoice"
-            : "invoices"}
+          {searching
+            ? "Searching..."
+            : `${filteredInvoices.length} ${
+                filteredInvoices.length === 1
+                  ? "invoice"
+                  : "invoices"
+              }`}
         </span>
       </div>
 
@@ -176,7 +286,9 @@ export default function BackOfficeInvoiceDirectory({
                 key={invoice.id}
                 role="link"
                 tabIndex={0}
-                onClick={() => openInvoice(invoice.id)}
+                onClick={() =>
+                  openInvoice(invoice.id)
+                }
                 onKeyDown={(event) => {
                   if (
                     event.key === "Enter" ||
@@ -186,11 +298,17 @@ export default function BackOfficeInvoiceDirectory({
                     openInvoice(invoice.id);
                   }
                 }}
-                style={{ cursor: "pointer" }}
+                style={{
+                  cursor: "pointer",
+                }}
               >
                 <td>
-                  <strong>{invoice.invoiceNumber}</strong>
-                  <div>{formatDate(invoice.createdAt)}</div>
+                  <strong>
+                    {invoice.invoiceNumber}
+                  </strong>
+                  <div>
+                    {formatDate(invoice.createdAt)}
+                  </div>
                 </td>
 
                 <td>
@@ -200,30 +318,66 @@ export default function BackOfficeInvoiceDirectory({
                   </strong>
 
                   {invoice.customerCompany ? (
-                    <div>{invoice.customerCompany}</div>
+                    <div>
+                      {invoice.customerCompany}
+                    </div>
                   ) : null}
                 </td>
 
-                <td>{sourceLabels[invoice.source]}</td>
-                <td>{statusLabels[invoice.status]}</td>
-                <td>{formatMoney(invoice.total)}</td>
-                <td>{formatMoney(invoice.amountPaid)}</td>
-                <td>{formatMoney(invoice.balanceDue)}</td>
+                <td>
+                  {sourceLabels[invoice.source]}
+                </td>
+
+                <td>
+                  {statusLabels[invoice.status]}
+                </td>
+
+                <td>
+                  {formatMoney(invoice.total)}
+                </td>
+
+                <td>
+                  {formatMoney(invoice.amountPaid)}
+                </td>
+
+                <td>
+                  {formatMoney(invoice.balanceDue)}
+                </td>
               </tr>
             ))}
 
-            {filteredInvoices.length === 0 ? (
+            {!searching &&
+            filteredInvoices.length === 0 ? (
               <tr>
                 <td colSpan={7}>
-                  {invoices.length === 0
-                    ? "No invoices have been created yet."
-                    : "No invoices match your search or filters."}
+                  {globalSearchActive
+                    ? "No invoices found in invoice history."
+                    : invoices.length === 0
+                      ? `No invoices for ${formatMonth(
+                          selectedMonth
+                        )}.`
+                      : "No invoices match your filters."}
                 </td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
+
+      {globalSearchActive &&
+      !searching &&
+      searchResults.length === 25 ? (
+        <div
+          style={{
+            paddingTop: "12px",
+            fontSize: "0.9rem",
+            opacity: 0.7,
+          }}
+        >
+          Showing the 25 most recent matches. Refine your
+          search for narrower results.
+        </div>
+      ) : null}
     </div>
   );
 }
