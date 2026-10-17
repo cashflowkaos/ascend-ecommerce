@@ -18,6 +18,7 @@ type CustomerRow = {
     | "TIER_3";
   active: boolean;
   userId: string | null;
+  totalSpent: number;
 };
 
 const pricingLabels = {
@@ -128,6 +129,7 @@ export default function BackOfficeCustomerDirectory({
             <tr>
               <th>Customer</th>
               <th>Contact</th>
+              <th>Total Spent</th>
               <th>Pricing</th>
               <th>Website</th>
               <th>Status</th>
@@ -163,8 +165,15 @@ export default function BackOfficeCustomerDirectory({
                 </td>
 
                 <td>
-                  <div>{customer.email || "—"}</div>
-                  <div>{customer.phone || "—"}</div>
+                  <div>{customer.email || "-"}</div>
+                  <div>{customer.phone || "-"}</div>
+                </td>
+
+                <td>
+                  {customer.totalSpent.toLocaleString("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                  })}
                 </td>
 
                 <td>
@@ -183,7 +192,7 @@ export default function BackOfficeCustomerDirectory({
 
             {filteredCustomers.length === 0 ? (
               <tr>
-                <td colSpan={5}>
+                <td colSpan={6}>
                   {search
                     ? "No customers match your search."
                     : "No customers have been added yet."}

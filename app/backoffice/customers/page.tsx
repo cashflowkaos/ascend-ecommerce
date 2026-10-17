@@ -4,23 +4,48 @@ import BackOfficeCustomerDirectory from "@/components/backoffice/BackOfficeCusto
 import { prisma } from "@/lib/prisma";
 
 export default async function BackOfficeCustomersPage() {
-  const customers = await prisma.backOfficeCustomer.findMany({
-    orderBy: [
-      { lastName: "asc" },
-      { firstName: "asc" },
-    ],
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      company: true,
-      email: true,
-      phone: true,
-      pricingType: true,
-      active: true,
-      userId: true,
-    },
-  });
+  const [customers, customerSales] = await Promise.all([
+    prisma.backOfficeCustomer.findMany({
+      orderBy: [
+        { lastName: "asc" },
+        { firstName: "asc" },
+      ],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        company: true,
+        email: true,
+        phone: true,
+        pricingType: true,
+        active: true,
+        userId: true,
+      },
+    }),
+    prisma.backOfficeInvoice.groupBy({
+      by: ["customerId"],
+      where: {
+        status: {
+          not: "VOID",
+        },
+      },
+      _sum: {
+        total: true,
+      },
+    }),
+  ]);
+
+  const salesByCustomer = new Map(
+    customerSales.map((row) => [
+      row.customerId,
+      Number(row._sum.total ?? 0),
+    ])
+  );
+
+  const customersWithTotals = customers.map((customer) => ({
+    ...customer,
+    totalSpent: salesByCustomer.get(customer.id) ?? 0,
+  }));
 
   const activeCustomers = customers.filter(
     (customer) => customer.active
@@ -90,7 +115,7 @@ export default async function BackOfficeCustomersPage() {
       </div>
 
       <BackOfficeCustomerDirectory
-        customers={customers}
+        customers={customersWithTotals}
       />
     </>
   );
