@@ -1,68 +1,108 @@
-import { BackOfficePosRegister } from "@/components/backoffice/BackOfficePosRegister";
+﻿import { BackOfficePosRegister } from "@/components/backoffice/BackOfficePosRegister";
 import { prisma } from "@/lib/prisma";
 
 export default async function BackOfficePosPage() {
-  const [customers, locations, products] = await Promise.all([
-    prisma.backOfficeCustomer.findMany({
-      where: { active: true },
-      orderBy: [
-        { firstName: "asc" },
-        { lastName: "asc" },
-      ],
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        company: true,
-        email: true,
-        phone: true,
-        pricingType: true,
-      },
-    }),
+  const [customers, locations, products, websiteOrders] =
+    await Promise.all([
+      prisma.backOfficeCustomer.findMany({
+        where: { active: true },
+        orderBy: [
+          { firstName: "asc" },
+          { lastName: "asc" },
+        ],
+        select: {
+          id: true,
+          userId: true,
+          firstName: true,
+          lastName: true,
+          company: true,
+          email: true,
+          phone: true,
+          pricingType: true,
+        },
+      }),
 
-    prisma.backOfficeLocation.findMany({
-      where: { active: true },
-      orderBy: [
-        { sortOrder: "asc" },
-        { name: "asc" },
-      ],
-      select: {
-        id: true,
-        code: true,
-        name: true,
-      },
-    }),
+      prisma.backOfficeLocation.findMany({
+        where: { active: true },
+        orderBy: [
+          { sortOrder: "asc" },
+          { name: "asc" },
+        ],
+        select: {
+          id: true,
+          code: true,
+          name: true,
+        },
+      }),
 
-    prisma.backOfficeProduct.findMany({
-      where: { active: true },
-      orderBy: [
-        { sortOrder: "asc" },
-        { name: "asc" },
-      ],
-      select: {
-        id: true,
-        sku: true,
-        name: true,
-        cost: true,
-        retailPrice: true,
-        unitsPerKit: true,
-        batches: {
-          orderBy: [
-            { receivedAt: "asc" },
-            { createdAt: "asc" },
-          ],
-          select: {
-            balances: {
-              select: {
-                locationId: true,
-                quantity: true,
+      prisma.backOfficeProduct.findMany({
+        where: { active: true },
+        orderBy: [
+          { sortOrder: "asc" },
+          { name: "asc" },
+        ],
+        select: {
+          id: true,
+          sku: true,
+          name: true,
+          cost: true,
+          retailPrice: true,
+          unitsPerKit: true,
+          batches: {
+            orderBy: [
+              { receivedAt: "asc" },
+              { createdAt: "asc" },
+            ],
+            select: {
+              balances: {
+                select: {
+                  locationId: true,
+                  quantity: true,
+                },
               },
             },
           },
         },
-      },
-    }),
-  ]);
+      }),
+
+      prisma.order.findMany({
+        where: {
+          status: { not: "CANCELLED" },
+          backOfficeInvoice: null,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 25,
+        select: {
+          id: true,
+          orderNumber: true,
+          userId: true,
+          channel: true,
+          fulfillmentMethod: true,
+          shippingAmount: true,
+          subtotal: true,
+          total: true,
+          createdAt: true,
+          items: {
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              variantId: true,
+              productName: true,
+              sku: true,
+              strength: true,
+              quantity: true,
+              unitPrice: true,
+              lineTotal: true,
+              variant: {
+                select: {
+                  backOfficeProductId: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
 
   const posProducts = products.map((product) => {
     const quantities: Record<string, number> = {};
@@ -92,6 +132,59 @@ export default async function BackOfficePosPage() {
     };
   });
 
+  const customerByUserId = new Map(
+    customers
+      .filter((customer) => customer.userId)
+      .map((customer) => [
+        customer.userId as string,
+        customer.id,
+      ])
+  );
+
+  const productBySku = new Map(
+    products.map((product) => [product.sku, product.id])
+  );
+
+  const posWebsiteOrders = websiteOrders.map((order) => ({
+    id: order.id,
+    orderNumber: order.orderNumber,
+    customerId: customerByUserId.get(order.userId) ?? null,
+    channel: order.channel,
+    fulfillmentMethod: order.fulfillmentMethod,
+    shippingAmount: Number(order.shippingAmount),
+    subtotal: Number(order.subtotal),
+    total: Number(order.total),
+    createdAt: order.createdAt.toISOString(),
+    items: order.items.map((item) => {
+      const isDistro =
+        item.variantId === null &&
+        item.strength === "Distro";
+
+      const backOfficeProductId = isDistro
+        ? item.sku
+          ? productBySku.get(item.sku) ?? null
+          : null
+        : item.variant?.backOfficeProductId ?? null;
+
+      return {
+        id: item.id,
+        productId: backOfficeProductId,
+        productName: item.productName,
+        sku: item.sku,
+        strength: item.strength,
+        sellUnit: isDistro ? ("KIT" as const) : ("UNIT" as const),
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        lineTotal: Number(item.lineTotal),
+        mapped: backOfficeProductId !== null,
+      };
+    }),
+  }));
+
+  const posCustomers = customers.map(
+    ({ userId: _userId, ...customer }) => customer
+  );
+
   return (
     <>
       <div className="backoffice-page-heading">
@@ -117,7 +210,7 @@ export default async function BackOfficePosPage() {
 
         <div className="backoffice-stat-card">
           <span>Customers</span>
-          <strong>{customers.length}</strong>
+          <strong>{posCustomers.length}</strong>
         </div>
 
         <div className="backoffice-stat-card">
@@ -126,15 +219,16 @@ export default async function BackOfficePosPage() {
         </div>
 
         <div className="backoffice-stat-card">
-          <span>Register</span>
-          <strong>Ready</strong>
+          <span>Website Orders</span>
+          <strong>{posWebsiteOrders.length}</strong>
         </div>
       </div>
 
       <BackOfficePosRegister
-        customers={customers}
+        customers={posCustomers}
         locations={locations}
         products={posProducts}
+        websiteOrders={posWebsiteOrders}
       />
     </>
   );

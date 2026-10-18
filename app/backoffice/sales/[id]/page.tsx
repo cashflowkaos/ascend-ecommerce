@@ -425,7 +425,8 @@ export default async function BackOfficeInvoicePage({
           invoiceId={invoice.id}
           invoiceNumber={invoice.invoiceNumber}
           restoresInventory={
-            invoice.source === "POS" &&
+            (invoice.source === "POS" ||
+              invoice.source === "WEBSITE") &&
             invoice.status === "COMPLETED"
           }
         />

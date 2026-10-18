@@ -267,12 +267,13 @@ export async function voidInvoice(
         );
 
         if (
-          invoice.source === "POS" &&
+          (invoice.source === "POS" ||
+            invoice.source === "WEBSITE") &&
           invoice.status === "COMPLETED"
         ) {
           if (allocations.length === 0) {
             throw new Error(
-              "This completed POS invoice has no inventory allocations and cannot be safely voided."
+              "This completed invoice has no inventory allocations and cannot be safely voided."
             );
           }
 

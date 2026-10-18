@@ -32,6 +32,7 @@ type PosPaymentMethod = "CASH" | "ZELLE";
 export type CompletePosSaleInput = {
   customerId: string;
   locationId: string;
+  websiteOrderId?: string | null;
 
   items: {
     productId: string;
@@ -78,6 +79,14 @@ function validateCompletePosSaleInput(
 
   if (!input.locationId?.trim()) {
     return "An inventory location is required.";
+  }
+
+  if (
+    input.websiteOrderId !== undefined &&
+    input.websiteOrderId !== null &&
+    !input.websiteOrderId.trim()
+  ) {
+    return "Invalid website order.";
   }
 
   if (!Array.isArray(input.items) || input.items.length === 0) {
@@ -395,6 +404,169 @@ export async function completePosSale(
           );
         }
 
+        const websiteOrder = input.websiteOrderId
+          ? await tx.order.findUnique({
+              where: { id: input.websiteOrderId },
+              select: {
+                id: true,
+                orderNumber: true,
+                userId: true,
+                status: true,
+                fulfillmentMethod: true,
+                shippingAmount: true,
+                items: {
+                  orderBy: { createdAt: "asc" },
+                  select: {
+                    id: true,
+                    productId: true,
+                    variantId: true,
+                    productName: true,
+                    sku: true,
+                    strength: true,
+                    quantity: true,
+                    unitPrice: true,
+                    lineTotal: true,
+                    variant: {
+                      select: {
+                        backOfficeProductId: true,
+                      },
+                    },
+                  },
+                },
+                backOfficeInvoice: {
+                  select: {
+                    id: true,
+                    invoiceNumber: true,
+                  },
+                },
+              },
+            })
+          : null;
+
+        if (input.websiteOrderId && !websiteOrder) {
+          throw new Error("Website order not found.");
+        }
+
+        if (websiteOrder?.status === "CANCELLED") {
+          throw new Error("Cancelled website orders cannot be completed in POS.");
+        }
+
+        if (websiteOrder?.backOfficeInvoice) {
+          throw new Error(
+            `Website order ${websiteOrder.orderNumber} is already linked to invoice ${websiteOrder.backOfficeInvoice.invoiceNumber}.`
+          );
+        }
+
+        if (websiteOrder) {
+          const linkedCustomer =
+            await tx.backOfficeCustomer.findUnique({
+              where: { userId: websiteOrder.userId },
+              select: { id: true },
+            });
+
+          if (!linkedCustomer || linkedCustomer.id !== customer.id) {
+            throw new Error(
+              `Website order ${websiteOrder.orderNumber} does not match the selected Back Office customer.`
+            );
+          }
+        }
+
+        const websiteDistroSkus = websiteOrder
+          ? [
+              ...new Set(
+                websiteOrder.items
+                  .filter(
+                    (item) =>
+                      item.variantId === null &&
+                      item.productId === null &&
+                      item.strength === "Distro" &&
+                      Boolean(item.sku)
+                  )
+                  .map((item) => item.sku as string)
+              ),
+            ]
+          : [];
+
+        const websiteDistroProducts =
+          websiteDistroSkus.length > 0
+            ? await tx.distroProduct.findMany({
+                where: {
+                  sku: { in: websiteDistroSkus },
+                },
+                select: {
+                  sku: true,
+                  backOfficeProductId: true,
+                },
+              })
+            : [];
+
+        const websiteDistroProductMap = new Map(
+          websiteDistroProducts.map((product) => [
+            product.sku,
+            product.backOfficeProductId,
+          ])
+        );
+
+        const authoritativeWebsiteItems = websiteOrder
+          ? websiteOrder.items.map((item) => {
+              const isDistro =
+                item.variantId === null &&
+                item.productId === null &&
+                item.strength === "Distro";
+
+              const productId = isDistro
+                ? item.sku
+                  ? websiteDistroProductMap.get(item.sku) ?? null
+                  : null
+                : item.variant?.backOfficeProductId ?? null;
+
+              if (!productId) {
+                throw new Error(
+                  `Website order ${websiteOrder.orderNumber} needs product mapping for ${item.productName}.`
+                );
+              }
+
+              return {
+                productId,
+                sellUnit: isDistro
+                  ? ("KIT" as const)
+                  : ("UNIT" as const),
+                quantity: item.quantity,
+                unitPrice: roundMoney(Number(item.unitPrice)),
+              };
+            })
+          : null;
+
+        if (authoritativeWebsiteItems) {
+          if (
+            input.items.length !==
+            authoritativeWebsiteItems.length
+          ) {
+            throw new Error(
+              `Website order ${websiteOrder?.orderNumber ?? ""} items do not match the POS cart.`
+            );
+          }
+
+          const remainingInputItems = [...input.items];
+
+          for (const expected of authoritativeWebsiteItems) {
+            const matchIndex = remainingInputItems.findIndex(
+              (item) =>
+                item.productId === expected.productId &&
+                item.sellUnit === expected.sellUnit &&
+                item.quantity === expected.quantity
+            );
+
+            if (matchIndex < 0) {
+              throw new Error(
+                `Website order ${websiteOrder?.orderNumber ?? ""} items were changed. Reload the website order before completing the sale.`
+              );
+            }
+
+            remainingInputItems.splice(matchIndex, 1);
+          }
+        }
+
         const productIds = [
           ...new Set(
             input.items.map((item) => item.productId)
@@ -456,14 +628,22 @@ export async function completePosSale(
               item.sellUnit
             );
 
-          if (standardPrice === null) {
+          const websiteExpectedItem = authoritativeWebsiteItems?.find(
+            (expected) =>
+              expected.productId === item.productId &&
+              expected.sellUnit === item.sellUnit &&
+              expected.quantity === item.quantity
+          );
+
+          if (!websiteExpectedItem && standardPrice === null) {
             throw new Error(
               `${product.name} does not have enough pricing information for this sale.`
             );
           }
 
-          const standardUnitPrice =
-            roundMoney(standardPrice);
+          const standardUnitPrice = websiteExpectedItem
+            ? websiteExpectedItem.unitPrice
+            : roundMoney(standardPrice as number);
 
           const unitPrice = roundMoney(item.unitPrice);
 
@@ -562,11 +742,16 @@ export async function completePosSale(
           }
         }
 
+        const shippingAmount =
+          websiteOrder?.fulfillmentMethod === "SHIPPING"
+            ? 20
+            : 0;
+
         const subtotal = roundMoney(
           preparedItems.reduce(
             (sum, item) => sum + item.lineTotal,
             0
-          )
+          ) + shippingAmount
         );
 
         const requestedDiscountPercent =
@@ -619,7 +804,8 @@ export async function completePosSale(
           await tx.backOfficeInvoice.create({
             data: {
               invoiceNumber,
-              source: "POS",
+              source: websiteOrder ? "WEBSITE" : "POS",
+              websiteOrderId: websiteOrder?.id ?? null,
               status: "COMPLETED",
 
               customerId: customer.id,
@@ -696,6 +882,26 @@ export async function completePosSale(
               createdByName,
             }
           );
+        }
+
+        if (shippingAmount > 0) {
+          await tx.backOfficeInvoiceItem.create({
+            data: {
+              invoiceId: invoice.id,
+              productId: null,
+              sku: "SHIPPING",
+              productName: "Shipping",
+              sellUnit: "UNIT",
+              quantity: 1,
+              unitsPerSellUnit: 0,
+              baseUnitsTotal: 0,
+              standardUnitPrice: shippingAmount,
+              unitPrice: shippingAmount,
+              lineTotal: shippingAmount,
+              priceAdjusted: false,
+              priceAdjustmentReason: null,
+            },
+          });
         }
 
         if (

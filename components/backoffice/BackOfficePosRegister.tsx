@@ -45,14 +45,42 @@ type CartLine = {
   productId: string;
   sellUnit: SellUnit;
   quantity: number;
+  websiteUnitPrice: number | null;
   manualUnitPrice: number | null;
   priceAdjustmentReason: string;
+};
+
+export type PosWebsiteOrderItem = {
+  id: string;
+  productId: string | null;
+  productName: string;
+  sku: string | null;
+  strength: string;
+  sellUnit: SellUnit;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  mapped: boolean;
+};
+
+export type PosWebsiteOrder = {
+  id: string;
+  orderNumber: string;
+  customerId: string | null;
+  channel: "RETAIL" | "DISTRO" | "MIXED";
+  fulfillmentMethod: "SHIPPING" | "PICKUP" | null;
+  shippingAmount: number;
+  subtotal: number;
+  total: number;
+  createdAt: string;
+  items: PosWebsiteOrderItem[];
 };
 
 type Props = {
   customers: PosCustomer[];
   locations: PosLocation[];
   products: PosProduct[];
+  websiteOrders: PosWebsiteOrder[];
 };
 
 function getWholesalePrice(retailPrice: number | null) {
@@ -135,10 +163,12 @@ export function BackOfficePosRegister({
   customers,
   locations,
   products,
+  websiteOrders,
 }: Props) {
   const router = useRouter();
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [loadedWebsiteOrderId, setLoadedWebsiteOrderId] = useState<string | null>(null);
 
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerSearchOpen, setCustomerSearchOpen] =
@@ -294,6 +324,13 @@ export function BackOfficePosRegister({
     setCustomerSearch("");
     setCustomerSearchOpen(false);
     setCartError(null);
+
+    if (loadedWebsiteOrderId) {
+      setCartError(
+        "Website order items are locked. Clear the cart to start a manual sale."
+      );
+      return;
+    }
   }
 
   function clearCustomer() {
@@ -304,7 +341,11 @@ export function BackOfficePosRegister({
   }
 
   function handleLocationChange(locationId: string) {
-    if (cart.length > 0 && locationId !== selectedLocationId) {
+    const isChangingExistingLocation =
+      Boolean(selectedLocationId) &&
+      locationId !== selectedLocationId;
+
+    if (cart.length > 0 && isChangingExistingLocation) {
       const confirmed = window.confirm(
         "Changing inventory location will clear the current cart. Continue?"
       );
@@ -312,11 +353,62 @@ export function BackOfficePosRegister({
       if (!confirmed) {
         return;
       }
+
+      setCart([]);
+      setLoadedWebsiteOrderId(null);
     }
 
     setSelectedLocationId(locationId);
-    setCart([]);
     setCartError(null);
+  }
+
+  function loadWebsiteOrder(order: PosWebsiteOrder) {
+    setCartError(null);
+    setSaleError(null);
+    setCompletedInvoiceNumber(null);
+
+    if (!order.customerId) {
+      setCartError(
+        `Website order ${order.orderNumber} does not have a matching active Back Office customer.`
+      );
+      return;
+    }
+
+    const unmappedItem = order.items.find(
+      (item) => !item.mapped || !item.productId
+    );
+
+    if (unmappedItem) {
+      setCartError(
+        `Website order ${order.orderNumber} needs product mapping for ${unmappedItem.productName}.`
+      );
+      return;
+    }
+
+    const nextCart: CartLine[] = order.items.map((item) => ({
+      key: getCartKey(item.productId as string, item.sellUnit),
+      productId: item.productId as string,
+      sellUnit: item.sellUnit,
+      quantity: item.quantity,
+      websiteUnitPrice: item.unitPrice,
+      manualUnitPrice: null,
+      priceAdjustmentReason: "",
+    }));
+
+    setLoadedWebsiteOrderId(order.id);
+    setSelectedCustomerId(order.customerId);
+    setCustomerSearch("");
+    setCustomerSearchOpen(false);
+    setSelectedLocationId("");
+    setCart(nextCart);
+    setProductSearch("");
+    setProductSearchOpen(false);
+    setDiscountPercent("");
+    setDiscountAmount("");
+    setPaymentOpen(false);
+    setPaymentMethod("CASH");
+    setAmountReceived("");
+    setZelleReference("");
   }
 
   function addToCart(
@@ -362,6 +454,7 @@ export function BackOfficePosRegister({
             productId: product.id,
             sellUnit,
             quantity: 1,
+            websiteUnitPrice: null,
             manualUnitPrice: null,
             priceAdjustmentReason: "",
           },
@@ -519,7 +612,7 @@ export function BackOfficePosRegister({
         );
 
         const unitPrice =
-          line.manualUnitPrice ?? standardPrice;
+          line.manualUnitPrice ?? line.websiteUnitPrice ?? standardPrice;
 
         return [
           {
@@ -536,13 +629,22 @@ export function BackOfficePosRegister({
     [cart, products, pricingType]
   );
 
+  const loadedWebsiteOrder = websiteOrders.find(
+    (order) => order.id === loadedWebsiteOrderId
+  );
+
+  const shippingAmount =
+    loadedWebsiteOrder?.fulfillmentMethod === "SHIPPING"
+      ? 20
+      : 0;
+
   const subtotal = useMemo(
     () =>
       cartDetails.reduce(
         (total, line) => total + line.lineTotal,
         0
-      ),
-    [cartDetails]
+      ) + shippingAmount,
+    [cartDetails, shippingAmount]
   );
 
   const calculatedDiscount = useMemo(() => {
@@ -647,6 +749,7 @@ export function BackOfficePosRegister({
 
     try {
       const result = await completePosSale({
+        websiteOrderId: loadedWebsiteOrderId,
         customerId: selectedCustomerId,
         locationId: selectedLocationId,
         items: cartDetails.map((line) => ({
@@ -688,6 +791,7 @@ export function BackOfficePosRegister({
       setCompletedInvoiceNumber(result.invoiceNumber);
       router.refresh();
       setCart([]);
+      setLoadedWebsiteOrderId(null);
       setDiscountPercent("");
       setDiscountAmount("");
       setAmountReceived("");
@@ -707,6 +811,53 @@ export function BackOfficePosRegister({
     <div className="pos-register">
       <section className="pos-setup-card">
         <div className="pos-setup-grid">
+
+          <div className="pos-website-orders">
+            <div className="pos-section-heading">
+              <div>
+                <span>WEBSITE ORDERS</span>
+                <h2>Load Order</h2>
+              </div>
+            </div>
+
+            {websiteOrders.length === 0 ? (
+              <div className="pos-search-empty">
+                No website orders waiting for POS.
+              </div>
+            ) : (
+              <select
+                defaultValue=""
+                onChange={(event) => {
+                  const order = websiteOrders.find(
+                    (item) => item.id === event.target.value
+                  );
+
+                  if (order) {
+                    loadWebsiteOrder(order);
+                  }
+
+                  event.currentTarget.value = "";
+                }}
+              >
+                <option value="">Select website order...</option>
+
+                {websiteOrders.map((order) => {
+                  const hasMappingIssue =
+                    !order.customerId ||
+                    order.items.some((item) => !item.mapped);
+
+                  return (
+                    <option key={order.id} value={order.id}>
+                      {order.orderNumber} - {order.channel} -{" "}
+                      {formatMoney(order.total)}
+                      {hasMappingIssue ? " - NEEDS MAPPING" : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            )}
+          </div>
+
 
           <div className="pos-field pos-search-wrap">
             <span>Customer</span>
@@ -954,6 +1105,7 @@ export function BackOfficePosRegister({
                 className="pos-clear-button"
                 onClick={() => {
                   setCart([]);
+                  setLoadedWebsiteOrderId(null);
                   setCartError(null);
                 }}
               >
@@ -1006,6 +1158,7 @@ export function BackOfficePosRegister({
                           step="0.01"
                           value={
                             line.manualUnitPrice ??
+                            line.websiteUnitPrice ??
                             line.standardPrice
                           }
                           onChange={(event) =>
@@ -1051,6 +1204,7 @@ export function BackOfficePosRegister({
                   <div className="pos-cart-quantity">
                     <button
                       type="button"
+                      disabled={Boolean(loadedWebsiteOrderId)}
                       onClick={() =>
                         changeQuantity(line.key, -1)
                       }
@@ -1062,6 +1216,7 @@ export function BackOfficePosRegister({
 
                     <button
                       type="button"
+                      disabled={Boolean(loadedWebsiteOrderId)}
                       onClick={() =>
                         changeQuantity(line.key, 1)
                       }
@@ -1085,6 +1240,7 @@ export function BackOfficePosRegister({
 
                   <button
                     type="button"
+                      disabled={Boolean(loadedWebsiteOrderId)}
                     className="pos-remove-line"
                     onClick={() => removeLine(line.key)}
                     aria-label={`Remove ${line.product.name}`}
@@ -1097,6 +1253,13 @@ export function BackOfficePosRegister({
           )}
 
           <div className="pos-cart-summary">
+            {shippingAmount > 0 ? (
+              <div>
+                <span>Shipping</span>
+                <strong>{formatMoney(shippingAmount)}</strong>
+              </div>
+            ) : null}
+
             <div>
               <span>Subtotal</span>
               <strong>{formatMoney(subtotal)}</strong>
