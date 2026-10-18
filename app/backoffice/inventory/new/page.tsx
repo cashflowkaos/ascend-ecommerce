@@ -80,6 +80,24 @@ export default function NewBackOfficeProductPage() {
           <BackOfficeProductPricing defaultCost="" defaultRetailPrice="" />
 
           <label className="backoffice-form-field">
+            <span>Inventory Type</span>
+
+            <select
+              name="inventoryType"
+              defaultValue="BATCHED"
+              required
+            >
+              <option value="BATCHED">Batch Tracked</option>
+              <option value="SIMPLE">Simple Stock</option>
+              <option value="NON_INVENTORY">Non-Inventory</option>
+            </select>
+
+            <small>
+              Batch Tracked uses lot/batch inventory. Simple Stock tracks quantity only. Non-Inventory does not track stock.
+            </small>
+          </label>
+
+          <label className="backoffice-form-field">
             <span>Units Per Kit</span>
 
             <input

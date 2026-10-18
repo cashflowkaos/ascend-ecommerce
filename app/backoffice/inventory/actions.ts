@@ -320,6 +320,18 @@ export async function createBackOfficeProduct(
     formData.get("unitsPerKit") ?? 10
   );
 
+  const inventoryType = String(
+    formData.get("inventoryType") ?? "BATCHED"
+  ).trim();
+
+  if (
+    inventoryType !== "BATCHED" &&
+    inventoryType !== "SIMPLE" &&
+    inventoryType !== "NON_INVENTORY"
+  ) {
+    throw new Error("Invalid inventory type.");
+  }
+
   if (!sku) {
     throw new Error("SKU is required.");
   }
@@ -379,6 +391,7 @@ export async function createBackOfficeProduct(
           retailPrice,
           displayDistro,
           unitsPerKit,
+          inventoryType,
         },
       });
 
@@ -437,6 +450,18 @@ export async function updateBackOfficeProduct(
   const unitsPerKit = Number(
     formData.get("unitsPerKit") ?? 10
   );
+
+  const inventoryType = String(
+    formData.get("inventoryType") ?? "BATCHED"
+  ).trim();
+
+  if (
+    inventoryType !== "BATCHED" &&
+    inventoryType !== "SIMPLE" &&
+    inventoryType !== "NON_INVENTORY"
+  ) {
+    throw new Error("Invalid inventory type.");
+  }
 
   if (!id) {
     throw new Error("Product ID is required.");
@@ -513,6 +538,7 @@ export async function updateBackOfficeProduct(
       retailPrice,
       displayDistro,
       unitsPerKit,
+      inventoryType,
     },
   });
 

@@ -105,6 +105,12 @@ enum BackOfficeCustomerPricingType {
   TIER_3
 }
 
+enum BackOfficeInventoryType {
+  BATCHED
+  SIMPLE
+  NON_INVENTORY
+}
+
 enum BackOfficeBatchStatus {
   ACTIVE
   RETIRED
@@ -655,7 +661,8 @@ model BackOfficeProduct {
   cost        Decimal? @db.Decimal(10, 2)
   retailPrice Decimal? @db.Decimal(10, 2)
 
-  unitsPerKit Int @default(10)
+  unitsPerKit   Int                     @default(10)
+  inventoryType BackOfficeInventoryType @default(BATCHED)
 
   // Legacy production column retained for backward-compatible schema changes.
   // Retail storefront does not use this field.
@@ -669,6 +676,7 @@ model BackOfficeProduct {
   updatedAt DateTime @updatedAt
 
   batches        BackOfficeBatch[]
+  simpleBalances BackOfficeSimpleInventoryBalance[]
   distroProduct  DistroProduct?
   retailVariants ProductVariant[]
   invoiceItems   BackOfficeInvoiceItem[]
@@ -718,12 +726,13 @@ model BackOfficeLocation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  balances           BackOfficeInventoryBalance[]
-  movements          BackOfficeInventoryMovement[]
-  transfersFrom      BackOfficeInventoryTransfer[]     @relation("BackOfficeTransferFrom")
-  transfersTo        BackOfficeInventoryTransfer[]     @relation("BackOfficeTransferTo")
-  invoices           BackOfficeInvoice[]
-  invoiceAllocations BackOfficeInvoiceItemAllocation[]
+  balances                          BackOfficeInventoryBalance[]
+  movements                         BackOfficeInventoryMovement[]
+  transfersFrom                     BackOfficeInventoryTransfer[]      @relation("BackOfficeTransferFrom")
+  transfersTo                       BackOfficeInventoryTransfer[]      @relation("BackOfficeTransferTo")
+  invoices                          BackOfficeInvoice[]
+  invoiceAllocations                BackOfficeInvoiceItemAllocation[]
+  backOfficeSimpleInventoryBalances BackOfficeSimpleInventoryBalance[]
 
   @@index([active, sortOrder])
 }
@@ -745,6 +754,25 @@ model BackOfficeInventoryBalance {
   @@unique([batchId, locationId])
   @@index([locationId])
   @@index([batchId])
+}
+
+model BackOfficeSimpleInventoryBalance {
+  id String @id @default(cuid())
+
+  productId String
+  product   BackOfficeProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  locationId String
+  location   BackOfficeLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  quantity Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, locationId])
+  @@index([productId])
+  @@index([locationId])
 }
 
 model BackOfficeInventoryMovement {

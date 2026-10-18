@@ -72,11 +72,11 @@ export default async function EditBackOfficeProductPage({
         </div>
 
         <Link
-          href="/backoffice/inventory/count"
+          href="/backoffice/inventory"
           className="backoffice-secondary-button"
         >
           <ArrowLeft size={15} strokeWidth={2} />
-          Back to Physical Count
+          Back to Inventory
         </Link>
       </div>
 
@@ -149,6 +149,24 @@ export default async function EditBackOfficeProductPage({
           />
 
           <label className="backoffice-form-field">
+            <span>Inventory Type</span>
+
+            <select
+              name="inventoryType"
+              defaultValue={product.inventoryType}
+              required
+            >
+              <option value="BATCHED">Batch Tracked</option>
+              <option value="SIMPLE">Simple Stock</option>
+              <option value="NON_INVENTORY">Non-Inventory</option>
+            </select>
+
+            <small>
+              Batch Tracked uses lot/batch inventory. Simple Stock tracks quantity only. Non-Inventory does not track stock.
+            </small>
+          </label>
+
+          <label className="backoffice-form-field">
             <span>Units Per Kit</span>
 
             <input
@@ -185,7 +203,7 @@ export default async function EditBackOfficeProductPage({
 
         <div className="backoffice-form-actions">
           <Link
-            href="/backoffice/inventory/count"
+            href="/backoffice/inventory"
             className="backoffice-secondary-button"
           >
             Cancel
