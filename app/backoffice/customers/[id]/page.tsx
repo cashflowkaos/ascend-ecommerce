@@ -176,83 +176,6 @@ export default async function BackOfficeCustomerPage({
         </div>
       </div>
 
-      <div className="backoffice-panel">
-        <div className="backoffice-panel-heading">
-          <div>
-            <span className="backoffice-eyebrow">
-              INVOICE HISTORY
-            </span>
-            <h2>Customer Invoices</h2>
-          </div>
-        </div>
-
-        <div className="backoffice-table-wrap">
-          <table className="backoffice-table">
-            <thead>
-              <tr>
-                <th>Invoice</th>
-                <th>Date</th>
-                <th>Source</th>
-                <th>Status</th>
-                <th>Total</th>
-                <th>Paid</th>
-                <th>Balance</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {customer.invoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td>
-                    <Link
-                      href={`/backoffice/sales/${invoice.id}`}
-                    >
-                      <strong>{invoice.invoiceNumber}</strong>
-                    </Link>
-                  </td>
-
-                  <td>{formatDate(invoice.createdAt)}</td>
-
-                  <td>
-                    {invoice.source === "LEGACY_IMPORT"
-                      ? "Legacy"
-                      : invoice.source === "WEBSITE"
-                        ? "Website"
-                        : "POS"}
-                  </td>
-
-                  <td>
-                    {invoice.status === "COMPLETED"
-                      ? "Completed"
-                      : invoice.status === "OPEN"
-                        ? "Open"
-                        : "Void"}
-                  </td>
-
-                  <td>{formatMoney(Number(invoice.total))}</td>
-
-                  <td>
-                    {formatMoney(Number(invoice.amountPaid))}
-                  </td>
-
-                  <td>
-                    {formatMoney(Number(invoice.balanceDue))}
-                  </td>
-                </tr>
-              ))}
-
-              {customer.invoices.length === 0 ? (
-                <tr>
-                  <td colSpan={7}>
-                    No invoices are attached to this customer.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       <form
         action={updateBackOfficeCustomer}
         className="backoffice-panel backoffice-product-form"
@@ -372,6 +295,83 @@ export default async function BackOfficeCustomerPage({
           <BackOfficeDeleteCustomerButton />
         </form>
       ) : null}
+
+      <div className="backoffice-panel">
+        <div className="backoffice-panel-heading">
+          <div>
+            <span className="backoffice-eyebrow">
+              INVOICE HISTORY
+            </span>
+            <h2>Customer Invoices</h2>
+          </div>
+        </div>
+
+        <div className="backoffice-table-wrap">
+          <table className="backoffice-table">
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Date</th>
+                <th>Source</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Paid</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {customer.invoices.map((invoice) => (
+                <tr key={invoice.id}>
+                  <td>
+                    <Link
+                      href={`/backoffice/sales/${invoice.id}`}
+                    >
+                      <strong>{invoice.invoiceNumber}</strong>
+                    </Link>
+                  </td>
+
+                  <td>{formatDate(invoice.createdAt)}</td>
+
+                  <td>
+                    {invoice.source === "LEGACY_IMPORT"
+                      ? "Legacy"
+                      : invoice.source === "WEBSITE"
+                        ? "Website"
+                        : "POS"}
+                  </td>
+
+                  <td>
+                    {invoice.status === "COMPLETED"
+                      ? "Completed"
+                      : invoice.status === "OPEN"
+                        ? "Open"
+                        : "Void"}
+                  </td>
+
+                  <td>{formatMoney(Number(invoice.total))}</td>
+
+                  <td>
+                    {formatMoney(Number(invoice.amountPaid))}
+                  </td>
+
+                  <td>
+                    {formatMoney(Number(invoice.balanceDue))}
+                  </td>
+                </tr>
+              ))}
+
+              {customer.invoices.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    No invoices are attached to this customer.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <form
         action={setBackOfficeCustomerMemberLink}

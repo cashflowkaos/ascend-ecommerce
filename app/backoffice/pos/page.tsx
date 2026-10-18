@@ -1,4 +1,4 @@
-﻿import { BackOfficePosRegister } from "@/components/backoffice/BackOfficePosRegister";
+import { BackOfficePosRegister } from "@/components/backoffice/BackOfficePosRegister";
 import { prisma } from "@/lib/prisma";
 
 export default async function BackOfficePosPage() {
@@ -67,7 +67,7 @@ export default async function BackOfficePosPage() {
 
       prisma.order.findMany({
         where: {
-          status: { not: "CANCELLED" },
+          status: { in: ["PENDING", "CONFIRMED", "PROCESSING"] },
           backOfficeInvoice: null,
         },
         orderBy: { createdAt: "desc" },
@@ -141,6 +141,15 @@ export default async function BackOfficePosPage() {
       ])
   );
 
+  const customerNameByUserId = new Map(
+    customers
+      .filter((customer) => customer.userId)
+      .map((customer) => [
+        customer.userId as string,
+        `${customer.firstName} ${customer.lastName}`.trim(),
+      ])
+  );
+
   const productBySku = new Map(
     products.map((product) => [product.sku, product.id])
   );
@@ -148,6 +157,8 @@ export default async function BackOfficePosPage() {
   const posWebsiteOrders = websiteOrders.map((order) => ({
     id: order.id,
     orderNumber: order.orderNumber,
+    customerName:
+      customerNameByUserId.get(order.userId) ?? "Unknown Customer",
     customerId: customerByUserId.get(order.userId) ?? null,
     channel: order.channel,
     fulfillmentMethod: order.fulfillmentMethod,

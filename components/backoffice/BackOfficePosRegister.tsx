@@ -66,6 +66,7 @@ export type PosWebsiteOrderItem = {
 export type PosWebsiteOrder = {
   id: string;
   orderNumber: string;
+  customerName: string;
   customerId: string | null;
   channel: "RETAIL" | "DISTRO" | "MIXED";
   fulfillmentMethod: "SHIPPING" | "PICKUP" | null;
@@ -848,8 +849,7 @@ export function BackOfficePosRegister({
 
                   return (
                     <option key={order.id} value={order.id}>
-                      {order.orderNumber} - {order.channel} -{" "}
-                      {formatMoney(order.total)}
+                      {order.customerName} - {formatMoney(order.total)}
                       {hasMappingIssue ? " - NEEDS MAPPING" : ""}
                     </option>
                   );
