@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import BackOfficeInvoicePaymentForm from "@/components/backoffice/BackOfficeInvoicePaymentForm";
 import BackOfficeVoidInvoiceForm from "@/components/backoffice/BackOfficeVoidInvoiceForm";
+import BackOfficeCompleteLegacyInvoiceForm from "@/components/backoffice/BackOfficeCompleteLegacyInvoiceForm";
 
 export const dynamic = "force-dynamic";
 
@@ -373,6 +374,16 @@ export default async function BackOfficeInvoicePage({
         <BackOfficeInvoicePaymentForm
           invoiceId={invoice.id}
           balanceDue={Number(invoice.balanceDue)}
+        />
+      ) : null}
+
+      {invoice.source === "LEGACY_IMPORT" &&
+      invoice.status === "OPEN" &&
+      Number(invoice.balanceDue) === 0 &&
+      Number(invoice.amountPaid) >= Number(invoice.total) ? (
+        <BackOfficeCompleteLegacyInvoiceForm
+          invoiceId={invoice.id}
+          invoiceNumber={invoice.invoiceNumber}
         />
       ) : null}
 

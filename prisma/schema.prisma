@@ -675,11 +675,13 @@ model BackOfficeProduct {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  batches        BackOfficeBatch[]
-  simpleBalances BackOfficeSimpleInventoryBalance[]
-  distroProduct  DistroProduct?
-  retailVariants ProductVariant[]
-  invoiceItems   BackOfficeInvoiceItem[]
+  batches                  BackOfficeBatch[]
+  simpleBalances           BackOfficeSimpleInventoryBalance[]
+  simpleMovements          BackOfficeSimpleInventoryMovement[]
+  simpleInvoiceAllocations BackOfficeInvoiceItemSimpleAllocation[]
+  distroProduct            DistroProduct?
+  retailVariants           ProductVariant[]
+  invoiceItems             BackOfficeInvoiceItem[]
 
   @@index([name])
   @@index([active, sortOrder])
@@ -726,13 +728,15 @@ model BackOfficeLocation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  balances                          BackOfficeInventoryBalance[]
-  movements                         BackOfficeInventoryMovement[]
-  transfersFrom                     BackOfficeInventoryTransfer[]      @relation("BackOfficeTransferFrom")
-  transfersTo                       BackOfficeInventoryTransfer[]      @relation("BackOfficeTransferTo")
-  invoices                          BackOfficeInvoice[]
-  invoiceAllocations                BackOfficeInvoiceItemAllocation[]
-  backOfficeSimpleInventoryBalances BackOfficeSimpleInventoryBalance[]
+  balances                           BackOfficeInventoryBalance[]
+  movements                          BackOfficeInventoryMovement[]
+  transfersFrom                      BackOfficeInventoryTransfer[]           @relation("BackOfficeTransferFrom")
+  transfersTo                        BackOfficeInventoryTransfer[]           @relation("BackOfficeTransferTo")
+  invoices                           BackOfficeInvoice[]
+  invoiceAllocations                 BackOfficeInvoiceItemAllocation[]
+  backOfficeSimpleInventoryBalances  BackOfficeSimpleInventoryBalance[]
+  backOfficeSimpleInventoryMovements BackOfficeSimpleInventoryMovement[]
+  invoiceItemSimpleAllocations       BackOfficeInvoiceItemSimpleAllocation[]
 
   @@index([active, sortOrder])
 }
@@ -969,7 +973,8 @@ model BackOfficeInvoiceItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  allocations BackOfficeInvoiceItemAllocation[]
+  allocations       BackOfficeInvoiceItemAllocation[]
+  simpleAllocations BackOfficeInvoiceItemSimpleAllocation[]
 
   @@index([invoiceId])
   @@index([productId])
@@ -1018,5 +1023,57 @@ model BackOfficeInvoiceItemAllocation {
 
   @@index([invoiceItemId])
   @@index([batchId])
+  @@index([locationId])
+}
+
+model BackOfficeSimpleInventoryMovement {
+  id String @id @default(cuid())
+
+  productId String
+  product   BackOfficeProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  locationId String
+  location   BackOfficeLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  type BackOfficeInventoryMovementType
+
+  quantityDelta  Int
+  quantityBefore Int
+  quantityAfter  Int
+
+  referenceType String?
+  referenceId   String?
+  note          String?
+
+  createdById   String?
+  createdByName String?
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([locationId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model BackOfficeInvoiceItemSimpleAllocation {
+  id String @id @default(cuid())
+
+  invoiceItemId String
+  invoiceItem   BackOfficeInvoiceItem @relation(fields: [invoiceItemId], references: [id], onDelete: Restrict)
+
+  productId String
+  product   BackOfficeProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  locationId String
+  location   BackOfficeLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  quantity Int
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceItemId])
+  @@index([productId])
   @@index([locationId])
 }

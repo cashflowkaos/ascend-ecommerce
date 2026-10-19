@@ -1204,7 +1204,7 @@ export function BackOfficePosRegister({
                   <div className="pos-cart-quantity">
                     <button
                       type="button"
-                      disabled={Boolean(loadedWebsiteOrderId)}
+                      disabled={false}
                       onClick={() =>
                         changeQuantity(line.key, -1)
                       }
@@ -1216,7 +1216,7 @@ export function BackOfficePosRegister({
 
                     <button
                       type="button"
-                      disabled={Boolean(loadedWebsiteOrderId)}
+                      disabled={false}
                       onClick={() =>
                         changeQuantity(line.key, 1)
                       }
@@ -1240,7 +1240,7 @@ export function BackOfficePosRegister({
 
                   <button
                     type="button"
-                      disabled={Boolean(loadedWebsiteOrderId)}
+                      disabled={false}
                     className="pos-remove-line"
                     onClick={() => removeLine(line.key)}
                     aria-label={`Remove ${line.product.name}`}

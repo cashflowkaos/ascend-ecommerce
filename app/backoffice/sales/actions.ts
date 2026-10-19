@@ -389,3 +389,110 @@ export async function voidInvoice(
     };
   }
 }
+export type CompleteLegacyInvoiceResult =
+  | {
+      success: true;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
+export async function completeLegacyInvoice(
+  invoiceIdInput: string
+): Promise<CompleteLegacyInvoiceResult> {
+  await requireAdmin();
+
+  const invoiceId = invoiceIdInput?.trim();
+
+  if (!invoiceId) {
+    return {
+      success: false,
+      error: "Invoice ID is required.",
+    };
+  }
+
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const invoice = await tx.backOfficeInvoice.findUnique({
+          where: {
+            id: invoiceId,
+          },
+          select: {
+            id: true,
+            source: true,
+            status: true,
+            total: true,
+            amountPaid: true,
+            balanceDue: true,
+          },
+        });
+
+        if (!invoice) {
+          throw new Error("Invoice not found.");
+        }
+
+        if (invoice.source !== "LEGACY_IMPORT") {
+          throw new Error(
+            "Only legacy import invoices can be completed with this action."
+          );
+        }
+
+        if (invoice.status !== "OPEN") {
+          throw new Error(
+            "Only open legacy invoices can be marked completed."
+          );
+        }
+
+        const total = roundMoney(Number(invoice.total));
+        const amountPaid = roundMoney(Number(invoice.amountPaid));
+        const balanceDue = roundMoney(Number(invoice.balanceDue));
+
+        if (balanceDue !== 0 || amountPaid < total) {
+          throw new Error(
+            "This legacy invoice must be fully paid before it can be completed."
+          );
+        }
+
+        const updated = await tx.backOfficeInvoice.updateMany({
+          where: {
+            id: invoice.id,
+            source: "LEGACY_IMPORT",
+            status: "OPEN",
+          },
+          data: {
+            status: "COMPLETED",
+            completedAt: new Date(),
+          },
+        });
+
+        if (updated.count !== 1) {
+          throw new Error(
+            "Invoice status changed while completing it. Please try again."
+          );
+        }
+      },
+      {
+        isolationLevel: "Serializable",
+      }
+    );
+
+    revalidatePath("/backoffice/sales");
+    revalidatePath(`/backoffice/sales/${invoiceId}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Legacy invoice completion failed:", error);
+
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unable to complete legacy invoice.",
+    };
+  }
+}

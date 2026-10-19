@@ -507,8 +507,8 @@ export async function completePosSale(
           ])
         );
 
-        const authoritativeWebsiteItems = websiteOrder
-          ? websiteOrder.items.map((item) => {
+        const websitePriceItems = websiteOrder
+          ? websiteOrder.items.flatMap((item) => {
               const isDistro =
                 item.variantId === null &&
                 item.productId === null &&
@@ -521,52 +521,20 @@ export async function completePosSale(
                 : item.variant?.backOfficeProductId ?? null;
 
               if (!productId) {
-                throw new Error(
-                  `Website order ${websiteOrder.orderNumber} needs product mapping for ${item.productName}.`
-                );
+                return [];
               }
 
-              return {
-                productId,
-                sellUnit: isDistro
-                  ? ("KIT" as const)
-                  : ("UNIT" as const),
-                quantity: item.quantity,
-                unitPrice: roundMoney(Number(item.unitPrice)),
-              };
+              return [
+                {
+                  productId,
+                  sellUnit: isDistro
+                    ? ("KIT" as const)
+                    : ("UNIT" as const),
+                  unitPrice: roundMoney(Number(item.unitPrice)),
+                },
+              ];
             })
-          : null;
-
-        if (authoritativeWebsiteItems) {
-          if (
-            input.items.length !==
-            authoritativeWebsiteItems.length
-          ) {
-            throw new Error(
-              `Website order ${websiteOrder?.orderNumber ?? ""} items do not match the POS cart.`
-            );
-          }
-
-          const remainingInputItems = [...input.items];
-
-          for (const expected of authoritativeWebsiteItems) {
-            const matchIndex = remainingInputItems.findIndex(
-              (item) =>
-                item.productId === expected.productId &&
-                item.sellUnit === expected.sellUnit &&
-                item.quantity === expected.quantity
-            );
-
-            if (matchIndex < 0) {
-              throw new Error(
-                `Website order ${websiteOrder?.orderNumber ?? ""} items were changed. Reload the website order before completing the sale.`
-              );
-            }
-
-            remainingInputItems.splice(matchIndex, 1);
-          }
-        }
-
+          : [];
         const productIds = [
           ...new Set(
             input.items.map((item) => item.productId)
@@ -628,11 +596,10 @@ export async function completePosSale(
               item.sellUnit
             );
 
-          const websiteExpectedItem = authoritativeWebsiteItems?.find(
+          const websiteExpectedItem = websitePriceItems.find(
             (expected) =>
               expected.productId === item.productId &&
-              expected.sellUnit === item.sellUnit &&
-              expected.quantity === item.quantity
+              expected.sellUnit === item.sellUnit
           );
 
           if (!websiteExpectedItem && standardPrice === null) {
