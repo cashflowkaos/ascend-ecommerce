@@ -16,34 +16,102 @@ export default async function InventoryLedgerPage({
       ? requestedLimit
       : 10;
 
-  const movements =
-    await prisma.backOfficeInventoryMovement.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: limit + 1,
-      include: {
-        location: {
-          select: {
-            name: true,
-          },
+  const [batchedMovements, simpleMovements] =
+    await Promise.all([
+      prisma.backOfficeInventoryMovement.findMany({
+        orderBy: {
+          createdAt: "desc",
         },
-        batch: {
-          select: {
-            batchNumber: true,
-            product: {
-              select: {
-                sku: true,
-                name: true,
+        take: limit + 1,
+        include: {
+          location: {
+            select: {
+              name: true,
+            },
+          },
+          batch: {
+            select: {
+              batchNumber: true,
+              product: {
+                select: {
+                  sku: true,
+                  name: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      }),
+
+      prisma.backOfficeSimpleInventoryMovement.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: limit + 1,
+        include: {
+          location: {
+            select: {
+              name: true,
+            },
+          },
+          product: {
+            select: {
+              sku: true,
+              name: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+  const movements = [
+    ...batchedMovements.map((movement) => ({
+      id: `batched-${movement.id}`,
+      productName: movement.batch.product.name,
+      productSku: movement.batch.product.sku,
+      batchLabel: movement.batch.batchNumber,
+      locationName: movement.location.name,
+      type: movement.type,
+      quantityBefore: movement.quantityBefore,
+      quantityDelta: movement.quantityDelta,
+      quantityAfter: movement.quantityAfter,
+      referenceType: movement.referenceType,
+      createdByName: movement.createdByName,
+      note: movement.note,
+      createdAt: movement.createdAt,
+    })),
+
+    ...simpleMovements.map((movement) => ({
+      id: `simple-${movement.id}`,
+      productName: movement.product.name,
+      productSku: movement.product.sku,
+      batchLabel: "SIMPLE",
+      locationName: movement.location.name,
+      type: movement.type,
+      quantityBefore: movement.quantityBefore,
+      quantityDelta: movement.quantityDelta,
+      quantityAfter: movement.quantityAfter,
+      referenceType: movement.referenceType,
+      createdByName: movement.createdByName,
+      note: movement.note,
+      createdAt: movement.createdAt,
+    })),
+  ].sort(
+    (a, b) =>
+      b.createdAt.getTime() -
+      a.createdAt.getTime()
+  );
 
   const hasMore = movements.length > limit;
   const visibleMovements = movements.slice(0, limit);
+
+  const getAction = (movement: {
+    referenceType: string | null;
+    type: string;
+  }) =>
+    movement.referenceType === "INVENTORY_AUDIT"
+      ? "Physical Count"
+      : movement.type.replaceAll("_", " ");
 
   return (
     <>
@@ -78,7 +146,7 @@ export default async function InventoryLedgerPage({
               RECENT ACTIVITY
             </p>
 
-            <h2>Latest 10 Actions</h2>
+            <h2>Latest {limit} Actions</h2>
           </div>
         </div>
 
@@ -89,143 +157,146 @@ export default async function InventoryLedgerPage({
         ) : (
           <>
             <div className="backoffice-ledger-mobile">
-              {visibleMovements.map((movement) => {
-                const action =
-                  movement.referenceType === "INVENTORY_AUDIT"
-                    ? "Physical Count"
-                    : movement.type.replaceAll("_", " ");
+              {visibleMovements.map((movement) => (
+                <div
+                  className="backoffice-ledger-mobile-card"
+                  key={movement.id}
+                >
+                  <div className="backoffice-ledger-mobile-header">
+                    <strong>{getAction(movement)}</strong>
 
-                return (
-                  <div
-                    className="backoffice-ledger-mobile-card"
-                    key={movement.id}
-                  >
-                    <div className="backoffice-ledger-mobile-header">
-                      <strong>{action}</strong>
-
-                      <span>
-                        {movement.createdAt.toLocaleString()}
-                      </span>
-                    </div>
-
-                    <div className="backoffice-ledger-mobile-product">
-                      <strong>
-                        {movement.batch.product.name}
-                      </strong>
-
-                      <span>
-                        {movement.batch.product.sku} - Batch{" "}
-                        {movement.batch.batchNumber}
-                      </span>
-                    </div>
-
-                    <div className="backoffice-ledger-mobile-meta">
-                      <span>
-                        <small>LOCATION</small>
-                        <strong>{movement.location.name}</strong>
-                      </span>
-
-                      <span>
-                        <small>INVENTORY</small>
-                        <strong>
-                          {movement.quantityBefore} -&gt;{" "}
-                          {movement.quantityAfter}
-                        </strong>
-                      </span>
-
-                      <span>
-                        <small>CHANGE</small>
-                        <strong>
-                          {movement.quantityDelta > 0
-                            ? `+${movement.quantityDelta}`
-                            : movement.quantityDelta}
-                        </strong>
-                      </span>
-                    </div>
-
-                    <div className="backoffice-ledger-mobile-footer">
-                      <span>
-                        <small>STAFF</small>
-                        {movement.createdByName ?? "System"}
-                      </span>
-
-                      <span>
-                        <small>NOTE</small>
-                        {movement.note ?? "-"}
-                      </span>
-                    </div>
+                    <span>
+                      {movement.createdAt.toLocaleString()}
+                    </span>
                   </div>
-                );
-              })}
+
+                  <div className="backoffice-ledger-mobile-product">
+                    <strong>
+                      {movement.productName}
+                    </strong>
+
+                    <span>
+                      {movement.productSku} -{" "}
+                      {movement.batchLabel === "SIMPLE"
+                        ? "Simple Inventory"
+                        : `Batch ${movement.batchLabel}`}
+                    </span>
+                  </div>
+
+                  <div className="backoffice-ledger-mobile-meta">
+                    <span>
+                      <small>LOCATION</small>
+                      <strong>
+                        {movement.locationName}
+                      </strong>
+                    </span>
+
+                    <span>
+                      <small>INVENTORY</small>
+                      <strong>
+                        {movement.quantityBefore} -&gt;{" "}
+                        {movement.quantityAfter}
+                      </strong>
+                    </span>
+
+                    <span>
+                      <small>CHANGE</small>
+                      <strong>
+                        {movement.quantityDelta > 0
+                          ? `+${movement.quantityDelta}`
+                          : movement.quantityDelta}
+                      </strong>
+                    </span>
+                  </div>
+
+                  <div className="backoffice-ledger-mobile-footer">
+                    <span>
+                      <small>STAFF</small>
+                      {movement.createdByName ?? "System"}
+                    </span>
+
+                    <span>
+                      <small>NOTE</small>
+                      {movement.note ?? "-"}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="backoffice-table-wrap">
-            <table className="backoffice-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Product</th>
-                  <th>Batch</th>
-                  <th>Location</th>
-                  <th>Action</th>
-                  <th>Before</th>
-                  <th>Change</th>
-                  <th>After</th>
-                  <th>Staff</th>
-                  <th>Note</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {visibleMovements.map((movement) => (
-                  <tr key={movement.id}>
-                    <td>
-                      {movement.createdAt.toLocaleString()}
-                    </td>
-
-                    <td>
-                      <strong>
-                        {movement.batch.product.name}
-                      </strong>
-                      <br />
-                      <small>
-                        {movement.batch.product.sku}
-                      </small>
-                    </td>
-
-                    <td>{movement.batch.batchNumber}</td>
-
-                    <td>{movement.location.name}</td>
-
-                    <td>
-                      {movement.referenceType ===
-                      "INVENTORY_AUDIT"
-                        ? "Physical Count"
-                        : movement.type.replaceAll("_", " ")}
-                    </td>
-
-                    <td>{movement.quantityBefore}</td>
-
-                    <td>
-                      {movement.quantityDelta > 0
-                        ? `+${movement.quantityDelta}`
-                        : movement.quantityDelta}
-                    </td>
-
-                    <td>{movement.quantityAfter}</td>
-
-                    <td>
-                      {movement.createdByName ?? "System"}
-                    </td>
-
-                    <td>{movement.note ?? "-"}</td>
+              <table className="backoffice-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Product</th>
+                    <th>Batch / Type</th>
+                    <th>Location</th>
+                    <th>Action</th>
+                    <th>Before</th>
+                    <th>Change</th>
+                    <th>After</th>
+                    <th>Staff</th>
+                    <th>Note</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+
+                <tbody>
+                  {visibleMovements.map((movement) => (
+                    <tr key={movement.id}>
+                      <td>
+                        {movement.createdAt.toLocaleString()}
+                      </td>
+
+                      <td>
+                        <strong>
+                          {movement.productName}
+                        </strong>
+                        <br />
+                        <small>
+                          {movement.productSku}
+                        </small>
+                      </td>
+
+                      <td>{movement.batchLabel}</td>
+
+                      <td>
+                        {movement.locationName}
+                      </td>
+
+                      <td>
+                        {getAction(movement)}
+                      </td>
+
+                      <td>
+                        {movement.quantityBefore}
+                      </td>
+
+                      <td>
+                        {movement.quantityDelta > 0
+                          ? `+${movement.quantityDelta}`
+                          : movement.quantityDelta}
+                      </td>
+
+                      <td>
+                        {movement.quantityAfter}
+                      </td>
+
+                      <td>
+                        {movement.createdByName ?? "System"}
+                      </td>
+
+                      <td>
+                        {movement.note ?? "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
+
         {hasMore && (
           <div className="backoffice-ledger-load-more">
             <Link
