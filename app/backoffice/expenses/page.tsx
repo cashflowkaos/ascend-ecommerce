@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +19,7 @@ const formatDate = (value: Date) =>
 
 export default async function BackOfficeExpensesPage() {
   const expenses = await prisma.backOfficeExpense.findMany({
-    orderBy: [
-      { expenseDate: "desc" },
-      { createdAt: "desc" },
-    ],
+    orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }],
   });
 
   const now = new Date();
@@ -36,6 +33,11 @@ export default async function BackOfficeExpensesPage() {
   let lastMonth = 0;
   let allTime = 0;
 
+  const categoryMap = new Map<
+    string,
+    { total: number; count: number }
+  >();
+
   for (const expense of expenses) {
     const amount = Number(expense.amount);
     allTime += amount;
@@ -47,23 +49,39 @@ export default async function BackOfficeExpensesPage() {
       thisMonth += amount;
     }
 
-    if (
-      month === previousMonth &&
-      year === previousMonthYear
-    ) {
+    if (month === previousMonth && year === previousMonthYear) {
       lastMonth += amount;
     }
+
+    const existing = categoryMap.get(expense.category) ?? {
+      total: 0,
+      count: 0,
+    };
+
+    existing.total += amount;
+    existing.count += 1;
+
+    categoryMap.set(expense.category, existing);
   }
+
+  const categories = [...categoryMap.entries()]
+    .map(([name, values]) => ({
+      name,
+      ...values,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const recentExpenses = expenses.slice(0, 10);
 
   return (
     <>
       <div className="backoffice-page-heading">
         <div>
           <span className="backoffice-eyebrow">EXPENSES</span>
-          <h1>Expenses</h1>
+          <h1>Expense Dashboard</h1>
           <p>
-            Track inventory purchases, shipping, operating costs,
-            contractors, fees, and other business expenses.
+            See where company money is going, review spending by
+            category, and manage individual expenses.
           </p>
         </div>
 
@@ -88,7 +106,7 @@ export default async function BackOfficeExpensesPage() {
         </div>
 
         <div className="backoffice-stat-card">
-          <span>All Time</span>
+          <span>All Time Expenses</span>
           <strong>{formatMoney(allTime)}</strong>
         </div>
 
@@ -102,10 +120,84 @@ export default async function BackOfficeExpensesPage() {
         <div className="backoffice-panel-heading">
           <div>
             <span className="backoffice-eyebrow">
-              EXPENSE HISTORY
+              SPENDING BREAKDOWN
             </span>
-            <h2>All Expenses</h2>
+            <h2>Expenses by Category</h2>
+            <p>
+              Select a category to view every expense recorded under it.
+            </p>
           </div>
+        </div>
+
+        <div className="backoffice-table-wrap">
+          <table className="backoffice-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Transactions</th>
+                <th>Total Spent</th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {categories.map((category) => (
+                <tr key={category.name}>
+                  <td>
+                    <Link
+                      href={`/backoffice/expenses/history?category=${encodeURIComponent(
+                        category.name
+                      )}`}
+                    >
+                      <strong>{category.name}</strong>
+                    </Link>
+                  </td>
+
+                  <td>{category.count}</td>
+
+                  <td>
+                    <strong>{formatMoney(category.total)}</strong>
+                  </td>
+
+                  <td style={{ textAlign: "right" }}>
+                    <Link
+                      href={`/backoffice/expenses/history?category=${encodeURIComponent(
+                        category.name
+                      )}`}
+                      aria-label={`View ${category.name} expenses`}
+                    >
+                      <ChevronRight size={17} />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+
+              {categories.length === 0 ? (
+                <tr>
+                  <td colSpan={4}>No expenses recorded yet.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="backoffice-panel">
+        <div className="backoffice-panel-heading">
+          <div>
+            <span className="backoffice-eyebrow">
+              RECENT ACTIVITY
+            </span>
+            <h2>Recent Expenses</h2>
+            <p>Showing the 10 most recent expense records.</p>
+          </div>
+
+          <Link
+            href="/backoffice/expenses/history"
+            className="backoffice-secondary-button"
+          >
+            View All Expenses
+          </Link>
         </div>
 
         <div className="backoffice-table-wrap">
@@ -122,24 +214,28 @@ export default async function BackOfficeExpensesPage() {
             </thead>
 
             <tbody>
-              {expenses.map((expense) => (
+              {recentExpenses.map((expense) => (
                 <tr key={expense.id}>
                   <td>
                     <Link href={`/backoffice/expenses/${expense.id}`}>
                       <strong>{formatDate(expense.expenseDate)}</strong>
                     </Link>
                   </td>
+
                   <td>{expense.category}</td>
                   <td>{expense.vendor || "—"}</td>
                   <td>{expense.description || "—"}</td>
                   <td>{expense.paidFrom || "—"}</td>
+
                   <td>
-                    <strong>{formatMoney(Number(expense.amount))}</strong>
+                    <strong>
+                      {formatMoney(Number(expense.amount))}
+                    </strong>
                   </td>
                 </tr>
               ))}
 
-              {expenses.length === 0 ? (
+              {recentExpenses.length === 0 ? (
                 <tr>
                   <td colSpan={6}>No expenses recorded yet.</td>
                 </tr>
