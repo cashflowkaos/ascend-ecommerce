@@ -1118,3 +1118,30 @@ model BackOfficeInvoiceItemSimpleAllocation {
   @@index([productId])
   @@index([locationId])
 }
+
+model BackOfficeExpense {
+  id String @id @default(cuid())
+
+  expenseDate DateTime @default(now())
+
+  category    String
+  vendor      String?
+  description String?
+
+  amount Decimal @db.Decimal(12, 2)
+
+  paidFrom String?
+  notes    String? @db.Text
+
+  legacySource String?
+  legacyId     Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([legacySource, legacyId])
+  @@index([expenseDate])
+  @@index([category])
+  @@index([vendor])
+  @@index([createdAt])
+}
