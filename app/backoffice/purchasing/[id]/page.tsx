@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import {
   receiveBackOfficePurchaseOrder,
   voidBackOfficePurchaseReceipt,
+  recordBackOfficePurchasePayment,
+  voidBackOfficePurchasePayment,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +82,11 @@ export default async function BackOfficePurchaseOrderPage({
         items: {
           orderBy: { createdAt: "asc" },
         },
+        payments: {
+          orderBy: {
+            paidAt: "desc",
+          },
+        },
         receipts: {
           orderBy: {
             receivedAt: "desc",
@@ -154,6 +161,22 @@ export default async function BackOfficePurchaseOrderPage({
     remainingItems.length > 0 &&
     order.status !== "CANCELLED" &&
     order.status !== "RECEIVED";
+
+  const activePayments = order.payments.filter(
+    (payment) => !payment.voidedAt
+  );
+
+  const amountPaid = activePayments.reduce(
+    (sum, payment) => sum + Number(payment.amount),
+    0
+  );
+
+  const paymentBalance = Math.max(
+    0,
+    Number(order.total) - amountPaid
+  );
+
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <>
@@ -427,6 +450,228 @@ export default async function BackOfficePurchaseOrderPage({
           <span>Other Costs: {money(Number(order.otherCosts))}</span>
           <strong>Total: {money(Number(order.total))}</strong>
         </div>
+      </div>
+
+      <div className="backoffice-panel">
+        <div className="backoffice-panel-heading">
+          <div style={{ display: "grid", gap: 5 }}>
+            <span className="backoffice-eyebrow">PAYMENTS</span>
+            <h2>Purchase Payments</h2>
+            <p>
+              Record actual money paid toward this purchase order.
+              Payments affect purchasing cash activity but do not change inventory.
+            </p>
+          </div>
+        </div>
+
+        <div className="backoffice-stat-grid">
+          <div className="backoffice-stat-card">
+            <span className="backoffice-eyebrow">PO TOTAL</span>
+            <strong>{money(Number(order.total))}</strong>
+          </div>
+
+          <div className="backoffice-stat-card">
+            <span className="backoffice-eyebrow">PAID</span>
+            <strong>{money(amountPaid)}</strong>
+          </div>
+
+          <div className="backoffice-stat-card">
+            <span className="backoffice-eyebrow">BALANCE</span>
+            <strong>{money(paymentBalance)}</strong>
+          </div>
+        </div>
+
+        {paymentBalance > 0 && order.status !== "CANCELLED" && (
+          <form
+            action={recordBackOfficePurchasePayment}
+            style={{
+              display: "grid",
+              gap: 16,
+              marginTop: 20,
+            }}
+          >
+            <input
+              type="hidden"
+              name="purchaseOrderId"
+              value={order.id}
+            />
+
+            <div className="backoffice-form-grid">
+              <label className="backoffice-form-field">
+                <span>Amount</span>
+                <input
+                  type="number"
+                  name="amount"
+                  min="0.01"
+                  max={paymentBalance.toFixed(2)}
+                  step="0.01"
+                  defaultValue={paymentBalance.toFixed(2)}
+                  required
+                />
+              </label>
+
+              <label className="backoffice-form-field">
+                <span>Payment Date</span>
+                <input
+                  type="date"
+                  name="paidAt"
+                  defaultValue={today}
+                  required
+                />
+              </label>
+
+              <label className="backoffice-form-field">
+                <span>Paid From</span>
+                <select name="paidFrom" required defaultValue="">
+                  <option value="">Select account</option>
+                  <option value="BANK">Bank</option>
+                  <option value="CASH">Cash</option>
+                  <option value="ZELLE">Zelle</option>
+                  <option value="CREDIT_CARD">Credit Card</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </label>
+
+              <label className="backoffice-form-field">
+                <span>Reference</span>
+                <input
+                  type="text"
+                  name="reference"
+                  placeholder="Optional transaction / confirmation"
+                />
+              </label>
+
+              <label className="backoffice-form-field backoffice-form-field-wide">
+                <span>Payment Note</span>
+                <input
+                  type="text"
+                  name="paymentNote"
+                  placeholder="Optional payment note"
+                />
+              </label>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                type="submit"
+                className="backoffice-primary-button"
+              >
+                Record Payment
+              </button>
+            </div>
+          </form>
+        )}
+
+        {order.payments.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gap: 14,
+              marginTop: 22,
+            }}
+          >
+            <span className="backoffice-eyebrow">PAYMENT HISTORY</span>
+
+            {order.payments.map((payment) => (
+              <div
+                key={payment.id}
+                className="backoffice-mobile-data-card"
+                style={{
+                  display: "grid",
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: "grid", gap: 5 }}>
+                  <strong>{money(Number(payment.amount))}</strong>
+                  <span>{date(payment.paidAt)} ? {payment.paidFrom}</span>
+                </div>
+
+                {payment.reference && (
+                  <div style={{ display: "grid", gap: 5 }}>
+                    <span>Reference</span>
+                    <strong>{payment.reference}</strong>
+                  </div>
+                )}
+
+                {payment.note && (
+                  <div style={{ display: "grid", gap: 5 }}>
+                    <span>Note</span>
+                    <strong>{payment.note}</strong>
+                  </div>
+                )}
+
+                {payment.createdByName && (
+                  <div style={{ display: "grid", gap: 5 }}>
+                    <span>Recorded By</span>
+                    <strong>{payment.createdByName}</strong>
+                  </div>
+                )}
+
+                {payment.voidedAt ? (
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 5,
+                      borderTop: "1px solid rgba(255,255,255,0.08)",
+                      paddingTop: 10,
+                    }}
+                  >
+                    <span>VOIDED {dateTime(payment.voidedAt)}</span>
+                    <strong>{payment.voidReason || "Payment voided"}</strong>
+                    {payment.voidedByName && (
+                      <span>By {payment.voidedByName}</span>
+                    )}
+                  </div>
+                ) : (
+                  <form
+                    action={voidBackOfficePurchasePayment}
+                    style={{
+                      display: "grid",
+                      gap: 10,
+                      borderTop: "1px solid rgba(255,255,255,0.08)",
+                      paddingTop: 12,
+                    }}
+                  >
+                    <input
+                      type="hidden"
+                      name="paymentId"
+                      value={payment.id}
+                    />
+
+                    <label className="backoffice-form-field">
+                      <span>Void Reason</span>
+                      <input
+                        type="text"
+                        name="voidReason"
+                        placeholder="Required ? e.g. payment entered incorrectly"
+                        required
+                      />
+                    </label>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="backoffice-secondary-button"
+                      >
+                        Void Payment
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {canReceive && (

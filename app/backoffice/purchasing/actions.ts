@@ -998,3 +998,174 @@ export async function voidBackOfficePurchaseReceipt(
     `/backoffice/purchasing/${purchaseOrderId}`
   );
 }
+
+export async function recordBackOfficePurchasePayment(
+  formData: FormData
+) {
+  const user = await requireAdmin();
+
+  const purchaseOrderId = String(
+    formData.get("purchaseOrderId") ?? ""
+  ).trim();
+
+  const amount = Number(formData.get("amount"));
+  const paidAtRaw = String(formData.get("paidAt") ?? "").trim();
+  const paidFrom = String(formData.get("paidFrom") ?? "").trim();
+  const reference = String(formData.get("reference") ?? "").trim();
+  const note = String(formData.get("paymentNote") ?? "").trim();
+
+  if (!purchaseOrderId) {
+    throw new Error("Purchase order is required.");
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Payment amount must be greater than zero.");
+  }
+
+  if (!paidAtRaw) {
+    throw new Error("Payment date is required.");
+  }
+
+  const paidAt = new Date(`${paidAtRaw}T12:00:00`);
+
+  if (Number.isNaN(paidAt.getTime())) {
+    throw new Error("Invalid payment date.");
+  }
+
+  if (!paidFrom) {
+    throw new Error("Paid from is required.");
+  }
+
+  const createdByName =
+    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+    user.email;
+
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.backOfficePurchaseOrder.findUnique({
+      where: { id: purchaseOrderId },
+      select: {
+        id: true,
+        total: true,
+        status: true,
+        payments: {
+          where: {
+            voidedAt: null,
+          },
+          select: {
+            amount: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new Error("Purchase order not found.");
+    }
+
+    if (order.status === "CANCELLED") {
+      throw new Error("A cancelled purchase order cannot be paid.");
+    }
+
+    const alreadyPaid = order.payments.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0
+    );
+
+    const remaining = Number(order.total) - alreadyPaid;
+
+    if (amount > remaining + 0.0001) {
+      throw new Error(
+        `Payment exceeds the remaining PO balance of $${remaining.toFixed(2)}.`
+      );
+    }
+
+    await tx.backOfficePurchasePayment.create({
+      data: {
+        purchaseOrderId,
+        amount,
+        paidAt,
+        paidFrom,
+        reference: reference || null,
+        note: note || null,
+        createdById: user.id,
+        createdByName,
+      },
+    });
+  });
+
+  revalidatePath("/backoffice");
+  revalidatePath("/backoffice/analytics");
+  revalidatePath("/backoffice/purchasing");
+  revalidatePath(`/backoffice/purchasing/${purchaseOrderId}`);
+}
+
+export async function voidBackOfficePurchasePayment(
+  formData: FormData
+) {
+  const user = await requireAdmin();
+
+  const paymentId = String(
+    formData.get("paymentId") ?? ""
+  ).trim();
+
+  const voidReason = String(
+    formData.get("voidReason") ?? ""
+  ).trim();
+
+  if (!paymentId) {
+    throw new Error("Payment is required.");
+  }
+
+  if (!voidReason) {
+    throw new Error("A reason is required to void a payment.");
+  }
+
+  const voidedByName =
+    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+    user.email;
+
+  const purchaseOrderId = await prisma.$transaction(
+    async (tx) => {
+      const payment =
+        await tx.backOfficePurchasePayment.findUnique({
+          where: {
+            id: paymentId,
+          },
+          select: {
+            id: true,
+            purchaseOrderId: true,
+            voidedAt: true,
+          },
+        });
+
+      if (!payment) {
+        throw new Error("Purchase payment not found.");
+      }
+
+      if (payment.voidedAt) {
+        throw new Error(
+          "This purchase payment has already been voided."
+        );
+      }
+
+      await tx.backOfficePurchasePayment.update({
+        where: {
+          id: payment.id,
+        },
+        data: {
+          voidedAt: new Date(),
+          voidedById: user.id,
+          voidedByName,
+          voidReason,
+        },
+      });
+
+      return payment.purchaseOrderId;
+    }
+  );
+
+  revalidatePath("/backoffice");
+  revalidatePath("/backoffice/analytics");
+  revalidatePath("/backoffice/purchasing");
+  revalidatePath(`/backoffice/purchasing/${purchaseOrderId}`);
+}
