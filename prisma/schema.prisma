@@ -1119,6 +1119,33 @@ model BackOfficeInvoiceItemSimpleAllocation {
   @@index([locationId])
 }
 
+model BackOfficeSupplier {
+  id String @id @default(cuid())
+
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
+
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  state        String?
+  postalCode   String?
+  country      String?
+
+  notes String? @db.Text
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([active, name])
+}
+
 model BackOfficeExpense {
   id String @id @default(cuid())
 
