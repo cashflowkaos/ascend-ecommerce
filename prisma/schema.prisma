@@ -127,6 +127,20 @@ enum BackOfficeInventoryMovementType {
   DAMAGED
 }
 
+enum BackOfficePurchaseUnit {
+  UNIT
+  KIT
+}
+
+enum BackOfficePurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  SHIPPED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
 enum BackOfficeTransferStatus {
   PENDING
   COMPLETED
@@ -687,6 +701,7 @@ model BackOfficeProduct {
   distroProduct            DistroProduct?
   retailVariants           ProductVariant[]
   invoiceItems             BackOfficeInvoiceItem[]
+  purchaseOrderItems       BackOfficePurchaseOrderItem[]
 
   @@index([name])
   @@index([active, sortOrder])
@@ -1142,8 +1157,75 @@ model BackOfficeSupplier {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  purchaseOrders BackOfficePurchaseOrder[]
+
   @@index([name])
   @@index([active, name])
+}
+
+model BackOfficePurchaseOrder {
+  id String @id @default(cuid())
+
+  poNumber String @unique
+
+  supplierId String
+  supplier   BackOfficeSupplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+
+  status BackOfficePurchaseOrderStatus @default(DRAFT)
+
+  orderDate    DateTime  @default(now())
+  expectedDate DateTime?
+  shippedDate  DateTime?
+  receivedDate DateTime?
+
+  subtotal   Decimal @default(0) @db.Decimal(12, 2)
+  shipping   Decimal @default(0) @db.Decimal(12, 2)
+  otherCosts Decimal @default(0) @db.Decimal(12, 2)
+  total      Decimal @default(0) @db.Decimal(12, 2)
+
+  supplierReference String?
+  trackingNumber    String?
+  notes             String? @db.Text
+
+  createdById   String?
+  createdByName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items BackOfficePurchaseOrderItem[]
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([orderDate])
+  @@index([createdAt])
+}
+
+model BackOfficePurchaseOrderItem {
+  id String @id @default(cuid())
+
+  purchaseOrderId String
+  purchaseOrder   BackOfficePurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+
+  productId String
+  product   BackOfficeProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  productName      String
+  productSku       String
+  inventoryType    BackOfficeInventoryType
+  unitsPerKit      Int
+  purchaseUnit     BackOfficePurchaseUnit  @default(UNIT)
+  quantityOrdered  Int
+  quantityReceived Int                     @default(0)
+
+  unitCost  Decimal @db.Decimal(12, 4)
+  lineTotal Decimal @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([productId])
 }
 
 model BackOfficeExpense {
