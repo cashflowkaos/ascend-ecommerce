@@ -129,6 +129,40 @@ export default async function BackOfficeExpensesPage() {
           </div>
         </div>
 
+        <div className="backoffice-mobile-data-list">
+          {categories.length === 0 ? (
+            <div className="backoffice-mobile-empty">
+              No expenses recorded yet.
+            </div>
+          ) : (
+            categories.map((category) => (
+              <Link
+                key={category.name}
+                href={`/backoffice/expenses/history?category=${encodeURIComponent(
+                  category.name
+                )}`}
+                className="backoffice-mobile-data-card"
+              >
+                <div className="backoffice-mobile-card-heading">
+                  <strong>{category.name}</strong>
+                  <ChevronRight size={17} />
+                </div>
+
+                <div className="backoffice-mobile-card-grid">
+                  <div>
+                    <span>Transactions</span>
+                    <strong>{category.count}</strong>
+                  </div>
+                  <div>
+                    <span>Total Spent</span>
+                    <strong>{formatMoney(category.total)}</strong>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+
         <div className="backoffice-table-wrap">
           <table className="backoffice-table">
             <thead>
@@ -200,6 +234,48 @@ export default async function BackOfficeExpensesPage() {
           </Link>
         </div>
 
+        <div className="backoffice-mobile-data-list">
+          {recentExpenses.length === 0 ? (
+            <div className="backoffice-mobile-empty">
+              No expenses recorded yet.
+            </div>
+          ) : (
+            recentExpenses.map((expense) => (
+              <Link
+                key={expense.id}
+                href={`/backoffice/expenses/${expense.id}`}
+                className="backoffice-mobile-data-card"
+              >
+                <div className="backoffice-mobile-card-heading">
+                  <div>
+                    <strong>{formatMoney(Number(expense.amount))}</strong>
+                    <span>{formatDate(expense.expenseDate)}</span>
+                  </div>
+                  <ChevronRight size={17} />
+                </div>
+
+                <div className="backoffice-mobile-card-grid">
+                  <div>
+                    <span>Category</span>
+                    <strong>{expense.category}</strong>
+                  </div>
+                  <div>
+                    <span>Vendor</span>
+                    <strong>{expense.vendor || "—"}</strong>
+                  </div>
+                  <div>
+                    <span>Paid From</span>
+                    <strong>{expense.paidFrom || "—"}</strong>
+                  </div>
+                  <div>
+                    <span>Description</span>
+                    <strong>{expense.description || "—"}</strong>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
         <div className="backoffice-table-wrap">
           <table className="backoffice-table">
             <thead>

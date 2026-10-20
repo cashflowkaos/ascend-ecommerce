@@ -1145,3 +1145,34 @@ model BackOfficeExpense {
   @@index([vendor])
   @@index([createdAt])
 }
+
+model BackOfficeReconciliation {
+  id String @id @default(cuid())
+
+  weekEnding DateTime
+
+  actualCash  Decimal @db.Decimal(12, 2)
+  actualBank  Decimal @db.Decimal(12, 2)
+  actualFunds Decimal @db.Decimal(12, 2)
+
+  recordedSales    Decimal @db.Decimal(12, 2)
+  recordedExpenses Decimal @db.Decimal(12, 2)
+  recordedNet      Decimal @db.Decimal(12, 2)
+
+  openingFunds  Decimal? @db.Decimal(12, 2)
+  adjustments   Decimal? @db.Decimal(12, 2)
+  expectedFunds Decimal? @db.Decimal(12, 2)
+
+  variance Decimal @db.Decimal(12, 2)
+
+  note String? @db.Text
+
+  reconciledById   String?
+  reconciledByName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([weekEnding])
+  @@index([createdAt])
+}

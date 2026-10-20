@@ -94,6 +94,7 @@ export default function BackOfficeCustomerDirectory({
       </div>
 
       <div
+        className="backoffice-customer-search-row"
         style={{
           padding: "0 0 18px",
           display: "flex",
@@ -123,6 +124,69 @@ export default function BackOfficeCustomerDirectory({
         </span>
       </div>
 
+      <div className="backoffice-mobile-data-list">
+        {filteredCustomers.length === 0 ? (
+          <div className="backoffice-mobile-empty">
+            {search
+              ? "No customers match your search."
+              : "No customers have been added yet."}
+          </div>
+        ) : (
+          filteredCustomers.map((customer) => (
+            <button
+              key={customer.id}
+              type="button"
+              className="backoffice-mobile-data-card backoffice-mobile-customer-card"
+              onClick={() => openCustomer(customer.id)}
+            >
+              <div className="backoffice-mobile-card-heading">
+                <div>
+                  <strong>
+                    {customer.firstName} {customer.lastName}
+                  </strong>
+                  {customer.company ? (
+                    <span>{customer.company}</span>
+                  ) : null}
+                </div>
+                <span className="backoffice-mobile-card-arrow">›</span>
+              </div>
+
+              <div className="backoffice-mobile-contact">
+                <span>{customer.email || "No email"}</span>
+                <span>{customer.phone || "No phone"}</span>
+              </div>
+
+              <div className="backoffice-mobile-card-grid">
+                <div>
+                  <span>Total Spent</span>
+                  <strong>
+                    {customer.totalSpent.toLocaleString("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                    })}
+                  </strong>
+                </div>
+                <div>
+                  <span>Pricing</span>
+                  <strong>{pricingLabels[customer.pricingType]}</strong>
+                </div>
+                <div>
+                  <span>Website</span>
+                  <strong>
+                    {customer.userId ? "Linked" : "Not linked"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Status</span>
+                  <strong>
+                    {customer.active ? "Active" : "Inactive"}
+                  </strong>
+                </div>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
       <div className="backoffice-table-wrap">
         <table className="backoffice-table">
           <thead>

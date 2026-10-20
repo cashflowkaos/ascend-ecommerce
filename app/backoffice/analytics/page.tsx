@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import BackOfficeSaveButton from "@/components/backoffice/BackOfficeSaveButton";
+import { createBackOfficeReconciliation } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -142,7 +144,7 @@ export default async function BackOfficeAnalyticsPage() {
 
   const historyStart = COMPANY_START;
 
-  const [invoices, expenses] = await Promise.all([
+  const [invoices, expenses, reconciliations] = await Promise.all([
     prisma.backOfficeInvoice.findMany({
       where: {
         status: "COMPLETED",
@@ -185,6 +187,13 @@ export default async function BackOfficeAnalyticsPage() {
         amount: true,
       },
     }),
+    prisma.backOfficeReconciliation.findMany({
+      orderBy: [
+        { weekEnding: "desc" },
+        { createdAt: "desc" },
+      ],
+      take: 20,
+    }),
   ]);
 
   const getInvoiceDate = (invoice: (typeof invoices)[number]) =>
@@ -224,6 +233,18 @@ export default async function BackOfficeAnalyticsPage() {
 
   const week = summarize(weekInvoices);
   const month = summarize(monthInvoices);
+
+  const weekExpenses = expenses
+    .filter((expense) => expense.expenseDate >= weekStart)
+    .reduce((sum, expense) => sum + Number(expense.amount), 0);
+
+  const weekEndingDefault = new Date(weekStart);
+  weekEndingDefault.setDate(weekEndingDefault.getDate() + 6);
+
+  const weekEndingInput =
+    `${weekEndingDefault.getFullYear()}-` +
+    `${String(weekEndingDefault.getMonth() + 1).padStart(2, "0")}-` +
+    `${String(weekEndingDefault.getDate()).padStart(2, "0")}`;
 
   const companyStartMonthIndex =
     COMPANY_START.getFullYear() * 12 + COMPANY_START.getMonth();
@@ -375,7 +396,7 @@ export default async function BackOfficeAnalyticsPage() {
           <div className="mt-1 text-sm text-slate-500">
             {money(product.revenue)} revenue
           </div>
-        </>
+          </>
       ) : (
         <div className="mt-4 text-sm text-slate-500">
           No product sales yet.
@@ -385,7 +406,7 @@ export default async function BackOfficeAnalyticsPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="backoffice-analytics-page space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-950">
@@ -489,7 +510,55 @@ export default async function BackOfficeAnalyticsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="grid gap-3 p-4 md:hidden">
+          {monthly.map((entry) => (
+            <div
+              key={entry.key}
+              className="rounded-lg border border-slate-200 bg-white p-4"
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <div className="font-semibold text-slate-950">
+                    {entry.label}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {entry.orders} orders · {entry.units} physical units
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Net
+                  </div>
+                  <div className="mt-1 font-bold text-slate-950">
+                    {money(entry.sales - entry.expenses)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Sales
+                  </div>
+                  <div className="mt-1 font-bold text-slate-950">
+                    {money(entry.sales)}
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Expenses
+                  </div>
+                  <div className="mt-1 font-bold text-slate-950">
+                    {money(entry.expenses)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[760px] text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
@@ -566,6 +635,328 @@ export default async function BackOfficeAnalyticsPage() {
         </div>
       </section>
 
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="font-semibold text-slate-950">
+            Capital Reconciliation
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Compare expected working capital with the money actually held in cash and the bank.
+          </p>
+        </div>
+
+        <div className="grid gap-4 p-5 lg:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Expected Working Capital
+            </div>
+            <div className="mt-2 text-3xl font-bold text-slate-950">
+              {money(2339 + totalSales - totalExpenses)}
+            </div>
+            <div className="mt-3 text-xs text-slate-500">
+              $2,339 startup capital + completed sales - recorded expenses
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Current Recorded Activity
+            </div>
+            <div className="mt-3 grid gap-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500">Completed Sales</span>
+                <span className="font-semibold text-slate-950">
+                  {money(totalSales)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500">Recorded Expenses</span>
+                <span className="font-semibold text-slate-950">
+                  {money(totalExpenses)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4 border-t border-slate-200 pt-2">
+                <span className="text-slate-500">Sales Less Expenses</span>
+                <span className="font-semibold text-slate-950">
+                  {money(totalSales - totalExpenses)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {reconciliations.length > 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Last Reconciliation
+              </div>
+
+              <div className="mt-2 text-3xl font-bold text-slate-950">
+                {money(Number(reconciliations[0].actualFunds))}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-500">
+                  Difference
+                </span>
+                <span className="font-bold text-slate-950">
+                  {Number(reconciliations[0].variance) > 0 ? "+" : ""}
+                  {money(Number(reconciliations[0].variance))}
+                  {" "}
+                  {Number(reconciliations[0].variance) > 0
+                    ? "OVER"
+                    : Number(reconciliations[0].variance) < 0
+                      ? "UNDER"
+                      : "BALANCED"}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Last Reconciliation
+              </div>
+              <div className="mt-2 text-lg font-semibold text-slate-700">
+                Not reconciled yet
+              </div>
+              <div className="mt-2 text-sm text-slate-500">
+                Enter the actual cash and bank balances below.
+              </div>
+            </div>
+          )}
+        </div>
+
+        <form
+          action={createBackOfficeReconciliation}
+          className="border-t border-slate-200 p-5"
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+              Cash on Hand
+              <input
+                type="number"
+                name="actualCash"
+                min="0"
+                step="0.01"
+                defaultValue="582.00"
+                required
+                className="rounded-lg border border-slate-300 px-3 py-2"
+              />
+            </label>
+
+            <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+              Bank Balance
+              <input
+                type="number"
+                name="actualBank"
+                min="0"
+                step="0.01"
+                defaultValue="5371.31"
+                required
+                className="rounded-lg border border-slate-300 px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            With the balances currently entered, actual capital is
+            <strong className="ml-1 text-slate-950">$5,953.31</strong>.
+            Expected working capital from the current books is
+            <strong className="ml-1 text-slate-950">
+              {money(2339 + totalSales - totalExpenses)}
+            </strong>.
+          </div>
+
+          <label className="mt-4 grid gap-1.5 text-sm font-medium text-slate-700">
+            Reconciliation Note
+            <textarea
+              name="note"
+              rows={3}
+              placeholder="Optional note about this capital count"
+              className="rounded-lg border border-slate-300 px-3 py-2"
+            />
+          </label>
+
+          <div className="mt-4 flex justify-end">
+            <BackOfficeSaveButton idleLabel="Reconcile Capital" />
+          </div>
+        </form>
+
+        <div className="border-t border-slate-200">
+          <div className="px-5 py-4">
+            <h3 className="font-semibold text-slate-950">
+              Reconciliation History
+            </h3>
+          </div>
+
+          <div className="grid gap-3 px-4 pb-4 md:hidden">
+            {reconciliations.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">
+                No reconciliation snapshots yet.
+              </div>
+            ) : (
+              reconciliations.map((entry) => {
+                const difference = Number(entry.variance);
+                const expected =
+                  entry.expectedFunds === null
+                    ? Number(entry.openingFunds ?? 2339) +
+                      Number(entry.recordedNet)
+                    : Number(entry.expectedFunds);
+
+                const status =
+                  difference > 0
+                    ? "OVER"
+                    : difference < 0
+                      ? "UNDER"
+                      : "BALANCED";
+
+                return (
+                  <div
+                    key={entry.id}
+                    className="rounded-lg border border-slate-200 bg-white p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                      <div>
+                        <div className="font-semibold text-slate-950">
+                          {entry.createdAt.toLocaleDateString("en-US")}
+                        </div>
+                        <div className="mt-1 text-xs font-semibold text-slate-500">
+                          {status}
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          Difference
+                        </div>
+                        <div className="mt-1 font-bold text-slate-950">
+                          {difference > 0 ? "+" : ""}
+                          {money(difference)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          Expected
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-slate-950">
+                          {money(expected)}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          Actual
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-slate-950">
+                          {money(Number(entry.actualFunds))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          Cash
+                        </div>
+                        <div className="mt-1 text-sm text-slate-950">
+                          {money(Number(entry.actualCash))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          Bank
+                        </div>
+                        <div className="mt-1 text-sm text-slate-950">
+                          {money(Number(entry.actualBank))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {entry.note ? (
+                      <div className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                        {entry.note}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[1050px] text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3 text-right">Expected</th>
+                  <th className="px-5 py-3 text-right">Cash</th>
+                  <th className="px-5 py-3 text-right">Bank</th>
+                  <th className="px-5 py-3 text-right">Actual</th>
+                  <th className="px-5 py-3 text-right">Difference</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">Note</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100">
+                {reconciliations.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      className="px-5 py-8 text-center text-slate-500"
+                    >
+                      No reconciliation snapshots yet.
+                    </td>
+                  </tr>
+                ) : (
+                  reconciliations.map((entry) => {
+                    const difference = Number(entry.variance);
+                    const expected =
+                      entry.expectedFunds === null
+                        ? Number(entry.openingFunds ?? 2339) +
+                          Number(entry.recordedNet)
+                        : Number(entry.expectedFunds);
+
+                    return (
+                      <tr key={entry.id}>
+                        <td className="px-5 py-4 font-medium text-slate-950">
+                          {entry.createdAt.toLocaleDateString("en-US")}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          {money(expected)}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          {money(Number(entry.actualCash))}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          {money(Number(entry.actualBank))}
+                        </td>
+                        <td className="px-5 py-4 text-right font-semibold">
+                          {money(Number(entry.actualFunds))}
+                        </td>
+                        <td className="px-5 py-4 text-right font-bold">
+                          {difference > 0 ? "+" : ""}
+                          {money(difference)}
+                        </td>
+                        <td className="px-5 py-4 font-semibold">
+                          {difference > 0
+                            ? "OVER"
+                            : difference < 0
+                              ? "UNDER"
+                              : "BALANCED"}
+                        </td>
+                        <td className="max-w-xs px-5 py-4 text-slate-600">
+                          {entry.note || "—"}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
       <section>
         <div className="mb-3">
           <h2 className="font-semibold text-slate-950">
@@ -607,7 +998,84 @@ export default async function BackOfficeAnalyticsPage() {
           </p>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="grid gap-3 p-4 md:hidden">
+          {byRevenue.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">
+              No completed product sales found.
+            </div>
+          ) : (
+            byRevenue.map((product, index) => (
+              <div
+                key={product.key}
+                className="rounded-lg border border-slate-200 bg-white p-4"
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-slate-400">
+                      #{index + 1}
+                    </div>
+                    <div className="mt-1 font-semibold text-slate-950">
+                      {product.name}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {product.sku ?? "No SKU"}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Revenue
+                    </div>
+                    <div className="mt-1 font-bold text-slate-950">
+                      {money(product.revenue)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Orders
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-950">
+                      {product.orders.size}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Sell Qty
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-950">
+                      {product.lineQuantity.toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Physical Units
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-950">
+                      {product.units.toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Revenue / Unit
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-950">
+                      {product.units > 0
+                        ? money(product.revenue / product.units)
+                        : "—"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[760px] text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
@@ -660,7 +1128,7 @@ export default async function BackOfficeAnalyticsPage() {
                     <td className="px-5 py-4 text-right">
                       {product.units > 0
                         ? money(product.revenue / product.units)
-                        : "â€”"}
+                        : "—"}
                     </td>
                   </tr>
                 ))

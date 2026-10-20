@@ -3662,7 +3662,7 @@ img {
 }
 
 /* ============================================================
-   ASCEND MEMBER ACCOUNT — PREMIUM VISUAL REFINEMENT
+   ASCEND MEMBER ACCOUNT â€” PREMIUM VISUAL REFINEMENT
    ============================================================ */
 
 .member-account-page {
@@ -3847,7 +3847,7 @@ img {
 }
 
 .member-card-link::after {
-  content: "→";
+  content: "â†’";
   font-size: 12px;
   transition: transform 150ms ease;
 }
@@ -3856,7 +3856,7 @@ img {
   transform: translateX(3px);
 }
 
-/* Exclusive catalog — make this the hero destination */
+/* Exclusive catalog â€” make this the hero destination */
 
 .member-account-card-wide {
   position: relative;
@@ -3969,7 +3969,7 @@ img {
 
 
 /* ============================================================
-   MEMBER HEADER — MATCH PUBLIC ASCEND HEADER
+   MEMBER HEADER â€” MATCH PUBLIC ASCEND HEADER
    ============================================================ */
 
 .member-account-header {
@@ -4072,7 +4072,7 @@ img {
 }
 
 /* ============================================================
-   MEMBER HEADER — FULL LOGO INSIDE EXISTING BRAND WINDOW
+   MEMBER HEADER â€” FULL LOGO INSIDE EXISTING BRAND WINDOW
    ============================================================ */
 
 .member-account-header {
@@ -4184,7 +4184,7 @@ img {
 
 
 /* ============================================================
-   MEMBER HEADER — FINAL LOGO / ACTION LAYOUT
+   MEMBER HEADER â€” FINAL LOGO / ACTION LAYOUT
    ============================================================ */
 
 .member-account-header {
@@ -4371,7 +4371,7 @@ img {
 }
 
 /* ============================================================
-   MEMBER HEADER — CANONICAL FINAL OVERRIDE
+   MEMBER HEADER â€” CANONICAL FINAL OVERRIDE
    One consistent logo/header treatment across all member pages.
    ============================================================ */
 
@@ -6839,7 +6839,7 @@ img {
 }
 
 .backoffice-count-product[open] > summary::after {
-  content: "−";
+  content: "âˆ’";
 }
 
 .backoffice-count-product > summary > div {
@@ -7380,7 +7380,7 @@ button.backoffice-primary-button {
 }
 
 .backoffice-adjust-details > summary::after {
-  content: "›";
+  content: "â€º";
   margin-left: 7px;
   font-size: 15px;
   line-height: 1;
@@ -9991,5 +9991,249 @@ button.backoffice-primary-button {
 
   .invoice-print-payments {
     break-before: auto;
+  }
+}
+/* ASCEND MOBILE DATA CARDS */
+.backoffice-mobile-data-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .backoffice-page-heading {
+    gap: 16px;
+  }
+
+  .backoffice-page-heading .backoffice-primary-button,
+  .backoffice-panel-heading .backoffice-secondary-button {
+    width: 100%;
+  }
+
+  .backoffice-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .backoffice-stat-card {
+    padding: 15px 14px;
+  }
+
+  .backoffice-stat-card span {
+    margin-bottom: 6px;
+    font-size: 9px;
+    letter-spacing: .06em;
+  }
+
+  .backoffice-stat-card strong {
+    font-size: 21px;
+  }
+
+  .backoffice-panel {
+    padding: 16px;
+  }
+
+  .backoffice-panel-heading {
+    gap: 12px;
+  }
+
+  .backoffice-mobile-data-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .backoffice-mobile-data-card {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 14px;
+    background: #fff;
+    border: 1px solid #deded8;
+    border-radius: 10px;
+    color: #171717;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+  }
+
+  button.backoffice-mobile-data-card {
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .backoffice-mobile-card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 11px;
+    border-bottom: 1px solid #eceae5;
+  }
+
+  .backoffice-mobile-card-heading > div {
+    min-width: 0;
+  }
+
+  .backoffice-mobile-card-heading strong {
+    display: block;
+    overflow-wrap: anywhere;
+    font-size: 15px;
+    line-height: 1.3;
+  }
+
+  .backoffice-mobile-card-heading span {
+    display: block;
+    margin-top: 3px;
+    color: #77736a;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+
+  .backoffice-mobile-card-arrow {
+    margin: 0 !important;
+    color: #b1841a !important;
+    font-size: 24px !important;
+    line-height: 1 !important;
+  }
+
+  .backoffice-mobile-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+    padding-top: 12px;
+  }
+
+  .backoffice-mobile-card-grid > div {
+    min-width: 0;
+  }
+
+  .backoffice-mobile-card-grid span {
+    display: block;
+    margin-bottom: 4px;
+    color: #8a867e;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .backoffice-mobile-card-grid strong {
+    display: block;
+    color: #171717;
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .backoffice-mobile-contact {
+    display: grid;
+    gap: 3px;
+    padding: 10px 0 0;
+    color: #625f58;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+
+  .backoffice-mobile-empty {
+    padding: 22px 14px;
+    border: 1px dashed #d8d4cb;
+    border-radius: 10px;
+    color: #77736a;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .backoffice-customer-search-row {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .backoffice-customer-search-row input {
+    max-width: none !important;
+  }
+
+  .backoffice-customer-search-row > span {
+    align-self: flex-end;
+    font-size: 11px;
+    color: #77736a;
+  }
+
+  /* Analytics keeps its information but becomes phone-friendly. */
+  .backoffice-analytics-page {
+    min-width: 0;
+  }
+
+  .backoffice-analytics-page > div:first-child {
+    margin-bottom: 18px !important;
+  }
+
+  .backoffice-analytics-page section {
+    min-width: 0;
+  }
+
+  .backoffice-analytics-page .grid {
+    min-width: 0;
+  }
+
+  .backoffice-analytics-page h1 {
+    font-size: 28px;
+  }
+
+  .backoffice-analytics-page h2 {
+    line-height: 1.25;
+  }
+
+  .backoffice-analytics-page input,
+  .backoffice-analytics-page textarea,
+  .backoffice-analytics-page button {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /*
+    Analytics uses Tailwind overflow wrappers rather than the shared
+    backoffice-table-wrap. Keep them visible and make tables compact.
+  */
+  .backoffice-analytics-page .overflow-x-auto {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .backoffice-analytics-page table {
+    font-size: 11px;
+  }
+
+  .backoffice-analytics-page th,
+  .backoffice-analytics-page td {
+    padding: 10px 9px !important;
+  }
+
+  .backoffice-analytics-page .min-w-\[760px\],
+  .backoffice-analytics-page .min-w-\[950px\],
+  .backoffice-analytics-page .min-w-\[1050px\] {
+    min-width: 680px;
+  }
+}
+
+@media (max-width: 420px) {
+  .backoffice-stat-grid {
+    gap: 8px;
+  }
+
+  .backoffice-stat-card {
+    padding: 13px 11px;
+  }
+
+  .backoffice-stat-card strong {
+    font-size: 19px;
+  }
+
+  .backoffice-mobile-card-grid {
+    gap: 10px 8px;
+  }
+
+  .backoffice-analytics-page table {
+    font-size: 10px;
   }
 }
