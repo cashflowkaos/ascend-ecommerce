@@ -53,6 +53,7 @@ export default async function BackOfficePage() {
   const [
     invoices,
     monthExpenses,
+    monthPurchasePayments,
     latestReconciliation,
     products,
     pendingWebsiteOrders,
@@ -96,6 +97,11 @@ export default async function BackOfficePage() {
       where: {
         expenseDate: { gte: monthStart },
       },
+      _sum: { amount: true },
+    }),
+
+    prisma.backOfficePurchasePayment.aggregate({
+      where: { paidAt: { gte: monthStart }, voidedAt: null },
       _sum: { amount: true },
     }),
 
@@ -213,7 +219,9 @@ export default async function BackOfficePage() {
   const expenses = Number(
     monthExpenses._sum.amount ?? 0
   );
-  const monthNet = month.sales - expenses;
+  const purchasePayments = Number(monthPurchasePayments._sum.amount ?? 0);
+  const cashOutflow = expenses + purchasePayments;
+  const monthNet = month.sales - cashOutflow;
 
   const inventory = products.map((product) => {
     const quantity =
@@ -456,13 +464,15 @@ export default async function BackOfficePage() {
           </div>
 
           <div className="backoffice-stat-card">
-            <span>Expenses</span>
+            <span>Operating Expenses</span>
             <strong>{money(expenses)}</strong>
+            <small>{money(purchasePayments)} inventory purchases</small>
           </div>
 
           <div className="backoffice-stat-card">
-            <span>Sales Less Expenses</span>
+            <span>Net Cash Activity</span>
             <strong>{money(monthNet)}</strong>
+            <small>{money(cashOutflow)} total cash outflow</small>
           </div>
 
           <div className="backoffice-stat-card">

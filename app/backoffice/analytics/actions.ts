@@ -40,7 +40,7 @@ export async function createBackOfficeReconciliation(
     );
   }
 
-  const [invoices, expenseResult] = await Promise.all([
+  const [invoices, expenseResult, purchasePaymentResult] = await Promise.all([
     prisma.backOfficeInvoice.findMany({
       where: {
         status: "COMPLETED",
@@ -73,6 +73,18 @@ export async function createBackOfficeReconciliation(
         amount: true,
       },
     }),
+
+    prisma.backOfficePurchasePayment.aggregate({
+      where: {
+        paidAt: {
+          gte: COMPANY_START,
+        },
+        voidedAt: null,
+      },
+      _sum: {
+        amount: true,
+      },
+    }),
   ]);
 
   const recordedSales = invoices.reduce(
@@ -84,8 +96,15 @@ export async function createBackOfficeReconciliation(
     expenseResult._sum.amount ?? 0
   );
 
+  const recordedPurchasePayments = Number(
+    purchasePaymentResult._sum.amount ?? 0
+  );
+
+  const recordedCashOutflow =
+    recordedExpenses + recordedPurchasePayments;
+
   const recordedNet =
-    recordedSales - recordedExpenses;
+    recordedSales - recordedCashOutflow;
 
   const expectedFunds =
     ASCEND_STARTUP_CAPITAL + recordedNet;

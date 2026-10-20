@@ -144,7 +144,7 @@ export default async function BackOfficeAnalyticsPage() {
 
   const historyStart = COMPANY_START;
 
-  const [invoices, expenses, reconciliations] = await Promise.all([
+  const [invoices, expenses, purchasePayments, reconciliations] = await Promise.all([
     prisma.backOfficeInvoice.findMany({
       where: {
         status: "COMPLETED",
@@ -187,6 +187,18 @@ export default async function BackOfficeAnalyticsPage() {
         amount: true,
       },
     }),
+    prisma.backOfficePurchasePayment.findMany({
+      where: {
+        paidAt: { gte: historyStart },
+        voidedAt: null,
+      },
+      orderBy: { paidAt: "asc" },
+      select: {
+        paidAt: true,
+        amount: true,
+      },
+    }),
+
     prisma.backOfficeReconciliation.findMany({
       orderBy: [
         { weekEnding: "desc" },
@@ -267,6 +279,7 @@ export default async function BackOfficeAnalyticsPage() {
       label: monthLabel(date),
       sales: 0,
       expenses: 0,
+      purchasePayments: 0,
       orders: 0,
       units: 0,
     };
@@ -362,13 +375,19 @@ export default async function BackOfficeAnalyticsPage() {
     0
   );
 
-  const salesLessRecordedExpenses = totalSales - totalExpenses;
+  const totalPurchasePayments = monthly.reduce(
+    (sum, entry) => sum + entry.purchasePayments,
+    0
+  );
+
+  const totalCashOutflow = totalExpenses + totalPurchasePayments;
+  const salesLessCashOutflow = totalSales - totalCashOutflow;
 
   const maxMonthlyActivity = Math.max(
     1,
     ...monthly.flatMap((entry) => [
       entry.sales,
-      Math.abs(entry.expenses),
+      Math.abs(entry.expenses + entry.purchasePayments),
     ])
   );
 
@@ -485,7 +504,7 @@ export default async function BackOfficeAnalyticsPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 border-b border-slate-200 p-5 sm:grid-cols-3">
+        <div className="grid gap-4 border-b border-slate-200 p-5 sm:grid-cols-2 xl:grid-cols-4">
           <div>
             <div className="text-sm text-slate-500">Sales</div>
             <div className="mt-1 text-xl font-bold text-slate-950">
@@ -494,18 +513,25 @@ export default async function BackOfficeAnalyticsPage() {
           </div>
 
           <div>
-            <div className="text-sm text-slate-500">Expenses</div>
+            <div className="text-sm text-slate-500">Operating Expenses</div>
             <div className="mt-1 text-xl font-bold text-slate-950">
               {money(totalExpenses)}
+          </div>
+            </div>
+
+          <div>
+            <div className="text-sm text-slate-500">Inventory Purchases</div>
+            <div className="mt-1 text-xl font-bold text-slate-950">
+              {money(totalPurchasePayments)}
             </div>
           </div>
 
           <div>
             <div className="text-sm text-slate-500">
-              Sales Less Recorded Expenses
+              Net Cash Activity
             </div>
             <div className="mt-1 text-xl font-bold text-slate-950">
-              {money(salesLessRecordedExpenses)}
+              {money(salesLessCashOutflow)}
             </div>
           </div>
         </div>
@@ -522,7 +548,7 @@ export default async function BackOfficeAnalyticsPage() {
                     {entry.label}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">
-                    {entry.orders} orders · {entry.units} physical units
+                    {entry.orders} orders Ã‚Â· {entry.units} physical units
                   </div>
                 </div>
 
@@ -531,7 +557,7 @@ export default async function BackOfficeAnalyticsPage() {
                     Net
                   </div>
                   <div className="mt-1 font-bold text-slate-950">
-                    {money(entry.sales - entry.expenses)}
+                    {money(entry.sales - entry.expenses - entry.purchasePayments)}
                   </div>
                 </div>
               </div>
@@ -565,10 +591,10 @@ export default async function BackOfficeAnalyticsPage() {
                 <th className="px-5 py-3">Month</th>
                 <th className="px-5 py-3 text-right">Orders</th>
                 <th className="px-5 py-3 text-right">Units</th>
-                <th className="px-5 py-3">Sales vs Expenses</th>
+                <th className="px-5 py-3">Sales vs Cash Outflow</th>
                 <th className="px-5 py-3 text-right">Sales</th>
-                <th className="px-5 py-3 text-right">Expenses</th>
-                <th className="px-5 py-3 text-right">Net Activity</th>
+                <th className="px-5 py-3 text-right">Operating Expenses</th>
+                <th className="px-5 py-3 text-right">Net Cash Activity</th>
               </tr>
             </thead>
 
@@ -577,7 +603,7 @@ export default async function BackOfficeAnalyticsPage() {
                 const salesWidth =
                   (entry.sales / maxMonthlyActivity) * 100;
                 const expenseWidth =
-                  (Math.abs(entry.expenses) /
+                  (Math.abs(entry.expenses + entry.purchasePayments) /
                     maxMonthlyActivity) *
                   100;
 
@@ -611,7 +637,7 @@ export default async function BackOfficeAnalyticsPage() {
                             style={{
                               width: `${Math.max(
                                 expenseWidth,
-                                Math.abs(entry.expenses) > 0 ? 2 : 0
+                                Math.abs(entry.expenses + entry.purchasePayments) > 0 ? 2 : 0
                               )}%`,
                             }}
                           />
@@ -625,7 +651,7 @@ export default async function BackOfficeAnalyticsPage() {
                       {money(entry.expenses)}
                     </td>
                     <td className="px-5 py-4 text-right font-semibold">
-                      {money(entry.sales - entry.expenses)}
+                      {money(entry.sales - entry.expenses - entry.purchasePayments)}
                     </td>
                   </tr>
                 );
@@ -651,7 +677,7 @@ export default async function BackOfficeAnalyticsPage() {
               Expected Working Capital
             </div>
             <div className="mt-2 text-3xl font-bold text-slate-950">
-              {money(2339 + totalSales - totalExpenses)}
+              {money(2339 + totalSales - totalCashOutflow)}
             </div>
             <div className="mt-3 text-xs text-slate-500">
               $2,339 startup capital + completed sales - recorded expenses
@@ -676,7 +702,7 @@ export default async function BackOfficeAnalyticsPage() {
                 </span>
               </div>
               <div className="flex justify-between gap-4 border-t border-slate-200 pt-2">
-                <span className="text-slate-500">Sales Less Expenses</span>
+                <span className="text-slate-500">Net Cash Activity</span>
                 <span className="font-semibold text-slate-950">
                   {money(totalSales - totalExpenses)}
                 </span>
@@ -762,7 +788,7 @@ export default async function BackOfficeAnalyticsPage() {
             <strong className="ml-1 text-slate-950">$5,953.31</strong>.
             Expected working capital from the current books is
             <strong className="ml-1 text-slate-950">
-              {money(2339 + totalSales - totalExpenses)}
+              {money(2339 + totalSales - totalCashOutflow)}
             </strong>.
           </div>
 
@@ -946,7 +972,7 @@ export default async function BackOfficeAnalyticsPage() {
                               : "BALANCED"}
                         </td>
                         <td className="max-w-xs px-5 py-4 text-slate-600">
-                          {entry.note || "—"}
+                          {entry.note || "Ã¢â‚¬â€"}
                         </td>
                       </tr>
                     );
@@ -1067,7 +1093,7 @@ export default async function BackOfficeAnalyticsPage() {
                     <div className="mt-1 text-sm font-semibold text-slate-950">
                       {product.units > 0
                         ? money(product.revenue / product.units)
-                        : "—"}
+                        : "Ã¢â‚¬â€"}
                     </div>
                   </div>
                 </div>
@@ -1128,7 +1154,7 @@ export default async function BackOfficeAnalyticsPage() {
                     <td className="px-5 py-4 text-right">
                       {product.units > 0
                         ? money(product.revenue / product.units)
-                        : "—"}
+                        : "Ã¢â‚¬â€"}
                     </td>
                   </tr>
                 ))
@@ -1139,7 +1165,7 @@ export default async function BackOfficeAnalyticsPage() {
       </section>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
-        Sales Less Recorded Expenses is sales minus recorded expenses and is
+        Net Cash Activity is sales minus recorded expenses and is
         intended as an operational metric. It is not an accounting
         profit, cash balance, or financial statement.
       </div>
