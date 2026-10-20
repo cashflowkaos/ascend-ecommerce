@@ -166,8 +166,52 @@ type ServerPricingType =
 type PosPricingProduct = {
   cost: number | null;
   retailPrice: number | null;
+  wholesalePrice: number | null;
+  tier1Price: number | null;
+  tier2Price: number | null;
+  tier3Price: number | null;
   unitsPerKit: number;
 };
+
+function getServerWholesalePrice(
+  product: PosPricingProduct
+) {
+  if (product.wholesalePrice !== null) {
+    return product.wholesalePrice;
+  }
+
+  return product.retailPrice === null
+    ? null
+    : product.retailPrice * 0.8;
+}
+
+function getServerTierPrice(
+  product: PosPricingProduct,
+  pricingType: ServerPricingType
+) {
+  if (pricingType === "TIER_1") {
+    return product.tier1Price ??
+      (product.cost === null
+        ? null
+        : Math.ceil(product.cost * 1.4));
+  }
+
+  if (pricingType === "TIER_2") {
+    return product.tier2Price ??
+      (product.cost === null
+        ? null
+        : Math.ceil(product.cost * 1.35));
+  }
+
+  if (pricingType === "TIER_3") {
+    return product.tier3Price ??
+      (product.cost === null
+        ? null
+        : Math.ceil(product.cost * 1.3));
+  }
+
+  return null;
+}
 
 function getServerStandardPrice(
   product: PosPricingProduct,
@@ -175,32 +219,23 @@ function getServerStandardPrice(
   sellUnit: PosSellUnit
 ) {
   const wholesalePrice =
-    product.retailPrice === null
-      ? null
-      : product.retailPrice * 0.8;
+    getServerWholesalePrice(product);
 
   if (sellUnit === "UNIT") {
-    return pricingType === "RETAIL"
-      ? product.retailPrice
-      : wholesalePrice;
+    if (pricingType === "RETAIL") {
+      return product.retailPrice;
+    }
+
+    return wholesalePrice;
+
   }
 
-  if (pricingType === "TIER_1") {
-    return product.cost === null
-      ? null
-      : Math.ceil(product.cost * 1.4);
-  }
-
-  if (pricingType === "TIER_2") {
-    return product.cost === null
-      ? null
-      : Math.ceil(product.cost * 1.35);
-  }
-
-  if (pricingType === "TIER_3") {
-    return product.cost === null
-      ? null
-      : Math.ceil(product.cost * 1.3);
+  if (
+    pricingType === "TIER_1" ||
+    pricingType === "TIER_2" ||
+    pricingType === "TIER_3"
+  ) {
+    return getServerTierPrice(product, pricingType);
   }
 
   const perUnitPrice =
@@ -214,7 +249,6 @@ function getServerStandardPrice(
 
   return perUnitPrice * product.unitsPerKit;
 }
-
 async function allocateInventoryFifo(
   tx: Parameters<
     Parameters<typeof prisma.$transaction>[0]
@@ -344,6 +378,99 @@ async function allocateInventoryFifo(
       `${productName} does not have enough physical inventory at ${locationName}.`
     );
   }
+}
+async function allocateSimpleInventory(
+  tx: Parameters<
+    Parameters<typeof prisma.$transaction>[0]
+  >[0],
+  {
+    productId,
+    productName,
+    locationId,
+    locationName,
+    quantityRequired,
+    invoiceItemId,
+    invoiceId,
+    createdById,
+    createdByName,
+  }: {
+    productId: string;
+    productName: string;
+    locationId: string;
+    locationName: string;
+    quantityRequired: number;
+    invoiceItemId: string;
+    invoiceId: string;
+    createdById: string;
+    createdByName: string;
+  }
+) {
+  const balance =
+    await tx.backOfficeSimpleInventoryBalance.findUnique({
+      where: {
+        productId_locationId: {
+          productId,
+          locationId,
+        },
+      },
+      select: {
+        id: true,
+        quantity: true,
+      },
+    });
+
+  const quantityBefore = balance?.quantity ?? 0;
+
+  if (!balance || quantityBefore < quantityRequired) {
+    throw new Error(
+      `${productName} only has ${quantityBefore} physical units available at ${locationName}; ${quantityRequired} are required.`
+    );
+  }
+
+  const quantityAfter =
+    quantityBefore - quantityRequired;
+
+  const updated =
+    await tx.backOfficeSimpleInventoryBalance.updateMany({
+      where: {
+        id: balance.id,
+        quantity: quantityBefore,
+      },
+      data: {
+        quantity: quantityAfter,
+      },
+    });
+
+  if (updated.count !== 1) {
+    throw new Error(
+      `Inventory changed while selling ${productName}. Please try the sale again.`
+    );
+  }
+
+  await tx.backOfficeInvoiceItemSimpleAllocation.create({
+    data: {
+      invoiceItemId,
+      productId,
+      locationId,
+      quantity: quantityRequired,
+    },
+  });
+
+  await tx.backOfficeSimpleInventoryMovement.create({
+    data: {
+      productId,
+      locationId,
+      type: "SOLD",
+      quantityDelta: -quantityRequired,
+      quantityBefore,
+      quantityAfter,
+      referenceType: "BACKOFFICE_INVOICE",
+      referenceId: invoiceId,
+      note: `POS sale - ${productName}`,
+      createdById,
+      createdByName,
+    },
+  });
 }
 export async function completePosSale(
   input: CompletePosSaleInput
@@ -551,8 +678,13 @@ export async function completePosSale(
               id: true,
               sku: true,
               name: true,
+              inventoryType: true,
               cost: true,
               retailPrice: true,
+              wholesalePrice: true,
+              tier1Price: true,
+              tier2Price: true,
+              tier3Price: true,
               unitsPerKit: true,
             },
           });
@@ -577,6 +709,15 @@ export async function completePosSale(
             throw new Error("Product not found.");
           }
 
+          if (
+            product.inventoryType !== "BATCHED" &&
+            item.sellUnit === "KIT"
+          ) {
+            throw new Error(
+              `${product.name} can only be sold as a UNIT.`
+            );
+          }
+
           const pricingProduct: PosPricingProduct = {
             cost:
               product.cost === null
@@ -586,6 +727,22 @@ export async function completePosSale(
               product.retailPrice === null
                 ? null
                 : Number(product.retailPrice),
+            wholesalePrice:
+              product.wholesalePrice === null
+                ? null
+                : Number(product.wholesalePrice),
+            tier1Price:
+              product.tier1Price === null
+                ? null
+                : Number(product.tier1Price),
+            tier2Price:
+              product.tier2Price === null
+                ? null
+                : Number(product.tier2Price),
+            tier3Price:
+              product.tier3Price === null
+                ? null
+                : Number(product.tier3Price),
             unitsPerKit: product.unitsPerKit,
           };
 
@@ -667,6 +824,13 @@ export async function completePosSale(
         >();
 
         for (const item of preparedItems) {
+          if (
+            item.product.inventoryType ===
+            "NON_INVENTORY"
+          ) {
+            continue;
+          }
+
           requiredByProduct.set(
             item.product.id,
             (requiredByProduct.get(item.product.id) ?? 0) +
@@ -682,33 +846,60 @@ export async function completePosSale(
             throw new Error("Product not found.");
           }
 
-          const balances =
-            await tx.backOfficeInventoryBalance.findMany({
-              where: {
-                locationId: location.id,
-                quantity: { gt: 0 },
-                batch: {
-                  productId,
-                  status: "ACTIVE",
+          if (product.inventoryType === "SIMPLE") {
+            const balance =
+              await tx.backOfficeSimpleInventoryBalance.findUnique({
+                where: {
+                  productId_locationId: {
+                    productId,
+                    locationId: location.id,
+                  },
                 },
-              },
-              select: {
-                quantity: true,
-              },
-            });
+                select: {
+                  quantity: true,
+                },
+              });
 
-          const availableQuantity = balances.reduce(
-            (sum, balance) => sum + balance.quantity,
-            0
-          );
+            const availableQuantity =
+              balance?.quantity ?? 0;
 
-          if (availableQuantity < requiredQuantity) {
-            throw new Error(
-              `${product.name} only has ${availableQuantity} physical units available at ${location.name}; ${requiredQuantity} are required.`
+            if (availableQuantity < requiredQuantity) {
+              throw new Error(
+                `${product.name} only has ${availableQuantity} physical units available at ${location.name}; ${requiredQuantity} are required.`
+              );
+            }
+
+            continue;
+          }
+
+          if (product.inventoryType === "BATCHED") {
+            const balances =
+              await tx.backOfficeInventoryBalance.findMany({
+                where: {
+                  locationId: location.id,
+                  quantity: { gt: 0 },
+                  batch: {
+                    productId,
+                    status: "ACTIVE",
+                  },
+                },
+                select: {
+                  quantity: true,
+                },
+              });
+
+            const availableQuantity = balances.reduce(
+              (sum, balance) => sum + balance.quantity,
+              0
             );
+
+            if (availableQuantity < requiredQuantity) {
+              throw new Error(
+                `${product.name} only has ${availableQuantity} physical units available at ${location.name}; ${requiredQuantity} are required.`
+              );
+            }
           }
         }
-
         const shippingAmount =
           websiteOrder?.fulfillmentMethod === "SHIPPING"
             ? 20
@@ -834,21 +1025,41 @@ export async function completePosSale(
               },
             });
 
-          await allocateInventoryFifo(
-            tx,
-            {
-              productId: item.product.id,
-              productName: item.product.name,
-              locationId: location.id,
-              locationName: location.name,
-              quantityRequired:
-                item.baseUnitsTotal,
-              invoiceItemId: invoiceItem.id,
-              invoiceId: invoice.id,
-              createdById: user.id,
-              createdByName,
-            }
-          );
+          if (item.product.inventoryType === "BATCHED") {
+            await allocateInventoryFifo(
+              tx,
+              {
+                productId: item.product.id,
+                productName: item.product.name,
+                locationId: location.id,
+                locationName: location.name,
+                quantityRequired:
+                  item.baseUnitsTotal,
+                invoiceItemId: invoiceItem.id,
+                invoiceId: invoice.id,
+                createdById: user.id,
+                createdByName,
+              }
+            );
+          }
+
+          if (item.product.inventoryType === "SIMPLE") {
+            await allocateSimpleInventory(
+              tx,
+              {
+                productId: item.product.id,
+                productName: item.product.name,
+                locationId: location.id,
+                locationName: location.name,
+                quantityRequired:
+                  item.baseUnitsTotal,
+                invoiceItemId: invoiceItem.id,
+                invoiceId: invoice.id,
+                createdById: user.id,
+                createdByName,
+              }
+            );
+          }
         }
 
         if (shippingAmount > 0) {

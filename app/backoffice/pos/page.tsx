@@ -46,8 +46,19 @@ export default async function BackOfficePosPage() {
           sku: true,
           name: true,
           cost: true,
+          inventoryType: true,
           retailPrice: true,
+          wholesalePrice: true,
+          tier1Price: true,
+          tier2Price: true,
+          tier3Price: true,
           unitsPerKit: true,
+          simpleBalances: {
+            select: {
+              locationId: true,
+              quantity: true,
+            },
+          },
           batches: {
             orderBy: [
               { receivedAt: "asc" },
@@ -107,11 +118,19 @@ export default async function BackOfficePosPage() {
   const posProducts = products.map((product) => {
     const quantities: Record<string, number> = {};
 
-    for (const batch of product.batches) {
-      for (const balance of batch.balances) {
-        quantities[balance.locationId] =
-          (quantities[balance.locationId] ?? 0) +
-          balance.quantity;
+    if (product.inventoryType === "BATCHED") {
+      for (const batch of product.batches) {
+        for (const balance of batch.balances) {
+          quantities[balance.locationId] =
+            (quantities[balance.locationId] ?? 0) +
+            balance.quantity;
+        }
+      }
+    }
+
+    if (product.inventoryType === "SIMPLE") {
+      for (const balance of product.simpleBalances) {
+        quantities[balance.locationId] = balance.quantity;
       }
     }
 
@@ -119,14 +138,18 @@ export default async function BackOfficePosPage() {
       id: product.id,
       sku: product.sku,
       name: product.name,
-      cost:
-        product.cost === null
-          ? null
-          : Number(product.cost),
+      inventoryType: product.inventoryType,
+      cost: product.cost === null ? null : Number(product.cost),
       retailPrice:
-        product.retailPrice === null
-          ? null
-          : Number(product.retailPrice),
+        product.retailPrice === null ? null : Number(product.retailPrice),
+      wholesalePrice:
+        product.wholesalePrice === null ? null : Number(product.wholesalePrice),
+      tier1Price:
+        product.tier1Price === null ? null : Number(product.tier1Price),
+      tier2Price:
+        product.tier2Price === null ? null : Number(product.tier2Price),
+      tier3Price:
+        product.tier3Price === null ? null : Number(product.tier3Price),
       unitsPerKit: product.unitsPerKit,
       quantities,
     };

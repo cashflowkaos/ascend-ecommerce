@@ -235,11 +235,25 @@ export async function voidInvoice(
               status: true,
               items: {
                 select: {
+                  productId: true,
                   productName: true,
+                  product: {
+                    select: {
+                      inventoryType: true,
+                    },
+                  },
                   allocations: {
                     select: {
                       id: true,
                       batchId: true,
+                      locationId: true,
+                      quantity: true,
+                    },
+                  },
+                  simpleAllocations: {
+                    select: {
+                      id: true,
+                      productId: true,
                       locationId: true,
                       quantity: true,
                     },
@@ -266,15 +280,41 @@ export async function voidInvoice(
           }))
         );
 
+        const simpleAllocations =
+          invoice.items.flatMap((item) =>
+            item.simpleAllocations.map((allocation) => ({
+              ...allocation,
+              productName: item.productName,
+            }))
+          );
+
         if (
           (invoice.source === "POS" ||
             invoice.source === "WEBSITE") &&
           invoice.status === "COMPLETED"
         ) {
-          if (allocations.length === 0) {
-            throw new Error(
-              "This completed invoice has no inventory allocations and cannot be safely voided."
-            );
+          for (const item of invoice.items) {
+            if (!item.productId || !item.product) {
+              continue;
+            }
+
+            if (
+              item.product.inventoryType === "BATCHED" &&
+              item.allocations.length === 0
+            ) {
+              throw new Error(
+                `${item.productName} has no batch inventory allocation and this invoice cannot be safely voided.`
+              );
+            }
+
+            if (
+              item.product.inventoryType === "SIMPLE" &&
+              item.simpleAllocations.length === 0
+            ) {
+              throw new Error(
+                `${item.productName} has no simple inventory allocation and this invoice cannot be safely voided.`
+              );
+            }
           }
 
           for (const allocation of allocations) {
@@ -341,8 +381,72 @@ export async function voidInvoice(
               },
             });
           }
-        }
 
+          for (const allocation of simpleAllocations) {
+            const balance =
+              await tx.backOfficeSimpleInventoryBalance.findUnique({
+                where: {
+                  productId_locationId: {
+                    productId: allocation.productId,
+                    locationId: allocation.locationId,
+                  },
+                },
+                select: {
+                  id: true,
+                  quantity: true,
+                },
+              });
+
+            const quantityBefore =
+              balance?.quantity ?? 0;
+
+            const quantityAfter =
+              quantityBefore + allocation.quantity;
+
+            if (balance) {
+              const updated =
+                await tx.backOfficeSimpleInventoryBalance.updateMany({
+                  where: {
+                    id: balance.id,
+                    quantity: quantityBefore,
+                  },
+                  data: {
+                    quantity: quantityAfter,
+                  },
+                });
+
+              if (updated.count !== 1) {
+                throw new Error(
+                  "Simple inventory changed while voiding this invoice. Please try again."
+                );
+              }
+            } else {
+              await tx.backOfficeSimpleInventoryBalance.create({
+                data: {
+                  productId: allocation.productId,
+                  locationId: allocation.locationId,
+                  quantity: quantityAfter,
+                },
+              });
+            }
+
+            await tx.backOfficeSimpleInventoryMovement.create({
+              data: {
+                productId: allocation.productId,
+                locationId: allocation.locationId,
+                type: "RETURNED",
+                quantityDelta: allocation.quantity,
+                quantityBefore,
+                quantityAfter,
+                referenceType: "BACKOFFICE_INVOICE_VOID",
+                referenceId: invoice.id,
+                note: `Void ${invoice.invoiceNumber} - ${allocation.productName}`,
+                createdById: user.id,
+                createdByName: voidedByName,
+              },
+            });
+          }
+        }
         const updatedInvoice =
           await tx.backOfficeInvoice.updateMany({
             where: {

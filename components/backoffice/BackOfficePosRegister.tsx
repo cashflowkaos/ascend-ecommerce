@@ -34,8 +34,13 @@ export type PosProduct = {
   id: string;
   sku: string;
   name: string;
+  inventoryType: "BATCHED" | "SIMPLE" | "NON_INVENTORY";
   cost: number | null;
   retailPrice: number | null;
+  wholesalePrice: number | null;
+  tier1Price: number | null;
+  tier2Price: number | null;
+  tier3Price: number | null;
   unitsPerKit: number;
   quantities: Record<string, number>;
 };
@@ -84,28 +89,39 @@ type Props = {
   websiteOrders: PosWebsiteOrder[];
 };
 
-function getWholesalePrice(retailPrice: number | null) {
-  return retailPrice === null ? null : retailPrice * 0.8;
+function getWholesalePrice(product: PosProduct) {
+  if (product.wholesalePrice !== null) {
+    return product.wholesalePrice;
+  }
+
+  return product.retailPrice === null
+    ? null
+    : product.retailPrice * 0.8;
 }
 
 function getTierKitPrice(
-  cost: number | null,
+  product: PosProduct,
   pricingType: PricingType
 ) {
-  if (cost === null) {
-    return null;
-  }
-
   if (pricingType === "TIER_1") {
-    return Math.ceil(cost * 1.4);
+    return product.tier1Price ??
+      (product.cost === null
+        ? null
+        : Math.ceil(product.cost * 1.4));
   }
 
   if (pricingType === "TIER_2") {
-    return Math.ceil(cost * 1.35);
+    return product.tier2Price ??
+      (product.cost === null
+        ? null
+        : Math.ceil(product.cost * 1.35));
   }
 
   if (pricingType === "TIER_3") {
-    return Math.ceil(cost * 1.3);
+    return product.tier3Price ??
+      (product.cost === null
+        ? null
+        : Math.ceil(product.cost * 1.3));
   }
 
   return null;
@@ -117,12 +133,15 @@ function getStandardPrice(
   sellUnit: SellUnit
 ) {
   const retailPrice = product.retailPrice;
-  const wholesalePrice = getWholesalePrice(retailPrice);
+  const wholesalePrice = getWholesalePrice(product);
 
   if (sellUnit === "UNIT") {
-    return pricingType === "RETAIL"
-      ? retailPrice
-      : wholesalePrice;
+    if (pricingType === "RETAIL") {
+      return retailPrice;
+    }
+
+    return wholesalePrice;
+
   }
 
   if (
@@ -130,7 +149,7 @@ function getStandardPrice(
     pricingType === "TIER_2" ||
     pricingType === "TIER_3"
   ) {
-    return getTierKitPrice(product.cost, pricingType);
+    return getTierKitPrice(product, pricingType);
   }
 
   const perUnitPrice =
@@ -300,6 +319,10 @@ export function BackOfficePosRegister({
     if (!selectedLocationId) {
       setCartError("Select an inventory location first.");
       return false;
+    }
+
+    if (product.inventoryType === "NON_INVENTORY") {
+      return true;
     }
 
     const available =
@@ -1003,11 +1026,14 @@ export function BackOfficePosRegister({
               <div className="pos-search-results pos-product-results">
                 {productResults.length > 0 ? (
                   productResults.map((product) => {
-                    const available = selectedLocationId
-                      ? product.quantities[
-                          selectedLocationId
-                        ] ?? 0
-                      : null;
+                    const available =
+                      product.inventoryType === "NON_INVENTORY"
+                        ? null
+                        : selectedLocationId
+                          ? product.quantities[
+                              selectedLocationId
+                            ] ?? 0
+                          : null;
 
                     const unitPrice = getStandardPrice(
                       product,
@@ -1015,11 +1041,21 @@ export function BackOfficePosRegister({
                       "UNIT"
                     );
 
-                    const kitPrice = getStandardPrice(
-                      product,
-                      pricingType,
-                      "KIT"
-                    );
+                    const kitPrice =
+                      product.inventoryType === "BATCHED"
+                        ? getStandardPrice(
+                            product,
+                            pricingType,
+                            "KIT"
+                          )
+                        : null;
+
+                    const unitDisabled =
+                      !selectedLocationId ||
+                      unitPrice === null ||
+                      (product.inventoryType !==
+                        "NON_INVENTORY" &&
+                        available === 0);
 
                     return (
                       <div
@@ -1032,20 +1068,19 @@ export function BackOfficePosRegister({
                           <small>
                             {product.sku}
                             {" - "}
-                            {available === null
-                              ? "Select location"
-                              : `${available} available`}
+                            {product.inventoryType ===
+                            "NON_INVENTORY"
+                              ? "Non-Inventory"
+                              : available === null
+                                ? "Select location"
+                                : `${available} available`}
                           </small>
                         </div>
 
                         <div className="pos-product-actions">
                           <button
                             type="button"
-                            disabled={
-                              !selectedLocationId ||
-                              unitPrice === null ||
-                              available === 0
-                            }
+                            disabled={unitDisabled}
                             onClick={() =>
                               addToCart(product, "UNIT")
                             }
@@ -1056,26 +1091,28 @@ export function BackOfficePosRegister({
                             </strong>
                           </button>
 
-                          <button
-                            type="button"
-                            disabled={
-                              !selectedLocationId ||
-                              kitPrice === null ||
-                              available === null ||
-                              available <
-                                product.unitsPerKit
-                            }
-                            onClick={() =>
-                              addToCart(product, "KIT")
-                            }
-                          >
-                            <span>
-                              KIT x{product.unitsPerKit}
-                            </span>
-                            <strong>
-                              {formatMoney(kitPrice)}
-                            </strong>
-                          </button>
+                          {product.inventoryType === "BATCHED" ? (
+                            <button
+                              type="button"
+                              disabled={
+                                !selectedLocationId ||
+                                kitPrice === null ||
+                                available === null ||
+                                available <
+                                  product.unitsPerKit
+                              }
+                              onClick={() =>
+                                addToCart(product, "KIT")
+                              }
+                            >
+                              <span>
+                                KIT x{product.unitsPerKit}
+                              </span>
+                              <strong>
+                                {formatMoney(kitPrice)}
+                              </strong>
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     );
