@@ -432,7 +432,7 @@ export default async function BackOfficePurchaseOrderPage({
       {canReceive && (
         <div className="backoffice-panel">
           <div className="backoffice-panel-heading">
-            <div>
+            <div style={{ display: "grid", gap: 5 }}>
               <span className="backoffice-eyebrow">RECEIVING</span>
               <h2>Receive Inventory</h2>
               <p>
@@ -509,7 +509,7 @@ export default async function BackOfficePurchaseOrderPage({
                         value={item.id}
                       />
 
-                      <div>
+                      <div style={{ display: "grid", gap: 5 }}>
                         <strong>{item.productName}</strong>
                         <span>
                           {item.productSku} ·{" "}
@@ -517,7 +517,7 @@ export default async function BackOfficePurchaseOrderPage({
                         </span>
                       </div>
 
-                      <div>
+                      <div style={{ display: "grid", gap: 5 }}>
                         <span>Remaining</span>
                         <strong>
                           {remaining.toLocaleString()} physical unit(s)
@@ -554,7 +554,7 @@ export default async function BackOfficePurchaseOrderPage({
                         />
                       )}
 
-                      <div>
+                      <div style={{ display: "grid", gap: 5 }}>
                         <span>Purchase Cost</span>
                         <strong>
                           {money(Number(item.unitCost))} /{" "}
@@ -590,7 +590,7 @@ export default async function BackOfficePurchaseOrderPage({
       {order.receipts.length > 0 && (
         <div className="backoffice-panel">
           <div className="backoffice-panel-heading">
-            <div>
+            <div style={{ display: "grid", gap: 5 }}>
               <span className="backoffice-eyebrow">
                 RECEIPT HISTORY
               </span>
@@ -613,7 +613,7 @@ export default async function BackOfficePurchaseOrderPage({
                   gap: 10,
                 }}
               >
-                <div>
+                <div style={{ display: "grid", gap: 5 }}>
                   <strong>{dateTime(receipt.receivedAt)}</strong>
                   <span>
                     {receipt.location.name} ({receipt.location.code})
@@ -621,14 +621,14 @@ export default async function BackOfficePurchaseOrderPage({
                 </div>
 
                 {receipt.receivedByName && (
-                  <div>
+                  <div style={{ display: "grid", gap: 5 }}>
                     <span>Received By</span>
                     <strong>{receipt.receivedByName}</strong>
                   </div>
                 )}
 
                 {receipt.note && (
-                  <div>
+                  <div style={{ display: "grid", gap: 5 }}>
                     <span>Note</span>
                     <strong>{receipt.note}</strong>
                   </div>
