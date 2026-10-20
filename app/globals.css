@@ -3662,7 +3662,7 @@ img {
 }
 
 /* ============================================================
-   ASCEND MEMBER ACCOUNT â€” PREMIUM VISUAL REFINEMENT
+   ASCEND MEMBER ACCOUNT -- PREMIUM VISUAL REFINEMENT
    ============================================================ */
 
 .member-account-page {
@@ -3847,7 +3847,7 @@ img {
 }
 
 .member-card-link::after {
-  content: "â†’";
+  content: "\2192";
   font-size: 12px;
   transition: transform 150ms ease;
 }
@@ -3856,7 +3856,7 @@ img {
   transform: translateX(3px);
 }
 
-/* Exclusive catalog â€” make this the hero destination */
+/* Exclusive catalog -- make this the hero destination */
 
 .member-account-card-wide {
   position: relative;
@@ -3969,7 +3969,7 @@ img {
 
 
 /* ============================================================
-   MEMBER HEADER â€” MATCH PUBLIC ASCEND HEADER
+   MEMBER HEADER -- MATCH PUBLIC ASCEND HEADER
    ============================================================ */
 
 .member-account-header {
@@ -4072,7 +4072,7 @@ img {
 }
 
 /* ============================================================
-   MEMBER HEADER â€” FULL LOGO INSIDE EXISTING BRAND WINDOW
+   MEMBER HEADER -- FULL LOGO INSIDE EXISTING BRAND WINDOW
    ============================================================ */
 
 .member-account-header {
@@ -4184,7 +4184,7 @@ img {
 
 
 /* ============================================================
-   MEMBER HEADER â€” FINAL LOGO / ACTION LAYOUT
+   MEMBER HEADER -- FINAL LOGO / ACTION LAYOUT
    ============================================================ */
 
 .member-account-header {
@@ -4371,7 +4371,7 @@ img {
 }
 
 /* ============================================================
-   MEMBER HEADER â€” CANONICAL FINAL OVERRIDE
+   MEMBER HEADER -- CANONICAL FINAL OVERRIDE
    One consistent logo/header treatment across all member pages.
    ============================================================ */
 
@@ -6839,7 +6839,7 @@ img {
 }
 
 .backoffice-count-product[open] > summary::after {
-  content: "âˆ’";
+  content: "\2212";
 }
 
 .backoffice-count-product > summary > div {
@@ -7380,7 +7380,7 @@ button.backoffice-primary-button {
 }
 
 .backoffice-adjust-details > summary::after {
-  content: "â€º";
+  content: "\203A";
   margin-left: 7px;
   font-size: 15px;
   line-height: 1;

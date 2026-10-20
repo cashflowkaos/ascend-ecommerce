@@ -805,7 +805,7 @@ export default async function BackOfficePage() {
                       {invoice.invoiceNumber}
                     </div>
                     <div className="mt-1 truncate text-xs text-slate-500">
-                      {customer} Ã‚Â·{" "}
+                      {customer} &middot;{" "}
                       {getInvoiceDate(
                         invoice
                       ).toLocaleDateString("en-US")}

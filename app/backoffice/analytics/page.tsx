@@ -548,7 +548,7 @@ export default async function BackOfficeAnalyticsPage() {
                     {entry.label}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">
-                    {entry.orders} orders Ã‚Â· {entry.units} physical units
+                    {entry.orders} orders &middot; {entry.units} physical units
                   </div>
                 </div>
 
@@ -972,7 +972,7 @@ export default async function BackOfficeAnalyticsPage() {
                               : "BALANCED"}
                         </td>
                         <td className="max-w-xs px-5 py-4 text-slate-600">
-                          {entry.note || "Ã¢â‚¬â€"}
+                          {entry.note || "\u2014"}
                         </td>
                       </tr>
                     );
@@ -1093,7 +1093,7 @@ export default async function BackOfficeAnalyticsPage() {
                     <div className="mt-1 text-sm font-semibold text-slate-950">
                       {product.units > 0
                         ? money(product.revenue / product.units)
-                        : "Ã¢â‚¬â€"}
+                        : "\u2014"}
                     </div>
                   </div>
                 </div>
@@ -1154,7 +1154,7 @@ export default async function BackOfficeAnalyticsPage() {
                     <td className="px-5 py-4 text-right">
                       {product.units > 0
                         ? money(product.revenue / product.units)
-                        : "Ã¢â‚¬â€"}
+                        : "\u2014"}
                     </td>
                   </tr>
                 ))
