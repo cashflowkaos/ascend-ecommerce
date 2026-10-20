@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { transferBackOfficeInventory } from "../actions";
+import {
+  transferBackOfficeInventory,
+  transferSimpleBackOfficeInventory,
+} from "../actions";
 
 type Location = {
   id: string;
@@ -24,6 +27,8 @@ type Product = {
   id: string;
   sku: string;
   name: string;
+  inventoryType: "BATCHED" | "SIMPLE" | "NON_INVENTORY";
+  simpleBalances: Balance[];
   batches: Batch[];
 };
 
@@ -51,6 +56,9 @@ export default function InventoryTransferForm({
     [products, productId]
   );
 
+  const isSimple =
+    selectedProduct?.inventoryType === "SIMPLE";
+
   const selectedBatch = useMemo(
     () =>
       selectedProduct?.batches.find(
@@ -59,15 +67,19 @@ export default function InventoryTransferForm({
     [selectedProduct, batchId]
   );
 
+  const activeBalances = isSimple
+    ? selectedProduct?.simpleBalances ?? []
+    : selectedBatch?.balances ?? [];
+
   const availableQuantity =
-    selectedBatch?.balances.find(
+    activeBalances.find(
       (balance) =>
         balance.locationId === fromLocationId
     )?.quantity ?? 0;
 
   const sourceLocations = locations.filter(
     (location) =>
-      (selectedBatch?.balances.find(
+      (activeBalances.find(
         (balance) =>
           balance.locationId === location.id
       )?.quantity ?? 0) > 0
@@ -78,15 +90,24 @@ export default function InventoryTransferForm({
       location.id !== fromLocationId
   );
 
+  const sourceEnabled =
+    !!selectedProduct &&
+    (isSimple || !!selectedBatch);
+
+  const transferAction = isSimple
+    ? transferSimpleBackOfficeInventory
+    : transferBackOfficeInventory;
+
   return (
     <form
-      action={transferBackOfficeInventory}
+      action={transferAction}
       className="backoffice-transfer-form"
     >
       <label>
         <span>Product</span>
 
         <select
+          name="productId"
           value={productId}
           onChange={(event) => {
             setProductId(event.target.value);
@@ -105,42 +126,44 @@ export default function InventoryTransferForm({
               key={product.id}
               value={product.id}
             >
-              {product.name} · {product.sku}
+              {product.name} - {product.sku}
             </option>
           ))}
         </select>
       </label>
 
-      <label>
-        <span>Batch</span>
+      {!isSimple && (
+        <label>
+          <span>Batch</span>
 
-        <select
-          name="batchId"
-          value={batchId}
-          onChange={(event) => {
-            setBatchId(event.target.value);
-            setFromLocationId("");
-            setToLocationId("");
-          }}
-          disabled={!selectedProduct}
-          required
-        >
-          <option value="">
-            Select batch
-          </option>
+          <select
+            name="batchId"
+            value={batchId}
+            onChange={(event) => {
+              setBatchId(event.target.value);
+              setFromLocationId("");
+              setToLocationId("");
+            }}
+            disabled={!selectedProduct}
+            required
+          >
+            <option value="">
+              Select batch
+            </option>
 
-          {selectedProduct?.batches.map(
-            (batch) => (
-              <option
-                key={batch.id}
-                value={batch.id}
-              >
-                {batch.batchNumber}
-              </option>
-            )
-          )}
-        </select>
-      </label>
+            {selectedProduct?.batches.map(
+              (batch) => (
+                <option
+                  key={batch.id}
+                  value={batch.id}
+                >
+                  {batch.batchNumber}
+                </option>
+              )
+            )}
+          </select>
+        </label>
+      )}
 
       <label>
         <span>From Location</span>
@@ -157,7 +180,7 @@ export default function InventoryTransferForm({
               setToLocationId("");
             }
           }}
-          disabled={!selectedBatch}
+          disabled={!sourceEnabled}
           required
         >
           <option value="">
@@ -166,7 +189,7 @@ export default function InventoryTransferForm({
 
           {sourceLocations.map((location) => {
             const quantity =
-              selectedBatch?.balances.find(
+              activeBalances.find(
                 (balance) =>
                   balance.locationId === location.id
               )?.quantity ?? 0;
@@ -176,7 +199,7 @@ export default function InventoryTransferForm({
                 key={location.id}
                 value={location.id}
               >
-                {location.name} · {quantity} vials
+                {location.name} - {quantity} available
               </option>
             );
           })}
@@ -216,7 +239,7 @@ export default function InventoryTransferForm({
         <span>
           Quantity
           {fromLocationId
-            ? ` · ${availableQuantity} available`
+            ? ` - ${availableQuantity} available`
             : ""}
         </span>
 
@@ -253,7 +276,8 @@ export default function InventoryTransferForm({
         type="submit"
         className="backoffice-primary-button"
         disabled={
-          !batchId ||
+          !selectedProduct ||
+          (!isSimple && !batchId) ||
           !fromLocationId ||
           !toLocationId ||
           availableQuantity <= 0

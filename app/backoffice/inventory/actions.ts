@@ -1427,3 +1427,228 @@ export async function transferBackOfficeInventory(
   revalidatePath("/backoffice/inventory/transfers");
   revalidatePath("/backoffice/inventory/ledger");
 }
+
+export async function transferSimpleBackOfficeInventory(
+  formData: FormData
+) {
+  const user = await requireAdmin();
+
+  const productId = String(
+    formData.get("productId") ?? ""
+  ).trim();
+
+  const fromLocationId = String(
+    formData.get("fromLocationId") ?? ""
+  ).trim();
+
+  const toLocationId = String(
+    formData.get("toLocationId") ?? ""
+  ).trim();
+
+  const rawQuantity = String(
+    formData.get("quantity") ?? ""
+  ).trim();
+
+  const note = String(
+    formData.get("note") ?? ""
+  ).trim();
+
+  if (
+    !productId ||
+    !fromLocationId ||
+    !toLocationId
+  ) {
+    throw new Error(
+      "Product, source location, and destination location are required."
+    );
+  }
+
+  if (fromLocationId === toLocationId) {
+    throw new Error(
+      "Source and destination locations must be different."
+    );
+  }
+
+  const quantity = Number(rawQuantity);
+
+  if (
+    !Number.isInteger(quantity) ||
+    quantity <= 0
+  ) {
+    throw new Error(
+      "Transfer quantity must be a positive whole number."
+    );
+  }
+
+  const createdByName =
+    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+    user.email;
+
+  await prisma.$transaction(async (tx) => {
+    const [product, fromLocation, toLocation] =
+      await Promise.all([
+        tx.backOfficeProduct.findUnique({
+          where: { id: productId },
+          select: {
+            id: true,
+            inventoryType: true,
+          },
+        }),
+        tx.backOfficeLocation.findUnique({
+          where: { id: fromLocationId },
+          select: {
+            id: true,
+            active: true,
+          },
+        }),
+        tx.backOfficeLocation.findUnique({
+          where: { id: toLocationId },
+          select: {
+            id: true,
+            active: true,
+          },
+        }),
+      ]);
+
+    if (!product) {
+      throw new Error("Product not found.");
+    }
+
+    if (product.inventoryType !== "SIMPLE") {
+      throw new Error(
+        "SIMPLE inventory transfers are only allowed for SIMPLE products."
+      );
+    }
+
+    if (!fromLocation || !fromLocation.active) {
+      throw new Error(
+        "Source inventory location not found or inactive."
+      );
+    }
+
+    if (!toLocation || !toLocation.active) {
+      throw new Error(
+        "Destination inventory location not found or inactive."
+      );
+    }
+
+    const sourceBalance =
+      await tx.backOfficeSimpleInventoryBalance.findUnique({
+        where: {
+          productId_locationId: {
+            productId,
+            locationId: fromLocationId,
+          },
+        },
+        select: {
+          id: true,
+          quantity: true,
+        },
+      });
+
+    const sourceQuantity =
+      sourceBalance?.quantity ?? 0;
+
+    if (quantity > sourceQuantity) {
+      throw new Error(
+        "Transfer quantity exceeds available inventory."
+      );
+    }
+
+    const destinationBalance =
+      await tx.backOfficeSimpleInventoryBalance.findUnique({
+        where: {
+          productId_locationId: {
+            productId,
+            locationId: toLocationId,
+          },
+        },
+        select: {
+          id: true,
+          quantity: true,
+        },
+      });
+
+    const destinationQuantity =
+      destinationBalance?.quantity ?? 0;
+
+    const transfer =
+      await tx.backOfficeSimpleInventoryTransfer.create({
+        data: {
+          productId,
+          fromLocationId,
+          toLocationId,
+          quantity,
+          status: "COMPLETED",
+          note: note || null,
+          createdById: user.id,
+          createdByName,
+          completedAt: new Date(),
+        },
+      });
+
+    await tx.backOfficeSimpleInventoryBalance.update({
+      where: {
+        id: sourceBalance!.id,
+      },
+      data: {
+        quantity: sourceQuantity - quantity,
+      },
+    });
+
+    if (destinationBalance) {
+      await tx.backOfficeSimpleInventoryBalance.update({
+        where: {
+          id: destinationBalance.id,
+        },
+        data: {
+          quantity: destinationQuantity + quantity,
+        },
+      });
+    } else {
+      await tx.backOfficeSimpleInventoryBalance.create({
+        data: {
+          productId,
+          locationId: toLocationId,
+          quantity,
+        },
+      });
+    }
+
+    await tx.backOfficeSimpleInventoryMovement.create({
+      data: {
+        productId,
+        locationId: fromLocationId,
+        type: "TRANSFER_OUT",
+        quantityDelta: -quantity,
+        quantityBefore: sourceQuantity,
+        quantityAfter: sourceQuantity - quantity,
+        referenceType: "SIMPLE_INVENTORY_TRANSFER",
+        referenceId: transfer.id,
+        note: note || null,
+        createdById: user.id,
+        createdByName,
+      },
+    });
+
+    await tx.backOfficeSimpleInventoryMovement.create({
+      data: {
+        productId,
+        locationId: toLocationId,
+        type: "TRANSFER_IN",
+        quantityDelta: quantity,
+        quantityBefore: destinationQuantity,
+        quantityAfter: destinationQuantity + quantity,
+        referenceType: "SIMPLE_INVENTORY_TRANSFER",
+        referenceId: transfer.id,
+        note: note || null,
+        createdById: user.id,
+        createdByName,
+      },
+    });
+  });
+
+  revalidatePath("/backoffice/inventory");
+  revalidatePath("/backoffice/inventory/transfers");
+  revalidatePath("/backoffice/inventory/ledger");
+}

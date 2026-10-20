@@ -682,6 +682,7 @@ model BackOfficeProduct {
   batches                  BackOfficeBatch[]
   simpleBalances           BackOfficeSimpleInventoryBalance[]
   simpleMovements          BackOfficeSimpleInventoryMovement[]
+  simpleTransfers          BackOfficeSimpleInventoryTransfer[]
   simpleInvoiceAllocations BackOfficeInvoiceItemSimpleAllocation[]
   distroProduct            DistroProduct?
   retailVariants           ProductVariant[]
@@ -740,6 +741,8 @@ model BackOfficeLocation {
   invoiceAllocations                 BackOfficeInvoiceItemAllocation[]
   backOfficeSimpleInventoryBalances  BackOfficeSimpleInventoryBalance[]
   backOfficeSimpleInventoryMovements BackOfficeSimpleInventoryMovement[]
+  simpleTransfersFrom                BackOfficeSimpleInventoryTransfer[]     @relation("BackOfficeSimpleTransferFrom")
+  simpleTransfersTo                  BackOfficeSimpleInventoryTransfer[]     @relation("BackOfficeSimpleTransferTo")
   invoiceItemSimpleAllocations       BackOfficeInvoiceItemSimpleAllocation[]
 
   @@index([active, sortOrder])
@@ -842,6 +845,40 @@ model BackOfficeInventoryTransfer {
   updatedAt DateTime @updatedAt
 
   @@index([batchId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model BackOfficeSimpleInventoryTransfer {
+  id String @id @default(cuid())
+
+  productId String
+  product   BackOfficeProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  fromLocationId String
+  fromLocation   BackOfficeLocation @relation("BackOfficeSimpleTransferFrom", fields: [fromLocationId], references: [id], onDelete: Restrict)
+
+  toLocationId String
+  toLocation   BackOfficeLocation @relation("BackOfficeSimpleTransferTo", fields: [toLocationId], references: [id], onDelete: Restrict)
+
+  quantity Int
+
+  status BackOfficeTransferStatus @default(PENDING)
+
+  note String?
+
+  createdById   String?
+  createdByName String?
+
+  completedAt DateTime?
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
   @@index([fromLocationId])
   @@index([toLocationId])
   @@index([status])

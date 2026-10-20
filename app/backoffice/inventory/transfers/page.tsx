@@ -4,11 +4,18 @@ import { prisma } from "@/lib/prisma";
 import InventoryTransferForm from "./InventoryTransferForm";
 
 export default async function InventoryTransfersPage() {
-  const [products, locations, recentTransfers] =
-    await Promise.all([
+  const [
+    products,
+    locations,
+    recentTransfers,
+    recentSimpleTransfers,
+  ] = await Promise.all([
       prisma.backOfficeProduct.findMany({
         where: {
           active: true,
+          inventoryType: {
+            in: ["BATCHED", "SIMPLE"],
+          },
         },
         orderBy: {
           name: "asc",
@@ -17,6 +24,13 @@ export default async function InventoryTransfersPage() {
           id: true,
           sku: true,
           name: true,
+          inventoryType: true,
+          simpleBalances: {
+            select: {
+              locationId: true,
+              quantity: true,
+            },
+          },
           batches: {
             where: {
               status: "ACTIVE",
@@ -88,8 +102,69 @@ export default async function InventoryTransfersPage() {
           },
         },
       }),
+
+      prisma.backOfficeSimpleInventoryTransfer.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 10,
+        select: {
+          id: true,
+          quantity: true,
+          status: true,
+          note: true,
+          createdByName: true,
+          createdAt: true,
+          product: {
+            select: {
+              sku: true,
+              name: true,
+            },
+          },
+          fromLocation: {
+            select: {
+              name: true,
+            },
+          },
+          toLocation: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
     ]);
 
+  const combinedTransfers = [
+    ...recentTransfers.map((transfer) => ({
+      id: `batched-${transfer.id}`,
+      inventoryType: "BATCHED" as const,
+      productName: transfer.batch.product.name,
+      sku: transfer.batch.product.sku,
+      batchNumber: transfer.batch.batchNumber,
+      fromLocationName: transfer.fromLocation.name,
+      toLocationName: transfer.toLocation.name,
+      quantity: transfer.quantity,
+      createdAt: transfer.createdAt,
+    })),
+    ...recentSimpleTransfers.map((transfer) => ({
+      id: `simple-${transfer.id}`,
+      inventoryType: "SIMPLE" as const,
+      productName: transfer.product.name,
+      sku: transfer.product.sku,
+      batchNumber: null,
+      fromLocationName: transfer.fromLocation.name,
+      toLocationName: transfer.toLocation.name,
+      quantity: transfer.quantity,
+      createdAt: transfer.createdAt,
+    })),
+  ]
+    .sort(
+      (a, b) =>
+        b.createdAt.getTime() -
+        a.createdAt.getTime()
+    )
+    .slice(0, 10);
   return (
     <>
       <div className="backoffice-page-heading">
@@ -142,19 +217,24 @@ export default async function InventoryTransfersPage() {
           </div>
         </div>
 
-        {recentTransfers.length === 0 ? (
+        {combinedTransfers.length === 0 ? (
           <p className="backoffice-count-empty">
             No inventory transfers have been recorded yet.
           </p>
         ) : (
           <div>
-            {recentTransfers.map((transfer) => (
+            {combinedTransfers.map((transfer) => (
               <p key={transfer.id}>
-                {transfer.batch.product.name} ·{" "}
-                {transfer.batch.batchNumber} ·{" "}
-                {transfer.fromLocation.name} →{" "}
-                {transfer.toLocation.name} ·{" "}
-                {transfer.quantity} vials
+                {transfer.productName} -{" "}
+                {transfer.inventoryType === "BATCHED"
+                  ? transfer.batchNumber
+                  : "SIMPLE"}{" "}
+                - {transfer.fromLocationName} -&gt;{" "}
+                {transfer.toLocationName} -{" "}
+                {transfer.quantity}{" "}
+                {transfer.inventoryType === "BATCHED"
+                  ? "vials"
+                  : "units"}
               </p>
             ))}
           </div>
