@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import BackOfficeProductPricing from "@/components/backoffice/BackOfficeProductPricing";
+import BackOfficeProductInventoryFields from "@/components/backoffice/BackOfficeProductInventoryFields";
 import { createBackOfficeProduct } from "../actions";
 
 export default function NewBackOfficeProductPage() {
@@ -77,43 +77,7 @@ export default function NewBackOfficeProductPage() {
             />
           </label>
 
-          <BackOfficeProductPricing defaultCost="" defaultRetailPrice="" />
-
-          <label className="backoffice-form-field">
-            <span>Inventory Type</span>
-
-            <select
-              name="inventoryType"
-              defaultValue="BATCHED"
-              required
-            >
-              <option value="BATCHED">Batch Tracked</option>
-              <option value="SIMPLE">Simple Stock</option>
-              <option value="NON_INVENTORY">Non-Inventory</option>
-            </select>
-
-            <small>
-              Batch Tracked uses lot/batch inventory. Simple Stock tracks quantity only. Non-Inventory does not track stock.
-            </small>
-          </label>
-
-          <label className="backoffice-form-field">
-            <span>Units Per Kit</span>
-
-            <input
-              type="number"
-              name="unitsPerKit"
-              min="1"
-              step="1"
-              defaultValue="10"
-              required
-            />
-
-            <small>
-              Physical inventory is tracked in individual units. This controls kit conversion.
-            </small>
-          </label>
-
+          <BackOfficeProductInventoryFields />
           <div className="backoffice-form-field">
             <span>Display Distro</span>
 

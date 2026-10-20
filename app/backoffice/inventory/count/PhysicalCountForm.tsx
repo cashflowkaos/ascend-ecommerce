@@ -5,10 +5,15 @@ import {
   useEffect,
   useState,
 } from "react";
-import { recordPhysicalInventoryCount } from "../actions";
+import {
+  recordPhysicalInventoryCount,
+  recordSimplePhysicalInventoryCount,
+} from "../actions";
 
 type PhysicalCountFormProps = {
-  batchId: string;
+  inventoryType: "BATCHED" | "SIMPLE";
+  batchId?: string;
+  productId?: string;
   locationId: string;
   locationName: string;
   currentQuantity: number;
@@ -23,7 +28,9 @@ const initialState: SaveState = {
 };
 
 export default function PhysicalCountForm({
+  inventoryType,
   batchId,
+  productId,
   locationId,
   locationName,
   currentQuantity,
@@ -35,7 +42,11 @@ export default function PhysicalCountForm({
     _previousState: SaveState,
     formData: FormData
   ): Promise<SaveState> {
-    await recordPhysicalInventoryCount(formData);
+    if (inventoryType === "SIMPLE") {
+      await recordSimplePhysicalInventoryCount(formData);
+    } else {
+      await recordPhysicalInventoryCount(formData);
+    }
 
     return {
       saved: true,
@@ -67,11 +78,21 @@ export default function PhysicalCountForm({
       action={formAction}
       className="backoffice-count-form"
     >
-      <input
-        type="hidden"
-        name="batchId"
-        value={batchId}
-      />
+      {inventoryType === "BATCHED" && batchId ? (
+        <input
+          type="hidden"
+          name="batchId"
+          value={batchId}
+        />
+      ) : null}
+
+      {inventoryType === "SIMPLE" && productId ? (
+        <input
+          type="hidden"
+          name="productId"
+          value={productId}
+        />
+      ) : null}
 
       <input
         type="hidden"

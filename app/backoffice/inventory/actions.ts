@@ -277,6 +277,293 @@ export async function adjustBackOfficeInventory(
 
   revalidatePath("/backoffice/inventory");
 }
+export async function recordSimplePhysicalInventoryCount(
+  formData: FormData
+) {
+  const user = await requireAdmin();
+
+  const productId = String(
+    formData.get("productId") ?? ""
+  ).trim();
+
+  const locationId = String(
+    formData.get("locationId") ?? ""
+  ).trim();
+
+  const rawQuantity = String(
+    formData.get("quantity") ?? ""
+  ).trim();
+
+  const note = String(
+    formData.get("note") ?? ""
+  ).trim();
+
+  if (!productId || !locationId) {
+    throw new Error(
+      "Product and location are required."
+    );
+  }
+
+  const quantity = Number(rawQuantity);
+
+  if (
+    !Number.isInteger(quantity) ||
+    quantity < 0
+  ) {
+    throw new Error(
+      "Physical count must be a non-negative whole number."
+    );
+  }
+
+  if (!note) {
+    throw new Error(
+      "A note is required for every physical inventory count."
+    );
+  }
+
+  const createdByName =
+    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+    user.email;
+
+  await prisma.$transaction(async (tx) => {
+    const [product, location] = await Promise.all([
+      tx.backOfficeProduct.findUnique({
+        where: { id: productId },
+        select: {
+          id: true,
+          inventoryType: true,
+        },
+      }),
+
+      tx.backOfficeLocation.findUnique({
+        where: { id: locationId },
+        select: {
+          id: true,
+          active: true,
+        },
+      }),
+    ]);
+
+    if (!product) {
+      throw new Error("Product not found.");
+    }
+
+    if (product.inventoryType !== "SIMPLE") {
+      throw new Error(
+        "Physical SIMPLE inventory counts are only allowed for SIMPLE products."
+      );
+    }
+
+    if (!location || !location.active) {
+      throw new Error(
+        "Inventory location not found or inactive."
+      );
+    }
+
+    const existingBalance =
+      await tx.backOfficeSimpleInventoryBalance.findUnique({
+        where: {
+          productId_locationId: {
+            productId,
+            locationId,
+          },
+        },
+        select: {
+          id: true,
+          quantity: true,
+        },
+      });
+
+    const quantityBefore =
+      existingBalance?.quantity ?? 0;
+
+    const quantityDelta =
+      quantity - quantityBefore;
+
+    if (existingBalance) {
+      await tx.backOfficeSimpleInventoryBalance.update({
+        where: {
+          id: existingBalance.id,
+        },
+        data: {
+          quantity,
+        },
+      });
+    } else {
+      await tx.backOfficeSimpleInventoryBalance.create({
+        data: {
+          productId,
+          locationId,
+          quantity,
+        },
+      });
+    }
+
+    await tx.backOfficeSimpleInventoryMovement.create({
+      data: {
+        productId,
+        locationId,
+        type: "ADJUSTMENT",
+        quantityDelta,
+        quantityBefore,
+        quantityAfter: quantity,
+        referenceType: "INVENTORY_AUDIT",
+        note,
+        createdById: user.id,
+        createdByName,
+      },
+    });
+  });
+
+  revalidatePath("/backoffice/inventory");
+  revalidatePath("/backoffice/inventory/count");
+}
+export async function adjustSimpleBackOfficeInventory(
+  formData: FormData
+) {
+  const user = await requireAdmin();
+
+  const productId = String(
+    formData.get("productId") ?? ""
+  ).trim();
+
+  const locationId = String(
+    formData.get("locationId") ?? ""
+  ).trim();
+
+  const rawAdjustment = String(
+    formData.get("adjustment") ?? ""
+  ).trim();
+
+  const note = String(
+    formData.get("note") ?? ""
+  ).trim();
+
+  const adjustment = Number(rawAdjustment);
+
+  if (!productId || !locationId) {
+    throw new Error(
+      "Product and location are required."
+    );
+  }
+
+  if (
+    !Number.isInteger(adjustment) ||
+    adjustment === 0
+  ) {
+    throw new Error(
+      "Adjustment must be a non-zero whole number."
+    );
+  }
+
+  if (!note) {
+    throw new Error(
+      "A reason for the adjustment is required."
+    );
+  }
+
+  const createdByName =
+    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+    user.email;
+
+  await prisma.$transaction(async (tx) => {
+    const [product, location] = await Promise.all([
+      tx.backOfficeProduct.findUnique({
+        where: { id: productId },
+        select: {
+          id: true,
+          inventoryType: true,
+        },
+      }),
+
+      tx.backOfficeLocation.findUnique({
+        where: { id: locationId },
+        select: {
+          id: true,
+          active: true,
+        },
+      }),
+    ]);
+
+    if (!product) {
+      throw new Error("Product not found.");
+    }
+
+    if (product.inventoryType !== "SIMPLE") {
+      throw new Error(
+        "SIMPLE inventory adjustments are only allowed for SIMPLE products."
+      );
+    }
+
+    if (!location || !location.active) {
+      throw new Error(
+        "Inventory location not found or inactive."
+      );
+    }
+
+    const balance =
+      await tx.backOfficeSimpleInventoryBalance.findUnique({
+        where: {
+          productId_locationId: {
+            productId,
+            locationId,
+          },
+        },
+        select: {
+          id: true,
+          quantity: true,
+        },
+      });
+
+    const quantityBefore =
+      balance?.quantity ?? 0;
+
+    const quantityAfter =
+      quantityBefore + adjustment;
+
+    if (quantityAfter < 0) {
+      throw new Error(
+        "Adjustment cannot make inventory negative."
+      );
+    }
+
+    if (balance) {
+      await tx.backOfficeSimpleInventoryBalance.update({
+        where: {
+          id: balance.id,
+        },
+        data: {
+          quantity: quantityAfter,
+        },
+      });
+    } else {
+      await tx.backOfficeSimpleInventoryBalance.create({
+        data: {
+          productId,
+          locationId,
+          quantity: quantityAfter,
+        },
+      });
+    }
+
+    await tx.backOfficeSimpleInventoryMovement.create({
+      data: {
+        productId,
+        locationId,
+        type: "ADJUSTMENT",
+        quantityDelta: adjustment,
+        quantityBefore,
+        quantityAfter,
+        referenceType: "MANUAL_ADJUSTMENT",
+        note,
+        createdById: user.id,
+        createdByName,
+      },
+    });
+  });
+
+  revalidatePath("/backoffice/inventory");
+}
 export async function createBackOfficeProduct(
   formData: FormData
 ) {
@@ -309,6 +596,42 @@ export async function createBackOfficeProduct(
     retailPriceInput === ""
       ? null
       : Number(retailPriceInput);
+  const wholesalePriceInput = String(
+    formData.get("wholesalePrice") ?? ""
+  ).trim();
+
+  const wholesalePrice =
+    wholesalePriceInput === ""
+      ? null
+      : Number(wholesalePriceInput);
+
+  const tier1PriceInput = String(
+    formData.get("tier1Price") ?? ""
+  ).trim();
+
+  const tier1Price =
+    tier1PriceInput === ""
+      ? null
+      : Number(tier1PriceInput);
+
+  const tier2PriceInput = String(
+    formData.get("tier2Price") ?? ""
+  ).trim();
+
+  const tier2Price =
+    tier2PriceInput === ""
+      ? null
+      : Number(tier2PriceInput);
+
+  const tier3PriceInput = String(
+    formData.get("tier3Price") ?? ""
+  ).trim();
+
+  const tier3Price =
+    tier3PriceInput === ""
+      ? null
+      : Number(tier3PriceInput);
+
   const displayDistro =
     formData.has("displayDistro");
 
@@ -359,6 +682,24 @@ export async function createBackOfficeProduct(
     );
   }
 
+  const editablePrices = [
+    ["Wholesale price", wholesalePrice],
+    ["Tier 1 price", tier1Price],
+    ["Tier 2 price", tier2Price],
+    ["Tier 3 price", tier3Price],
+  ] as const;
+
+  for (const [label, value] of editablePrices) {
+    if (
+      value !== null &&
+      (!Number.isFinite(value) || value < 0)
+    ) {
+      throw new Error(
+        `${label} must be a valid number greater than or equal to zero.`
+      );
+    }
+  }
+
   if (
     !Number.isInteger(unitsPerKit) ||
     unitsPerKit < 1
@@ -389,13 +730,17 @@ export async function createBackOfficeProduct(
           description,
           cost,
           retailPrice,
+          wholesalePrice,
+          tier1Price,
+          tier2Price,
+          tier3Price,
           displayDistro,
           unitsPerKit,
           inventoryType,
         },
       });
 
-    if (batchNumber) {
+    if (inventoryType === "BATCHED" && batchNumber) {
       await tx.backOfficeBatch.create({
         data: {
           productId: product.id,
@@ -444,6 +789,42 @@ export async function updateBackOfficeProduct(
     retailPriceInput === ""
       ? null
       : Number(retailPriceInput);
+  const wholesalePriceInput = String(
+    formData.get("wholesalePrice") ?? ""
+  ).trim();
+
+  const wholesalePrice =
+    wholesalePriceInput === ""
+      ? null
+      : Number(wholesalePriceInput);
+
+  const tier1PriceInput = String(
+    formData.get("tier1Price") ?? ""
+  ).trim();
+
+  const tier1Price =
+    tier1PriceInput === ""
+      ? null
+      : Number(tier1PriceInput);
+
+  const tier2PriceInput = String(
+    formData.get("tier2Price") ?? ""
+  ).trim();
+
+  const tier2Price =
+    tier2PriceInput === ""
+      ? null
+      : Number(tier2PriceInput);
+
+  const tier3PriceInput = String(
+    formData.get("tier3Price") ?? ""
+  ).trim();
+
+  const tier3Price =
+    tier3PriceInput === ""
+      ? null
+      : Number(tier3PriceInput);
+
   const displayDistro =
     formData.has("displayDistro");
 
@@ -494,6 +875,24 @@ export async function updateBackOfficeProduct(
     );
   }
 
+  const editablePrices = [
+    ["Wholesale price", wholesalePrice],
+    ["Tier 1 price", tier1Price],
+    ["Tier 2 price", tier2Price],
+    ["Tier 3 price", tier3Price],
+  ] as const;
+
+  for (const [label, value] of editablePrices) {
+    if (
+      value !== null &&
+      (!Number.isFinite(value) || value < 0)
+    ) {
+      throw new Error(
+        `${label} must be a valid number greater than or equal to zero.`
+      );
+    }
+  }
+
   if (
     !Number.isInteger(unitsPerKit) ||
     unitsPerKit < 1
@@ -536,6 +935,10 @@ export async function updateBackOfficeProduct(
       description,
       cost,
       retailPrice,
+      wholesalePrice,
+      tier1Price,
+      tier2Price,
+      tier3Price,
       displayDistro,
       unitsPerKit,
       inventoryType,

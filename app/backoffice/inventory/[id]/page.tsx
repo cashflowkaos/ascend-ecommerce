@@ -146,6 +146,27 @@ export default async function EditBackOfficeProductPage({
                 ? ""
                 : product.retailPrice.toString()
             }
+            defaultWholesalePrice={
+              product.wholesalePrice == null
+                ? ""
+                : product.wholesalePrice.toString()
+            }
+            defaultTier1Price={
+              product.tier1Price == null
+                ? ""
+                : product.tier1Price.toString()
+            }
+            defaultTier2Price={
+              product.tier2Price == null
+                ? ""
+                : product.tier2Price.toString()
+            }
+            defaultTier3Price={
+              product.tier3Price == null
+                ? ""
+                : product.tier3Price.toString()
+            }
+            inventoryType={product.inventoryType}
           />
 
           <label className="backoffice-form-field">
@@ -166,22 +187,30 @@ export default async function EditBackOfficeProductPage({
             </small>
           </label>
 
-          <label className="backoffice-form-field">
-            <span>Units Per Kit</span>
+          {product.inventoryType === "BATCHED" ? (
+            <label className="backoffice-form-field">
+              <span>Units Per Kit</span>
 
+              <input
+                type="number"
+                name="unitsPerKit"
+                min="1"
+                step="1"
+                defaultValue={product.unitsPerKit}
+                required
+              />
+
+              <small>
+                Physical inventory is tracked in individual units. This controls unit-to-kit conversion.
+              </small>
+            </label>
+          ) : (
             <input
-              type="number"
+              type="hidden"
               name="unitsPerKit"
-              min="1"
-              step="1"
-              defaultValue={product.unitsPerKit}
-              required
+              value={product.unitsPerKit}
             />
-
-            <small>
-              Physical inventory is tracked in individual units. This controls unit-to-kit conversion.
-            </small>
-          </label>
+          )}
 
           <div className="backoffice-form-field">
             <span>Display Distro</span>
@@ -213,6 +242,7 @@ export default async function EditBackOfficeProductPage({
         </div>
       </form>
 
+      {product.inventoryType === "BATCHED" ? (
       <div className="backoffice-panel backoffice-product-batches-panel">
         <div className="backoffice-panel-heading">
           <div>
@@ -501,6 +531,7 @@ export default async function EditBackOfficeProductPage({
           )}
         </div>
       </div>
+      ) : null}
     </>
   );
 }

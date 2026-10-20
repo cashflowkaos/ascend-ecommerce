@@ -6,7 +6,12 @@ import PhysicalCountForm from "./PhysicalCountForm";
 export default async function BackOfficeInventoryCountPage() {
   const [products, locations] = await Promise.all([
     prisma.backOfficeProduct.findMany({
-      where: { active: true },
+      where: {
+        active: true,
+        inventoryType: {
+          in: ["BATCHED", "SIMPLE"],
+        },
+      },
       orderBy: { name: "asc" },
       include: {
         batches: {
@@ -18,6 +23,7 @@ export default async function BackOfficeInventoryCountPage() {
             balances: true,
           },
         },
+        simpleBalances: true,
       },
     }),
 
@@ -38,8 +44,8 @@ export default async function BackOfficeInventoryCountPage() {
           <h1>Physical Count</h1>
 
           <p>
-            Record the physical vial count for each batch at each
-            inventory location.
+            Record physical inventory counts at each inventory
+            location.
           </p>
         </div>
 
@@ -64,9 +70,10 @@ export default async function BackOfficeInventoryCountPage() {
         </div>
 
         <p className="backoffice-intro">
-          Enter the physical vial count for each batch at each
-          location. Counts are recorded by batch and location
-          and written to the inventory ledger.
+          Enter the physical count at each location. Batched
+          inventory is counted by batch and location. Simple
+          inventory is counted by product and location. Every
+          count is written to the inventory ledger.
         </p>
 
         <div className="backoffice-count-list">
@@ -82,61 +89,102 @@ export default async function BackOfficeInventoryCountPage() {
                 </div>
 
                 <span>
-                  {product.batches.length}{" "}
-                  {product.batches.length === 1
-                    ? "batch"
-                    : "batches"}
+                  {product.inventoryType === "BATCHED"
+                    ? `${product.batches.length} ${
+                        product.batches.length === 1
+                          ? "batch"
+                          : "batches"
+                      }`
+                    : "Simple inventory"}
                 </span>
               </summary>
 
-              <div className="backoffice-count-batches">
-                {product.batches.length === 0 ? (
-                  <p className="backoffice-count-empty">
-                    No batches are currently assigned to this
-                    product.
-                  </p>
-                ) : (
-                  product.batches.map((batch) => (
-                    <div
-                      className="backoffice-count-batch"
-                      key={batch.id}
-                    >
-                      <div className="backoffice-count-batch-heading">
-                        <div>
-                          <span>Batch</span>
-                          <strong>{batch.batchNumber}</strong>
-                        </div>
-
-                        <span>{batch.status}</span>
-                      </div>
-
-                      <div className="backoffice-count-location-grid">
-                        {locations.map((location) => {
-                          const balance =
-                            batch.balances.find(
-                              (item) =>
-                                item.locationId ===
-                                location.id
-                            );
-
-                          const currentQuantity =
-                            balance?.quantity ?? 0;
-
-                          return (
-                            <PhysicalCountForm
-                              key={location.id}
-                              batchId={batch.id}
-                              locationId={location.id}
-                              locationName={location.name}
-                              currentQuantity={currentQuantity}
-                            />
-                          );
-                        })}
+              {product.inventoryType === "SIMPLE" ? (
+                <div className="backoffice-count-batches">
+                  <div className="backoffice-count-batch">
+                    <div className="backoffice-count-batch-heading">
+                      <div>
+                        <span>Inventory Type</span>
+                        <strong>Simple</strong>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+
+                    <div className="backoffice-count-location-grid">
+                      {locations.map((location) => {
+                        const balance =
+                          product.simpleBalances.find(
+                            (item) =>
+                              item.locationId === location.id
+                          );
+
+                        const currentQuantity =
+                          balance?.quantity ?? 0;
+
+                        return (
+                          <PhysicalCountForm
+                            key={location.id}
+                            inventoryType="SIMPLE"
+                            productId={product.id}
+                            locationId={location.id}
+                            locationName={location.name}
+                            currentQuantity={currentQuantity}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="backoffice-count-batches">
+                  {product.batches.length === 0 ? (
+                    <p className="backoffice-count-empty">
+                      No batches are currently assigned to this
+                      product.
+                    </p>
+                  ) : (
+                    product.batches.map((batch) => (
+                      <div
+                        className="backoffice-count-batch"
+                        key={batch.id}
+                      >
+                        <div className="backoffice-count-batch-heading">
+                          <div>
+                            <span>Batch</span>
+                            <strong>{batch.batchNumber}</strong>
+                          </div>
+
+                          <span>{batch.status}</span>
+                        </div>
+
+                        <div className="backoffice-count-location-grid">
+                          {locations.map((location) => {
+                            const balance =
+                              batch.balances.find(
+                                (item) =>
+                                  item.locationId ===
+                                  location.id
+                              );
+
+                            const currentQuantity =
+                              balance?.quantity ?? 0;
+
+                            return (
+                              <PhysicalCountForm
+                                key={location.id}
+                                inventoryType="BATCHED"
+                                batchId={batch.id}
+                                locationId={location.id}
+                                locationName={location.name}
+                                currentQuantity={currentQuantity}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </details>
           ))}
         </div>
