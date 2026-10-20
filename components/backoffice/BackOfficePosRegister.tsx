@@ -1094,7 +1094,7 @@ export function BackOfficePosRegister({
                               }
                             >
                               <span>
-                                KIT x{product.unitsPerKit}
+                                KIT ({product.unitsPerKit} vials)
                               </span>
                               <strong>
                                 {formatMoney(kitPrice)}
@@ -1165,7 +1165,7 @@ export function BackOfficePosRegister({
 
                     <span>
                       {line.sellUnit === "KIT"
-                        ? `Kit x${line.product.unitsPerKit}`
+                        ? `Kit (${line.product.unitsPerKit} vials)`
                         : "Single Unit"}
                       {" - "}
                       {formatMoney(line.standardPrice)}
