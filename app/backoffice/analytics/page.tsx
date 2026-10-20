@@ -763,7 +763,11 @@ export default async function BackOfficeAnalyticsPage() {
                 name="actualCash"
                 min="0"
                 step="0.01"
-                defaultValue="582.00"
+                defaultValue={
+                  reconciliations[0]
+                    ? Number(reconciliations[0].actualCash).toFixed(2)
+                    : "0.00"
+                }
                 required
                 className="rounded-lg border border-slate-300 px-3 py-2"
               />
@@ -776,7 +780,11 @@ export default async function BackOfficeAnalyticsPage() {
                 name="actualBank"
                 min="0"
                 step="0.01"
-                defaultValue="5371.31"
+                defaultValue={
+                  reconciliations[0]
+                    ? Number(reconciliations[0].actualBank).toFixed(2)
+                    : "0.00"
+                }
                 required
                 className="rounded-lg border border-slate-300 px-3 py-2"
               />
@@ -784,8 +792,8 @@ export default async function BackOfficeAnalyticsPage() {
           </div>
 
           <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
-            With the balances currently entered, actual capital is
-            <strong className="ml-1 text-slate-950">$5,953.31</strong>.
+            Last reconciled actual capital is
+            <strong className="ml-1 text-slate-950">{reconciliations[0] ? money(Number(reconciliations[0].actualFunds)) : money(0)}</strong>.
             Expected working capital from the current books is
             <strong className="ml-1 text-slate-950">
               {money(2339 + totalSales - totalCashOutflow)}

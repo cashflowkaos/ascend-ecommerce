@@ -777,11 +777,6 @@ export async function completePosSale(
           const adjustmentReason =
             item.priceAdjustmentReason?.trim() || null;
 
-          if (priceAdjusted && !adjustmentReason) {
-            throw new Error(
-              `A price adjustment reason is required for ${product.name}.`
-            );
-          }
 
           const unitsPerSellUnit =
             item.sellUnit === "KIT"

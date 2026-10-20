@@ -747,18 +747,6 @@ export function BackOfficePosRegister({
       return;
     }
 
-    const invalidAdjustment = cartDetails.find(
-      (line) =>
-        line.priceAdjusted &&
-        !line.priceAdjustmentReason.trim()
-    );
-
-    if (invalidAdjustment) {
-      setSaleError(
-        `Enter a price adjustment reason for ${invalidAdjustment.product.name}.`
-      );
-      return;
-    }
 
     if (receivedAmount > total) {
       setSaleError(
