@@ -702,6 +702,7 @@ model BackOfficeProduct {
   retailVariants           ProductVariant[]
   invoiceItems             BackOfficeInvoiceItem[]
   purchaseOrderItems       BackOfficePurchaseOrderItem[]
+  purchaseReceiptItems     BackOfficePurchaseReceiptItem[]
 
   @@index([name])
   @@index([active, sortOrder])
@@ -725,10 +726,11 @@ model BackOfficeBatch {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  balances           BackOfficeInventoryBalance[]
-  movements          BackOfficeInventoryMovement[]
-  transfers          BackOfficeInventoryTransfer[]
-  invoiceAllocations BackOfficeInvoiceItemAllocation[]
+  balances             BackOfficeInventoryBalance[]
+  movements            BackOfficeInventoryMovement[]
+  transfers            BackOfficeInventoryTransfer[]
+  invoiceAllocations   BackOfficeInvoiceItemAllocation[]
+  purchaseReceiptItems BackOfficePurchaseReceiptItem[]
 
   @@unique([productId, batchNumber])
   @@index([productId, status])
@@ -759,6 +761,7 @@ model BackOfficeLocation {
   simpleTransfersFrom                BackOfficeSimpleInventoryTransfer[]     @relation("BackOfficeSimpleTransferFrom")
   simpleTransfersTo                  BackOfficeSimpleInventoryTransfer[]     @relation("BackOfficeSimpleTransferTo")
   invoiceItemSimpleAllocations       BackOfficeInvoiceItemSimpleAllocation[]
+  purchaseReceipts                   BackOfficePurchaseReceipt[]
 
   @@index([active, sortOrder])
 }
@@ -1193,7 +1196,8 @@ model BackOfficePurchaseOrder {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items BackOfficePurchaseOrderItem[]
+  items    BackOfficePurchaseOrderItem[]
+  receipts BackOfficePurchaseReceipt[]
 
   @@index([supplierId])
   @@index([status])
@@ -1224,8 +1228,72 @@ model BackOfficePurchaseOrderItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  receiptItems BackOfficePurchaseReceiptItem[]
+
   @@index([purchaseOrderId])
   @@index([productId])
+}
+
+model BackOfficePurchaseReceipt {
+  id String @id @default(cuid())
+
+  purchaseOrderId String
+  purchaseOrder   BackOfficePurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+
+  locationId String
+  location   BackOfficeLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  receivedAt DateTime @default(now())
+
+  note String? @db.Text
+
+  receivedById   String?
+  receivedByName String?
+
+  voidedAt     DateTime?
+  voidedById   String?
+  voidedByName String?
+  voidReason   String?   @db.Text
+
+  createdAt DateTime @default(now())
+
+  items BackOfficePurchaseReceiptItem[]
+
+  @@index([purchaseOrderId])
+  @@index([locationId])
+  @@index([receivedAt])
+  @@index([createdAt])
+}
+
+model BackOfficePurchaseReceiptItem {
+  id String @id @default(cuid())
+
+  receiptId String
+  receipt   BackOfficePurchaseReceipt @relation(fields: [receiptId], references: [id], onDelete: Restrict)
+
+  purchaseOrderItemId String
+  purchaseOrderItem   BackOfficePurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id], onDelete: Restrict)
+
+  productId String
+  product   BackOfficeProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  inventoryType BackOfficeInventoryType
+
+  quantityReceived Int
+
+  batchId String?
+  batch   BackOfficeBatch? @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  batchNumber String?
+
+  physicalUnitCost Decimal? @db.Decimal(12, 4)
+
+  createdAt DateTime @default(now())
+
+  @@index([receiptId])
+  @@index([purchaseOrderItemId])
+  @@index([productId])
+  @@index([batchId])
 }
 
 model BackOfficeExpense {

@@ -1,7 +1,11 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import {
+  receiveBackOfficePurchaseOrder,
+  voidBackOfficePurchaseReceipt,
+} from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +28,41 @@ function date(value: Date | null) {
   });
 }
 
+function dateTime(value: Date | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return value.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function statusLabel(status: string) {
   return status
     .replaceAll("_", " ")
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function orderedPhysicalUnits(item: {
+  inventoryType: string;
+  purchaseUnit: string;
+  quantityOrdered: number;
+  unitsPerKit: number;
+}) {
+  if (item.inventoryType === "NON_INVENTORY") {
+    return 0;
+  }
+
+  return (
+    item.quantityOrdered *
+    (item.purchaseUnit === "KIT" ? item.unitsPerKit : 1)
+  );
 }
 
 export default async function BackOfficePurchaseOrderPage({
@@ -38,31 +72,66 @@ export default async function BackOfficePurchaseOrderPage({
 }) {
   const { id } = await params;
 
-  const order = await prisma.backOfficePurchaseOrder.findUnique({
-    where: { id },
-    include: {
-      supplier: true,
-      items: {
-        orderBy: { createdAt: "asc" },
+  const [order, locations] = await Promise.all([
+    prisma.backOfficePurchaseOrder.findUnique({
+      where: { id },
+      include: {
+        supplier: true,
+        items: {
+          orderBy: { createdAt: "asc" },
+        },
+        receipts: {
+          orderBy: {
+            receivedAt: "desc",
+          },
+          include: {
+            location: true,
+            items: {
+              orderBy: {
+                createdAt: "asc",
+              },
+              include: {
+                product: {
+                  select: {
+                    name: true,
+                    sku: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
-    },
-  });
+    }),
+
+    prisma.backOfficeLocation.findMany({
+      where: {
+        active: true,
+      },
+      orderBy: [
+        {
+          sortOrder: "asc",
+        },
+        {
+          name: "asc",
+        },
+      ],
+      select: {
+        id: true,
+        name: true,
+        code: true,
+      },
+    }),
+  ]);
 
   if (!order) {
     notFound();
   }
 
-  const orderedPhysical = order.items.reduce((sum, item) => {
-    if (item.inventoryType === "NON_INVENTORY") {
-      return sum;
-    }
-
-    return (
-      sum +
-      item.quantityOrdered *
-        (item.purchaseUnit === "KIT" ? item.unitsPerKit : 1)
-    );
-  }, 0);
+  const orderedPhysical = order.items.reduce(
+    (sum, item) => sum + orderedPhysicalUnits(item),
+    0
+  );
 
   const receivedPhysical = order.items.reduce((sum, item) => {
     if (item.inventoryType === "NON_INVENTORY") {
@@ -71,6 +140,20 @@ export default async function BackOfficePurchaseOrderPage({
 
     return sum + item.quantityReceived;
   }, 0);
+
+  const inventoryItems = order.items.filter(
+    (item) => item.inventoryType !== "NON_INVENTORY"
+  );
+
+  const remainingItems = inventoryItems.filter((item) => {
+    const ordered = orderedPhysicalUnits(item);
+    return item.quantityReceived < ordered;
+  });
+
+  const canReceive =
+    remainingItems.length > 0 &&
+    order.status !== "CANCELLED" &&
+    order.status !== "RECEIVED";
 
   return (
     <>
@@ -162,6 +245,11 @@ export default async function BackOfficePurchaseOrderPage({
             <strong>{date(order.shippedDate)}</strong>
           </div>
 
+          <div className="backoffice-form-field">
+            <span>Received Date</span>
+            <strong>{date(order.receivedDate)}</strong>
+          </div>
+
           {order.notes && (
             <div className="backoffice-form-field backoffice-form-field-wide">
               <span>Notes</span>
@@ -190,6 +278,7 @@ export default async function BackOfficePurchaseOrderPage({
                 <th>Ordered</th>
                 <th>Physical Units</th>
                 <th>Received</th>
+                <th>Remaining</th>
                 <th>Cost</th>
                 <th>Line Total</th>
               </tr>
@@ -197,13 +286,14 @@ export default async function BackOfficePurchaseOrderPage({
 
             <tbody>
               {order.items.map((item) => {
-                const physicalUnits =
+                const physicalUnits = orderedPhysicalUnits(item);
+                const remaining =
                   item.inventoryType === "NON_INVENTORY"
                     ? 0
-                    : item.quantityOrdered *
-                      (item.purchaseUnit === "KIT"
-                        ? item.unitsPerKit
-                        : 1);
+                    : Math.max(
+                        0,
+                        physicalUnits - item.quantityReceived
+                      );
 
                 return (
                   <tr key={item.id}>
@@ -215,7 +305,9 @@ export default async function BackOfficePurchaseOrderPage({
                     <td>{statusLabel(item.inventoryType)}</td>
                     <td>
                       {item.quantityOrdered.toLocaleString()}{" "}
-                      {item.purchaseUnit === "KIT" ? "kit(s)" : "unit(s)"}
+                      {item.purchaseUnit === "KIT"
+                        ? "kit(s)"
+                        : "unit(s)"}
                     </td>
                     <td>
                       {item.inventoryType === "NON_INVENTORY"
@@ -226,6 +318,11 @@ export default async function BackOfficePurchaseOrderPage({
                       {item.inventoryType === "NON_INVENTORY"
                         ? "-"
                         : item.quantityReceived.toLocaleString()}
+                    </td>
+                    <td>
+                      {item.inventoryType === "NON_INVENTORY"
+                        ? "-"
+                        : remaining.toLocaleString()}
                     </td>
                     <td>
                       {money(Number(item.unitCost))} /{" "}
@@ -241,13 +338,14 @@ export default async function BackOfficePurchaseOrderPage({
 
         <div className="backoffice-mobile-data-list">
           {order.items.map((item) => {
-            const physicalUnits =
+            const physicalUnits = orderedPhysicalUnits(item);
+            const remaining =
               item.inventoryType === "NON_INVENTORY"
                 ? 0
-                : item.quantityOrdered *
-                  (item.purchaseUnit === "KIT"
-                    ? item.unitsPerKit
-                    : 1);
+                : Math.max(
+                    0,
+                    physicalUnits - item.quantityReceived
+                  );
 
             return (
               <div
@@ -260,10 +358,17 @@ export default async function BackOfficePurchaseOrderPage({
                 </div>
 
                 <div>
+                  <span>Type</span>
+                  <strong>{statusLabel(item.inventoryType)}</strong>
+                </div>
+
+                <div>
                   <span>Ordered</span>
                   <strong>
                     {item.quantityOrdered.toLocaleString()}{" "}
-                    {item.purchaseUnit === "KIT" ? "kit(s)" : "unit(s)"}
+                    {item.purchaseUnit === "KIT"
+                      ? "kit(s)"
+                      : "unit(s)"}
                   </strong>
                 </div>
 
@@ -282,6 +387,15 @@ export default async function BackOfficePurchaseOrderPage({
                     {item.inventoryType === "NON_INVENTORY"
                       ? "-"
                       : item.quantityReceived.toLocaleString()}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>Remaining</span>
+                  <strong>
+                    {item.inventoryType === "NON_INVENTORY"
+                      ? "-"
+                      : remaining.toLocaleString()}
                   </strong>
                 </div>
 
@@ -314,6 +428,287 @@ export default async function BackOfficePurchaseOrderPage({
           <strong>Total: {money(Number(order.total))}</strong>
         </div>
       </div>
+
+      {canReceive && (
+        <div className="backoffice-panel">
+          <div className="backoffice-panel-heading">
+            <div>
+              <span className="backoffice-eyebrow">RECEIVING</span>
+              <h2>Receive Inventory</h2>
+              <p>
+                Enter the physical quantity that arrived in this shipment.
+                Inventory updates only after this receipt is submitted.
+              </p>
+            </div>
+          </div>
+
+          {locations.length === 0 ? (
+            <p>
+              An active inventory location is required before receiving.
+            </p>
+          ) : (
+            <form action={receiveBackOfficePurchaseOrder}>
+              <input
+                type="hidden"
+                name="purchaseOrderId"
+                value={order.id}
+              />
+
+              <div className="backoffice-form-grid">
+                <label className="backoffice-form-field">
+                  <span>Receiving Location</span>
+                  <select name="locationId" required>
+                    <option value="">Select location</option>
+                    {locations.map((location) => (
+                      <option
+                        key={location.id}
+                        value={location.id}
+                      >
+                        {location.name} ({location.code})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="backoffice-form-field">
+                  <span>Receipt Note</span>
+                  <input
+                    type="text"
+                    name="receiptNote"
+                    placeholder="Optional shipment / receiving note"
+                  />
+                </label>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  marginTop: 18,
+                }}
+              >
+                {remainingItems.map((item) => {
+                  const ordered = orderedPhysicalUnits(item);
+                  const remaining = Math.max(
+                    0,
+                    ordered - item.quantityReceived
+                  );
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="backoffice-mobile-data-card"
+                      style={{
+                        display: "grid",
+                        gap: 12,
+                      }}
+                    >
+                      <input
+                        type="hidden"
+                        name="purchaseOrderItemId"
+                        value={item.id}
+                      />
+
+                      <div>
+                        <strong>{item.productName}</strong>
+                        <span>
+                          {item.productSku} ·{" "}
+                          {statusLabel(item.inventoryType)}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span>Remaining</span>
+                        <strong>
+                          {remaining.toLocaleString()} physical unit(s)
+                        </strong>
+                      </div>
+
+                      <label className="backoffice-form-field">
+                        <span>Receive Now</span>
+                        <input
+                          type="number"
+                          name="receiveQuantity"
+                          min="0"
+                          max={remaining}
+                          step="1"
+                          defaultValue="0"
+                          required
+                        />
+                      </label>
+
+                      {item.inventoryType === "BATCHED" ? (
+                        <label className="backoffice-form-field">
+                          <span>Batch / Lot Number</span>
+                          <input
+                            type="text"
+                            name="batchNumber"
+                            placeholder="Required when receiving this item"
+                          />
+                        </label>
+                      ) : (
+                        <input
+                          type="hidden"
+                          name="batchNumber"
+                          value=""
+                        />
+                      )}
+
+                      <div>
+                        <span>Purchase Cost</span>
+                        <strong>
+                          {money(Number(item.unitCost))} /{" "}
+                          {item.purchaseUnit === "KIT"
+                            ? "kit"
+                            : "unit"}
+                        </strong>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginTop: 20,
+                }}
+              >
+                <button
+                  type="submit"
+                  className="backoffice-primary-button"
+                >
+                  Receive Inventory
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      {order.receipts.length > 0 && (
+        <div className="backoffice-panel">
+          <div className="backoffice-panel-heading">
+            <div>
+              <span className="backoffice-eyebrow">
+                RECEIPT HISTORY
+              </span>
+              <h2>Received Shipments</h2>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            {order.receipts.map((receipt) => (
+              <div
+                key={receipt.id}
+                className="backoffice-mobile-data-card"
+                style={{
+                  display: "grid",
+                  gap: 10,
+                }}
+              >
+                <div>
+                  <strong>{dateTime(receipt.receivedAt)}</strong>
+                  <span>
+                    {receipt.location.name} ({receipt.location.code})
+                  </span>
+                </div>
+
+                {receipt.receivedByName && (
+                  <div>
+                    <span>Received By</span>
+                    <strong>{receipt.receivedByName}</strong>
+                  </div>
+                )}
+
+                {receipt.note && (
+                  <div>
+                    <span>Note</span>
+                    <strong>{receipt.note}</strong>
+                  </div>
+                )}
+
+                {receipt.items.map((item) => (
+                  <div key={item.id}>
+                    <span>
+                      {item.product.name} ({item.product.sku})
+                    </span>
+                    <strong>
+                      {item.quantityReceived.toLocaleString()} unit(s)
+                      {item.batchNumber
+                        ? ` · Batch ${item.batchNumber}`
+                        : ""}
+                    </strong>
+                  </div>
+                ))}
+
+                {receipt.voidedAt ? (
+                  <div
+                    style={{
+                      borderTop: "1px solid rgba(255,255,255,0.08)",
+                      paddingTop: 10,
+                    }}
+                  >
+                    <span>VOIDED {dateTime(receipt.voidedAt)}</span>
+                    <strong>
+                      {receipt.voidReason || "Receipt voided"}
+                    </strong>
+                    {receipt.voidedByName && (
+                      <span>By {receipt.voidedByName}</span>
+                    )}
+                  </div>
+                ) : (
+                  <form
+                    action={voidBackOfficePurchaseReceipt}
+                    style={{
+                      display: "grid",
+                      gap: 10,
+                      borderTop: "1px solid rgba(255,255,255,0.08)",
+                      paddingTop: 12,
+                    }}
+                  >
+                    <input
+                      type="hidden"
+                      name="receiptId"
+                      value={receipt.id}
+                    />
+
+                    <label className="backoffice-form-field">
+                      <span>Void Reason</span>
+                      <input
+                        type="text"
+                        name="voidReason"
+                        placeholder="Required — e.g. accidental duplicate receipt"
+                        required
+                      />
+                    </label>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="backoffice-secondary-button"
+                      >
+                        Void Receipt
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }
