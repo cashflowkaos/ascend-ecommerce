@@ -286,7 +286,7 @@ export default async function EditBackOfficeProductPage({
           </button>
         </form>
 
-        <div className="backoffice-table-wrap">
+        <div className="backoffice-table-wrap backoffice-desktop-batches">
           <table className="backoffice-table">
             <thead>
               <tr>
