@@ -20,6 +20,7 @@ export default async function BackOfficeInventoryPage() {
             balances: true,
           },
         },
+        simpleBalances: true,
       },
     }),
 
@@ -156,17 +157,25 @@ export default async function BackOfficeInventoryPage() {
                   ])
                 );
 
-                for (const batch of product.batches) {
-                  for (const balance of batch.balances) {
+                if (product.inventoryType === "SIMPLE") {
+                  for (const balance of product.simpleBalances) {
                     locationTotals.set(
                       balance.locationId,
-                      (locationTotals.get(
-                        balance.locationId
-                      ) ?? 0) + balance.quantity
+                      balance.quantity
                     );
                   }
+                } else if (product.inventoryType === "BATCHED") {
+                  for (const batch of product.batches) {
+                    for (const balance of batch.balances) {
+                      locationTotals.set(
+                        balance.locationId,
+                        (locationTotals.get(
+                          balance.locationId
+                        ) ?? 0) + balance.quantity
+                      );
+                    }
+                  }
                 }
-
                 const productTotal = Array.from(
                   locationTotals.values()
                 ).reduce(
@@ -183,20 +192,27 @@ export default async function BackOfficeInventoryPage() {
 
                     <td>{product.name}</td>
 
-                    <td>{product.batches.length}</td>
+                    <td>
+                      {product.inventoryType === "BATCHED"
+                        ? product.batches.length
+                        : "—"}
+                    </td>
 
                     {locations.map((location) => (
                       <td key={location.id}>
-                        {locationTotals.get(
-                          location.id
-                        ) ?? 0}
+                        {product.inventoryType === "NON_INVENTORY"
+                          ? "—"
+                          : locationTotals.get(location.id) ?? 0}
                       </td>
                     ))}
 
                     <td>
-                      <strong>{productTotal}</strong>
+                      <strong>
+                        {product.inventoryType === "NON_INVENTORY"
+                          ? "—"
+                          : productTotal}
+                      </strong>
                     </td>
-
                   </BackOfficeInventoryRow>
                 );
               })}
@@ -213,17 +229,25 @@ export default async function BackOfficeInventoryPage() {
               ])
             );
 
-            for (const batch of product.batches) {
-              for (const balance of batch.balances) {
+            if (product.inventoryType === "SIMPLE") {
+              for (const balance of product.simpleBalances) {
                 locationTotals.set(
                   balance.locationId,
-                  (locationTotals.get(
-                    balance.locationId
-                  ) ?? 0) + balance.quantity
+                  balance.quantity
                 );
               }
+            } else if (product.inventoryType === "BATCHED") {
+              for (const batch of product.batches) {
+                for (const balance of batch.balances) {
+                  locationTotals.set(
+                    balance.locationId,
+                    (locationTotals.get(
+                      balance.locationId
+                    ) ?? 0) + balance.quantity
+                  );
+                }
+              }
             }
-
             const productTotal = Array.from(
               locationTotals.values()
             ).reduce(
@@ -240,8 +264,14 @@ export default async function BackOfficeInventoryPage() {
                 <div className="backoffice-inventory-compact-product">
                   <strong>{product.name}</strong>
                   <span>
-                    {product.sku} · {product.batches.length}{" "}
-                    {product.batches.length === 1 ? "batch" : "batches"}
+                    {product.sku}
+                    {product.inventoryType === "BATCHED" && (
+                      <>
+                        {" · "}
+                        {product.batches.length}{" "}
+                        {product.batches.length === 1 ? "batch" : "batches"}
+                      </>
+                    )}
                   </span>
                 </div>
 
@@ -250,14 +280,20 @@ export default async function BackOfficeInventoryPage() {
                     <div key={location.id}>
                       <span>{location.name}</span>
                       <strong>
-                        {locationTotals.get(location.id) ?? 0}
+                        {product.inventoryType === "NON_INVENTORY"
+                          ? "—"
+                          : locationTotals.get(location.id) ?? 0}
                       </strong>
                     </div>
                   ))}
 
                   <div className="backoffice-inventory-compact-total">
                     <span>Total</span>
-                    <strong>{productTotal}</strong>
+                    <strong>
+                      {product.inventoryType === "NON_INVENTORY"
+                        ? "—"
+                        : productTotal}
+                    </strong>
                   </div>
                 </div>
               </Link>
