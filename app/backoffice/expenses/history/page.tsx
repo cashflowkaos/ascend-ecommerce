@@ -32,13 +32,60 @@ export default async function ExpenseHistoryPage({
       ? params.category.trim()
       : null;
 
-  const expenses = await prisma.backOfficeExpense.findMany({
-    where: category ? { category } : undefined,
-    orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }],
-  });
+  const isInventoryPurchases = category === "Inventory Purchases";
 
-  const total = expenses.reduce(
-    (sum, expense) => sum + Number(expense.amount),
+  const [expenses, purchasePayments] = await Promise.all([
+    prisma.backOfficeExpense.findMany({
+      where:
+        category && !isInventoryPurchases
+          ? { category }
+          : isInventoryPurchases
+            ? { id: "__none__" }
+            : undefined,
+      orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }],
+    }),
+    isInventoryPurchases || !category
+      ? prisma.backOfficePurchasePayment.findMany({
+          where: {
+            voidedAt: null,
+          },
+          include: {
+            purchaseOrder: {
+              include: {
+                supplier: true,
+              },
+            },
+          },
+          orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const records = [
+    ...expenses.map((expense) => ({
+      id: expense.id,
+      date: expense.expenseDate,
+      category: expense.category,
+      vendor: expense.vendor,
+      description: expense.description,
+      paidFrom: expense.paidFrom,
+      amount: Number(expense.amount),
+      href: `/backoffice/expenses/${expense.id}`,
+    })),
+    ...purchasePayments.map((payment) => ({
+      id: payment.id,
+      date: payment.paidAt,
+      category: "Inventory Purchases",
+      vendor: payment.purchaseOrder.supplier.name,
+      description: `Purchase Order ${payment.purchaseOrder.poNumber}`,
+      paidFrom: payment.paidFrom,
+      amount: Number(payment.amount),
+      href: `/backoffice/purchasing/${payment.purchaseOrderId}`,
+    })),
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  const total = records.reduce(
+    (sum, record) => sum + record.amount,
     0
   );
 
@@ -91,7 +138,7 @@ export default async function ExpenseHistoryPage({
 
         <div className="backoffice-stat-card">
           <span>Records</span>
-          <strong>{expenses.length}</strong>
+          <strong>{records.length}</strong>
         </div>
       </div>
 
@@ -132,20 +179,20 @@ export default async function ExpenseHistoryPage({
             </thead>
 
             <tbody>
-              {expenses.map((expense) => (
+              {records.map((expense) => (
                 <tr key={expense.id}>
                   <td>
-                    <Link href={`/backoffice/expenses/${expense.id}`}>
+                    <Link href={expense.href}>
                       <strong>
-                        {formatDate(expense.expenseDate)}
+                        {formatDate(expense.date)}
                       </strong>
                     </Link>
                   </td>
 
                   <td>{expense.category}</td>
-                  <td>{expense.vendor || "—"}</td>
-                  <td>{expense.description || "—"}</td>
-                  <td>{expense.paidFrom || "—"}</td>
+                  <td>{expense.vendor || "-"}</td>
+                  <td>{expense.description || "-"}</td>
+                  <td>{expense.paidFrom || "-"}</td>
 
                   <td>
                     <strong>
@@ -155,7 +202,7 @@ export default async function ExpenseHistoryPage({
                 </tr>
               ))}
 
-              {expenses.length === 0 ? (
+              {records.length === 0 ? (
                 <tr>
                   <td colSpan={6}>
                     No expenses found

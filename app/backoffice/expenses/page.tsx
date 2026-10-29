@@ -18,9 +18,24 @@ const formatDate = (value: Date) =>
   });
 
 export default async function BackOfficeExpensesPage() {
-  const expenses = await prisma.backOfficeExpense.findMany({
-    orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }],
-  });
+  const [expenses, purchasePayments] = await Promise.all([
+    prisma.backOfficeExpense.findMany({
+      orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }],
+    }),
+    prisma.backOfficePurchasePayment.findMany({
+      where: {
+        voidedAt: null,
+      },
+      include: {
+        purchaseOrder: {
+          include: {
+            supplier: true,
+          },
+        },
+      },
+      orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+    }),
+  ]);
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -64,6 +79,32 @@ export default async function BackOfficeExpensesPage() {
     categoryMap.set(expense.category, existing);
   }
 
+  for (const payment of purchasePayments) {
+    const amount = Number(payment.amount);
+    allTime += amount;
+
+    const month = payment.paidAt.getMonth();
+    const year = payment.paidAt.getFullYear();
+
+    if (month === currentMonth && year === currentYear) {
+      thisMonth += amount;
+    }
+
+    if (month === previousMonth && year === previousMonthYear) {
+      lastMonth += amount;
+    }
+
+    const existing = categoryMap.get("Inventory Purchases") ?? {
+      total: 0,
+      count: 0,
+    };
+
+    existing.total += amount;
+    existing.count += 1;
+
+    categoryMap.set("Inventory Purchases", existing);
+  }
+
   const categories = [...categoryMap.entries()]
     .map(([name, values]) => ({
       name,
@@ -71,7 +112,30 @@ export default async function BackOfficeExpensesPage() {
     }))
     .sort((a, b) => b.total - a.total);
 
-  const recentExpenses = expenses.slice(0, 10);
+  const recentExpenses = [
+    ...expenses.map((expense) => ({
+      id: expense.id,
+      date: expense.expenseDate,
+      category: expense.category,
+      vendor: expense.vendor,
+      description: expense.description,
+      paidFrom: expense.paidFrom,
+      amount: Number(expense.amount),
+      href: `/backoffice/expenses/${expense.id}`,
+    })),
+    ...purchasePayments.map((payment) => ({
+      id: payment.id,
+      date: payment.paidAt,
+      category: "Inventory Purchases",
+      vendor: payment.purchaseOrder.supplier.name,
+      description: `Purchase Order ${payment.purchaseOrder.poNumber}`,
+      paidFrom: payment.paidFrom,
+      amount: Number(payment.amount),
+      href: `/backoffice/purchasing/${payment.purchaseOrderId}`,
+    })),
+  ]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 10);
 
   return (
     <>
@@ -112,7 +176,7 @@ export default async function BackOfficeExpensesPage() {
 
         <div className="backoffice-stat-card">
           <span>Expense Records</span>
-          <strong>{expenses.length}</strong>
+          <strong>{expenses.length + purchasePayments.length}</strong>
         </div>
       </div>
 
@@ -243,13 +307,13 @@ export default async function BackOfficeExpensesPage() {
             recentExpenses.map((expense) => (
               <Link
                 key={expense.id}
-                href={`/backoffice/expenses/${expense.id}`}
+                href={expense.href}
                 className="backoffice-mobile-data-card"
               >
                 <div className="backoffice-mobile-card-heading">
                   <div>
                     <strong>{formatMoney(Number(expense.amount))}</strong>
-                    <span>{formatDate(expense.expenseDate)}</span>
+                    <span>{formatDate(expense.date)}</span>
                   </div>
                   <ChevronRight size={17} />
                 </div>
@@ -261,15 +325,15 @@ export default async function BackOfficeExpensesPage() {
                   </div>
                   <div>
                     <span>Vendor</span>
-                    <strong>{expense.vendor || "—"}</strong>
+                    <strong>{expense.vendor || "-"}</strong>
                   </div>
                   <div>
                     <span>Paid From</span>
-                    <strong>{expense.paidFrom || "—"}</strong>
+                    <strong>{expense.paidFrom || "-"}</strong>
                   </div>
                   <div>
                     <span>Description</span>
-                    <strong>{expense.description || "—"}</strong>
+                    <strong>{expense.description || "-"}</strong>
                   </div>
                 </div>
               </Link>
@@ -293,15 +357,15 @@ export default async function BackOfficeExpensesPage() {
               {recentExpenses.map((expense) => (
                 <tr key={expense.id}>
                   <td>
-                    <Link href={`/backoffice/expenses/${expense.id}`}>
-                      <strong>{formatDate(expense.expenseDate)}</strong>
+                    <Link href={expense.href}>
+                      <strong>{formatDate(expense.date)}</strong>
                     </Link>
                   </td>
 
                   <td>{expense.category}</td>
-                  <td>{expense.vendor || "—"}</td>
-                  <td>{expense.description || "—"}</td>
-                  <td>{expense.paidFrom || "—"}</td>
+                  <td>{expense.vendor || "-"}</td>
+                  <td>{expense.description || "-"}</td>
+                  <td>{expense.paidFrom || "-"}</td>
 
                   <td>
                     <strong>
