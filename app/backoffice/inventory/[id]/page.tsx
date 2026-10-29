@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import {
   addBackOfficeBatch,
   adjustBackOfficeInventory,
+  deleteBackOfficeProduct,
   setBackOfficeBatchStatus,
   updateBackOfficeProduct,
 } from "../actions";
@@ -532,6 +533,39 @@ export default async function EditBackOfficeProductPage({
         </div>
       </div>
       ) : null}
+      <div
+        className="backoffice-panel"
+        style={{
+          marginTop: 18,
+          borderColor: "rgba(239,68,68,0.35)",
+        }}
+      >
+        <div className="backoffice-panel-heading">
+          <div>
+            <span className="backoffice-eyebrow">
+              DANGER ZONE
+            </span>
+            <h2>Delete Inventory Item</h2>
+            <p>
+              Permanently remove this item and its current inventory records. This cannot be undone.
+            </p>
+          </div>
+
+          <form action={deleteBackOfficeProduct}>
+            <input
+              type="hidden"
+              name="productId"
+              value={product.id}
+            />
+            <button
+              type="submit"
+              className="backoffice-secondary-button"
+            >
+              Delete Item
+            </button>
+          </form>
+        </div>
+      </div>
     </>
   );
 }

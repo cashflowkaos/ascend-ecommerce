@@ -950,6 +950,46 @@ export async function updateBackOfficeProduct(
 
   redirect("/backoffice/inventory");
 }
+export async function deleteBackOfficeProduct(
+  formData: FormData
+) {
+  await requireAdmin();
+
+  const productId = String(
+    formData.get("productId") ?? ""
+  ).trim();
+
+  if (!productId) {
+    throw new Error("Product ID is required.");
+  }
+
+  const product = await prisma.backOfficeProduct.findUnique({
+    where: { id: productId },
+    select: { id: true, active: true },
+  });
+
+  if (!product) {
+    throw new Error("Inventory item not found.");
+  }
+
+  if (!product.active) {
+    throw new Error("This inventory item is already inactive.");
+  }
+
+  await prisma.backOfficeProduct.update({
+    where: { id: productId },
+    data: { active: false },
+  });
+
+  revalidatePath("/backoffice");
+  revalidatePath("/backoffice/inventory");
+  revalidatePath("/backoffice/analytics");
+  revalidatePath("/backoffice/purchasing");
+  revalidatePath("/distro");
+  revalidatePath("/compounds");
+
+  redirect("/backoffice/inventory");
+}
 export async function addBackOfficeBatch(
   formData: FormData
 ) {
