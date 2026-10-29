@@ -124,6 +124,7 @@ export default async function BackOfficePage() {
         name: true,
         sku: true,
         inventoryType: true,
+        cost: true,
         batches: {
           select: {
             balances: {
@@ -246,11 +247,17 @@ export default async function BackOfficePage() {
       name: product.name,
       sku: product.sku,
       quantity,
+      value: quantity * Number(product.cost ?? 0),
     };
   });
 
   const totalPhysicalUnits = inventory.reduce(
     (sum, product) => sum + product.quantity,
+    0
+  );
+
+  const totalInventoryValue = inventory.reduce(
+    (sum, product) => sum + product.value,
     0
   );
 
@@ -624,6 +631,15 @@ export default async function BackOfficePage() {
               </div>
               <div className="mt-1 text-xl font-bold">
                 {products.length}
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-slate-50 p-4">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                Total Inventory Value
+              </div>
+              <div className="mt-1 text-xl font-bold">
+                {money(totalInventoryValue)}
               </div>
             </div>
 
