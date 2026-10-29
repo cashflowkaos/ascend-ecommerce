@@ -125,6 +125,7 @@ export default async function BackOfficePage() {
         sku: true,
         inventoryType: true,
         cost: true,
+        unitsPerKit: true,
         batches: {
           select: {
             balances: {
@@ -247,7 +248,7 @@ export default async function BackOfficePage() {
       name: product.name,
       sku: product.sku,
       quantity,
-      value: quantity * Number(product.cost ?? 0),
+      value: quantity * Number(product.cost ?? 0) / product.unitsPerKit,
     };
   });
 
