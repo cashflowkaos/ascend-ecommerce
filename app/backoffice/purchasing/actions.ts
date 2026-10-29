@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -1168,4 +1168,70 @@ export async function voidBackOfficePurchasePayment(
   revalidatePath("/backoffice/analytics");
   revalidatePath("/backoffice/purchasing");
   revalidatePath(`/backoffice/purchasing/${purchaseOrderId}`);
+}
+
+export async function deleteBackOfficePurchaseOrder(
+  formData: FormData
+) {
+  await requireAdmin();
+
+  const purchaseOrderId = String(
+    formData.get("purchaseOrderId") ?? ""
+  ).trim();
+
+  if (!purchaseOrderId) {
+    throw new Error("Purchase order is required.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.backOfficePurchaseOrder.findUnique({
+      where: {
+        id: purchaseOrderId,
+      },
+      select: {
+        id: true,
+        poNumber: true,
+        _count: {
+          select: {
+            receipts: true,
+            payments: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new Error("Purchase order not found.");
+    }
+
+    if (order._count.receipts > 0) {
+      throw new Error(
+        "This purchase order has receipt history and cannot be permanently deleted."
+      );
+    }
+
+    if (order._count.payments > 0) {
+      throw new Error(
+        "This purchase order has payment history and cannot be permanently deleted."
+      );
+    }
+
+    await tx.backOfficePurchaseOrderItem.deleteMany({
+      where: {
+        purchaseOrderId: order.id,
+      },
+    });
+
+    await tx.backOfficePurchaseOrder.delete({
+      where: {
+        id: order.id,
+      },
+    });
+  });
+
+  revalidatePath("/backoffice");
+  revalidatePath("/backoffice/analytics");
+  revalidatePath("/backoffice/purchasing");
+
+  redirect("/backoffice/purchasing");
 }

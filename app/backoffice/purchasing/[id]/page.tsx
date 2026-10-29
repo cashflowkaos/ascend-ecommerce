@@ -8,6 +8,7 @@ import {
   voidBackOfficePurchaseReceipt,
   recordBackOfficePurchasePayment,
   voidBackOfficePurchasePayment,
+  deleteBackOfficePurchaseOrder,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -206,7 +207,7 @@ export default async function BackOfficePurchaseOrderPage({
           </span>
           <h1>{order.poNumber}</h1>
           <p>
-            {order.supplier.name} · {statusLabel(order.status)}
+            {order.supplier.name} - {statusLabel(order.status)}
           </p>
         </div>
 
@@ -793,7 +794,7 @@ export default async function BackOfficePurchaseOrderPage({
                     <strong>
                       {item.quantityReceived.toLocaleString()} unit(s)
                       {item.batchNumber
-                        ? ` · Batch ${item.batchNumber}`
+                        ? ` - Batch ${item.batchNumber}`
                         : ""}
                     </strong>
                   </div>
@@ -835,7 +836,7 @@ export default async function BackOfficePurchaseOrderPage({
                       <input
                         type="text"
                         name="voidReason"
-                        placeholder="Required — e.g. accidental duplicate receipt"
+                        placeholder="Required - e.g. accidental duplicate receipt"
                         required
                       />
                     </label>
@@ -857,6 +858,41 @@ export default async function BackOfficePurchaseOrderPage({
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {order.receipts.length === 0 && order.payments.length === 0 && (
+        <div
+          className="backoffice-panel"
+          style={{
+            marginTop: 18,
+            borderColor: "rgba(239,68,68,0.35)",
+          }}
+        >
+          <div className="backoffice-panel-heading">
+            <div>
+              <span className="backoffice-eyebrow">
+                DANGER ZONE
+              </span>
+              <h2>Delete Purchase Order</h2>
+              <p>
+                Permanently delete this unused purchase order. This cannot be undone.
+              </p>
+            </div>
+
+            <form action={deleteBackOfficePurchaseOrder}>
+              <input
+                type="hidden"
+                name="purchaseOrderId"
+                value={order.id}
+              />
+              <button
+                type="submit"
+                className="backoffice-secondary-button"
+              >
+                Delete Purchase Order
+              </button>
+            </form>
           </div>
         </div>
       )}
