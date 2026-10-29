@@ -133,6 +133,17 @@ export default async function BackOfficePage() {
                 quantity: true,
               },
             },
+            purchaseReceiptItems: {
+              select: {
+                quantityReceived: true,
+                physicalUnitCost: true,
+                receipt: {
+                  select: {
+                    voidedAt: true,
+                  },
+                },
+              },
+            },
           },
         },
         simpleBalances: {
@@ -226,32 +237,68 @@ export default async function BackOfficePage() {
   const monthNet = month.sales - cashOutflow;
 
   const inventory = products.map((product) => {
-    const quantity =
-      product.inventoryType === "SIMPLE"
-        ? product.simpleBalances.reduce(
-            (sum, balance) => sum + balance.quantity,
-            0
-          )
-        : product.batches.reduce(
-            (productTotal, batch) =>
-              productTotal +
-              batch.balances.reduce(
-                (batchTotal, balance) =>
-                  batchTotal + balance.quantity,
+    let quantity = 0;
+    let value = 0;
+
+    const catalogUnitCost =
+      Number(product.cost ?? 0) /
+      (product.inventoryType === "BATCHED"
+        ? Math.max(1, product.unitsPerKit)
+        : 1);
+
+    if (product.inventoryType === "SIMPLE") {
+      quantity = product.simpleBalances.reduce(
+        (sum, balance) => sum + balance.quantity,
+        0
+      );
+
+      value = quantity * catalogUnitCost;
+    } else {
+      for (const batch of product.batches) {
+        const stock = batch.balances.reduce(
+          (sum, balance) => sum + balance.quantity,
+          0
+        );
+
+        quantity += stock;
+
+        if (stock <= 0) continue;
+
+        const receipts = batch.purchaseReceiptItems.filter(
+          (receipt) =>
+            !receipt.receipt.voidedAt &&
+            receipt.physicalUnitCost !== null &&
+            receipt.quantityReceived > 0
+        );
+
+        const receivedQuantity = receipts.reduce(
+          (sum, receipt) => sum + receipt.quantityReceived,
+          0
+        );
+
+        const unitCost =
+          receivedQuantity > 0
+            ? receipts.reduce(
+                (sum, receipt) =>
+                  sum +
+                  receipt.quantityReceived *
+                    Number(receipt.physicalUnitCost),
                 0
-              ),
-            0
-          );
+              ) / receivedQuantity
+            : catalogUnitCost;
+
+        value += stock * unitCost;
+      }
+    }
 
     return {
       id: product.id,
       name: product.name,
       sku: product.sku,
       quantity,
-      value: quantity * Number(product.cost ?? 0) / product.unitsPerKit,
+      value,
     };
   });
-
   const totalPhysicalUnits = inventory.reduce(
     (sum, product) => sum + product.quantity,
     0
