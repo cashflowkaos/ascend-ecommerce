@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import BackOfficeReceiveInventoryForm from "@/components/backoffice/BackOfficeReceiveInventoryForm";
 import {
   receiveBackOfficePurchaseOrder,
   voidBackOfficePurchaseReceipt,
@@ -81,6 +82,24 @@ export default async function BackOfficePurchaseOrderPage({
         supplier: true,
         items: {
           orderBy: { createdAt: "asc" },
+          include: {
+            product: {
+              include: {
+                batches: {
+                  where: {
+                    status: "ACTIVE",
+                  },
+                  orderBy: {
+                    receivedAt: "asc",
+                  },
+                  select: {
+                    id: true,
+                    batchNumber: true,
+                  },
+                },
+              },
+            },
+          },
         },
         payments: {
           orderBy: {
@@ -692,142 +711,29 @@ export default async function BackOfficePurchaseOrderPage({
               An active inventory location is required before receiving.
             </p>
           ) : (
-            <form action={receiveBackOfficePurchaseOrder}>
-              <input
-                type="hidden"
-                name="purchaseOrderId"
-                value={order.id}
-              />
+            <BackOfficeReceiveInventoryForm
+              purchaseOrderId={order.id}
+              locations={locations}
+              items={remainingItems.map((item) => {
+                const ordered = orderedPhysicalUnits(item);
+                const remaining = Math.max(
+                  0,
+                  ordered - item.quantityReceived
+                );
 
-              <div className="backoffice-form-grid">
-                <label className="backoffice-form-field">
-                  <span>Receiving Location</span>
-                  <select name="locationId" required>
-                    <option value="">Select location</option>
-                    {locations.map((location) => (
-                      <option
-                        key={location.id}
-                        value={location.id}
-                      >
-                        {location.name} ({location.code})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="backoffice-form-field">
-                  <span>Receipt Note</span>
-                  <input
-                    type="text"
-                    name="receiptNote"
-                    placeholder="Optional shipment / receiving note"
-                  />
-                </label>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gap: 12,
-                  marginTop: 18,
-                }}
-              >
-                {remainingItems.map((item) => {
-                  const ordered = orderedPhysicalUnits(item);
-                  const remaining = Math.max(
-                    0,
-                    ordered - item.quantityReceived
-                  );
-
-                  return (
-                    <div
-                      key={item.id}
-                      className="backoffice-mobile-data-card"
-                      style={{
-                        display: "grid",
-                        gap: 12,
-                      }}
-                    >
-                      <input
-                        type="hidden"
-                        name="purchaseOrderItemId"
-                        value={item.id}
-                      />
-
-                      <div style={{ display: "grid", gap: 5 }}>
-                        <strong>{item.productName}</strong>
-                        <span>
-                          {item.productSku} ·{" "}
-                          {statusLabel(item.inventoryType)}
-                        </span>
-                      </div>
-
-                      <div style={{ display: "grid", gap: 5 }}>
-                        <span>Remaining</span>
-                        <strong>
-                          {remaining.toLocaleString()} physical unit(s)
-                        </strong>
-                      </div>
-
-                      <label className="backoffice-form-field">
-                        <span>Receive Now</span>
-                        <input
-                          type="number"
-                          name="receiveQuantity"
-                          min="0"
-                          max={remaining}
-                          step="1"
-                          defaultValue="0"
-                          required
-                        />
-                      </label>
-
-                      {item.inventoryType === "BATCHED" ? (
-                        <label className="backoffice-form-field">
-                          <span>Batch / Lot Number</span>
-                          <input
-                            type="text"
-                            name="batchNumber"
-                            placeholder="Required when receiving this item"
-                          />
-                        </label>
-                      ) : (
-                        <input
-                          type="hidden"
-                          name="batchNumber"
-                          value=""
-                        />
-                      )}
-
-                      <div style={{ display: "grid", gap: 5 }}>
-                        <span>Purchase Cost</span>
-                        <strong>
-                          {money(Number(item.unitCost))} /{" "}
-                          {item.purchaseUnit === "KIT"
-                            ? "kit"
-                            : "unit"}
-                        </strong>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  marginTop: 20,
-                }}
-              >
-                <button
-                  type="submit"
-                  className="backoffice-primary-button"
-                >
-                  Receive Inventory
-                </button>
-              </div>
-            </form>
+                return {
+                  id: item.id,
+                  productName: item.productName,
+                  productSku: item.productSku,
+                  inventoryType: item.inventoryType,
+                  purchaseUnit: item.purchaseUnit,
+                  unitCost: Number(item.unitCost),
+                  remaining,
+                  batches: item.product.batches,
+                };
+              })}
+              action={receiveBackOfficePurchaseOrder}
+            />
           )}
         </div>
       )}
@@ -957,3 +863,4 @@ export default async function BackOfficePurchaseOrderPage({
     </>
   );
 }
+
