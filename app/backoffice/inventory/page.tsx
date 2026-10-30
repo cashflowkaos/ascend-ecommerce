@@ -18,6 +18,17 @@ export default async function BackOfficeInventoryPage() {
           ],
           include: {
             balances: true,
+            purchaseReceiptItems: {
+              select: {
+                quantityReceived: true,
+                physicalUnitCost: true,
+                receipt: {
+                  select: {
+                    voidedAt: true,
+                  },
+                },
+              },
+            },
           },
         },
         simpleBalances: true,
@@ -30,25 +41,95 @@ export default async function BackOfficeInventoryPage() {
     }),
   ]);
 
+  const inventorySummary = products
+    .filter((product) => product.inventoryType !== "NON_INVENTORY")
+    .map((product) => {
+      let quantity = 0;
+      let value = 0;
+
+      const catalogUnitCost =
+        Number(product.cost ?? 0) /
+        (product.inventoryType === "BATCHED"
+          ? Math.max(1, product.unitsPerKit)
+          : 1);
+
+      if (product.inventoryType === "SIMPLE") {
+        quantity = product.simpleBalances.reduce(
+          (sum, balance) => sum + balance.quantity,
+          0
+        );
+
+        value = quantity * catalogUnitCost;
+      } else {
+        for (const batch of product.batches) {
+          const stock = batch.balances.reduce(
+            (sum, balance) => sum + balance.quantity,
+            0
+          );
+
+          quantity += stock;
+
+          if (stock <= 0) continue;
+
+          const receipts = batch.purchaseReceiptItems.filter(
+            (receipt) =>
+              !receipt.receipt.voidedAt &&
+              receipt.physicalUnitCost !== null &&
+              receipt.quantityReceived > 0
+          );
+
+          const receivedQuantity = receipts.reduce(
+            (sum, receipt) => sum + receipt.quantityReceived,
+            0
+          );
+
+          const unitCost =
+            receivedQuantity > 0
+              ? receipts.reduce(
+                  (sum, receipt) =>
+                    sum +
+                    receipt.quantityReceived *
+                      Number(receipt.physicalUnitCost),
+                  0
+                ) / receivedQuantity
+              : catalogUnitCost;
+
+          value += stock * unitCost;
+        }
+      }
+
+      return {
+        id: product.id,
+        sku: product.sku,
+        name: product.name,
+        quantity,
+        value,
+        unitCost: quantity > 0 ? value / quantity : catalogUnitCost,
+      };
+    });
+
+  const lowStock = inventorySummary.filter(
+    (product) =>
+      product.quantity > 0 &&
+      product.quantity <= 10
+  );
+
+  const outOfStock = inventorySummary.filter(
+    (product) => product.quantity <= 0
+  );
+
+  const lowStockValue = lowStock.reduce(
+    (sum, product) => sum + product.value,
+    0
+  );
   const totalBatches = products.reduce(
     (total, product) =>
       total + product.batches.length,
     0
   );
 
-  const totalVials = products.reduce(
-    (productTotal, product) =>
-      productTotal +
-      product.batches.reduce(
-        (batchTotal, batch) =>
-          batchTotal +
-          batch.balances.reduce(
-            (balanceTotal, balance) =>
-              balanceTotal + balance.quantity,
-            0
-          ),
-        0
-      ),
+  const totalPhysicalUnits = inventorySummary.reduce(
+    (sum, product) => sum + product.quantity,
     0
   );
 
@@ -109,8 +190,8 @@ export default async function BackOfficeInventoryPage() {
         </div>
 
         <div className="backoffice-stat-card">
-          <span>Total Vials</span>
-          <strong>{totalVials}</strong>
+          <span>Physical Units</span>
+          <strong>{totalPhysicalUnits}</strong>
         </div>
 
         <div className="backoffice-stat-card">
@@ -119,6 +200,134 @@ export default async function BackOfficeInventoryPage() {
         </div>
       </div>
 
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: "16px",
+          marginBottom: "20px",
+        }}
+      >
+        <div className="backoffice-panel" style={{ marginBottom: 0 }}>
+          <div className="backoffice-panel-heading">
+            <div>
+              <span className="backoffice-eyebrow">
+                INVENTORY ATTENTION
+              </span>
+              <h2>Low Stock</h2>
+              <p>
+                {lowStock.length} products at 10 units or fewer ·{" "}
+                ${lowStockValue.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                remaining stock value
+              </p>
+            </div>
+          </div>
+
+          <div className="backoffice-table-wrap">
+            <table className="backoffice-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Stock</th>
+                  <th>Unit Cost</th>
+                  <th>Stock Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lowStock.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>No low-stock products.</td>
+                  </tr>
+                ) : (
+                  lowStock.map((product) => (
+                    <tr key={product.id}>
+                      <td>
+                        <Link
+                          href={`/backoffice/inventory/${product.id}`}
+                        >
+                          <strong>{product.name}</strong>
+                          <br />
+                          <span>{product.sku}</span>
+                        </Link>
+                      </td>
+                      <td>
+                        <strong>{product.quantity}</strong>
+                      </td>
+                      <td>
+                        ${product.unitCost.toFixed(2)}
+                      </td>
+                      <td>
+                        <strong>${product.value.toFixed(2)}</strong>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="backoffice-panel" style={{ marginBottom: 0 }}>
+          <div className="backoffice-panel-heading">
+            <div>
+              <span className="backoffice-eyebrow">
+                INVENTORY ATTENTION
+              </span>
+              <h2>Out of Stock</h2>
+              <p>
+                {outOfStock.length} products currently have no physical
+                inventory.
+              </p>
+            </div>
+          </div>
+
+          <div className="backoffice-table-wrap">
+            <table className="backoffice-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Stock</th>
+                  <th>Unit Cost</th>
+                  <th>Stock Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {outOfStock.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>No out-of-stock products.</td>
+                  </tr>
+                ) : (
+                  outOfStock.map((product) => (
+                    <tr key={product.id}>
+                      <td>
+                        <Link
+                          href={`/backoffice/inventory/${product.id}`}
+                        >
+                          <strong>{product.name}</strong>
+                          <br />
+                          <span>{product.sku}</span>
+                        </Link>
+                      </td>
+                      <td>
+                        <strong>{product.quantity}</strong>
+                      </td>
+                      <td>
+                        ${product.unitCost.toFixed(2)}
+                      </td>
+                      <td>
+                        <strong>${product.value.toFixed(2)}</strong>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
       <div className="backoffice-panel">
         <div className="backoffice-panel-heading">
           <div>
